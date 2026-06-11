@@ -1,4 +1,4 @@
-# urgencias-core
+# urg-forecast-core
 
 Código de referencia para análisis, simulación y forecasting de servicios de
 urgencia en Chile. Fundación abierta de **Eunosia**.
