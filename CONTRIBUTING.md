@@ -65,9 +65,9 @@ After the first release:
 
 3. Add the concept DOI to `CITATION.cff` (`doi:` field), the README "Citing"
    section (DOI badge), and `paper/paper.md` if submitting to JOSS.
-4. `.zenodo.json`, `CITATION.cff`, and `paper/paper.md` still contain a
-   placeholder ORCID (`0000-0000-0000-0000`) and affiliation — fill these in
-   before the first release.
 
 For submitting the software paper (JOSS), the archived Zenodo DOI is required at
-submission; draft papers are under `paper/`.
+submission; draft papers are under `paper/`. JOSS also expects each author to
+have an [ORCID](https://orcid.org/) (free to create). No author currently has
+one, so ORCID fields were omitted from `paper/paper.md`, `CITATION.cff`, and
+`.zenodo.json`; add them there before a JOSS submission.

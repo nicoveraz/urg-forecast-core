@@ -12,9 +12,7 @@ type: software
 authors:
   - given-names: "Nicolás"
     family-names: "Vera Zúñiga"
-    # TODO: replace with the author's real ORCID before release
-    orcid: "https://orcid.org/0000-0000-0000-0000"
-    affiliation: "Eunosia"  # TODO: confirm full institutional affiliation
+    affiliation: "Eunosia, Frutillar, Chile"
 version: "0.1.0"
 date-released: "2026-07-20"
 license: MIT

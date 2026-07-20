@@ -10,10 +10,9 @@ tags:
   - Chile
 authors:
   - name: Nicolás Vera Zúñiga
-    orcid: 0000-0000-0000-0000  # TODO: replace with real ORCID
     affiliation: 1
 affiliations:
-  - name: Eunosia  # TODO: confirm full institutional affiliation
+  - name: Eunosia, Frutillar, Chile
     index: 1
 date: 20 July 2026
 bibliography: paper.bib

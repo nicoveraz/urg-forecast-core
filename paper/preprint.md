@@ -2,9 +2,9 @@
 
 **Nicolás Vera Zúñiga**¹
 
-¹ Eunosia — *TODO: confirm full institutional affiliation and add ORCID*
+¹ Eunosia, Frutillar, Chile
 
-*Draft preprint — v0.1.0. Corresponding author: TODO. Intended for arXiv/medRxiv or a health-informatics venue.*
+*Draft preprint — v0.1.0. Intended for arXiv/medRxiv or a health-informatics venue.*
 
 ---
 
