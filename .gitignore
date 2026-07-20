@@ -19,9 +19,11 @@ build/
 /models/
 /outputs/
 
-# Parquet files by default are not committed, except the synthetic fixture
+# Parquet files by default are not committed, except the synthetic fixtures
+# (the test fixture and the compact demo fixture shipped inside the package).
 *.parquet
 !tests/fixtures/*.parquet
+!src/urgencias_core/data/_fixtures/*.parquet
 
 # Editor / OS
 .DS_Store

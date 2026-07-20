@@ -34,6 +34,11 @@ dev = [
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.hatch.build]
+# Ensure the bundled demo fixture ships in the wheel even though *.parquet is
+# git-ignored by default.
+artifacts = ["src/urgencias_core/data/_fixtures/*.parquet"]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/urgencias_core"]
 
