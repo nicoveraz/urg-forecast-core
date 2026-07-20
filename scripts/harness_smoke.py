@@ -12,8 +12,6 @@ import argparse
 import time
 from pathlib import Path
 
-import pandas as pd
-
 from urgencias_core.data.loader import load_visits
 from urgencias_core.data.timeseries import hourly_timeseries
 from urgencias_core.eval.baselines import (

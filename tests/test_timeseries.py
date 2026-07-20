@@ -54,9 +54,7 @@ def test_cache_roundtrip(visits: pd.DataFrame, tmp_path: Path) -> None:
 def test_small_synthetic_case() -> None:
     visits = pd.DataFrame(
         {
-            "arrival": pd.to_datetime(
-                ["2024-01-01 10:00", "2024-01-01 10:30", "2024-01-01 12:00"]
-            ),
+            "arrival": pd.to_datetime(["2024-01-01 10:00", "2024-01-01 10:30", "2024-01-01 12:00"]),
             "discharge": pd.to_datetime(
                 ["2024-01-01 11:30", "2024-01-01 13:00", "2024-01-01 13:00"]
             ),
@@ -67,8 +65,8 @@ def test_small_synthetic_case() -> None:
     ts = hourly_timeseries(visits)
     ts = ts.set_index("timestamp")
 
-    # At 10:00-11:00 census: patient1 present 10:00..11:00 (1h), patient2 present 10:30..11:00 (0.5h)
-    # Mean census = (1*60 + 1*30) / 60 = 1.5
+    # At 10:00-11:00 census: patient1 present 10:00..11:00 (1h),
+    # patient2 present 10:30..11:00 (0.5h). Mean census = (1*60 + 1*30) / 60 = 1.5
     assert ts.loc["2024-01-01 10:00", "occupancy"] == pytest.approx(1.5)
     assert ts.loc["2024-01-01 10:00", "arrivals"] == 2
     assert ts.loc["2024-01-01 12:00", "arrivals"] == 1

@@ -2,8 +2,9 @@
 
 The server reads a single TOML file (default: ``urgencias-core.toml`` in the
 current working directory). When no file is present it falls back to a
-built-in default that points at the packaged synthetic fixture so the server
-runs out of the box on a fresh clone.
+built-in default that points at the synthetic fixture shipped inside the
+package, so the server runs out of the box from both a source checkout and
+a ``pip install``.
 """
 
 from __future__ import annotations
@@ -13,15 +14,24 @@ from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field
 
-_PACKAGE_ROOT = Path(__file__).resolve().parents[3]
-_DEFAULT_FIXTURE = _PACKAGE_ROOT / "tests" / "fixtures" / "synthetic_ed_visits.parquet"
+from urgencias_core.data.fixtures import synthetic_visits_path
+
+
+def default_fixture_path() -> Path:
+    """Filesystem path to the synthetic demo fixture bundled with the package.
+
+    The fixture is a compact one-year synthetic ED visit table used as the
+    zero-config default dataset for the reference server and demos. Resolves
+    correctly from both a source checkout and an installed wheel.
+    """
+    return synthetic_visits_path()
 
 
 class DataConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     parquet: Path = Field(
-        default=_DEFAULT_FIXTURE,
+        default_factory=default_fixture_path,
         description="Path to a visit-level parquet file matching the loader schema.",
     )
 
@@ -86,5 +96,6 @@ __all__ = [
     "ServerConfig",
     "SimulationConfig",
     "load_config",
+    "default_fixture_path",
     "DEFAULT_CONFIG_FILENAME",
 ]

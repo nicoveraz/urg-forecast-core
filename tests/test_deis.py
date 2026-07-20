@@ -18,8 +18,9 @@ from urgencias_core.data.deis import (
     fetch_demo_hospitals,
     year_url,
 )
+from urgencias_core.data.fixtures import deis_snapshot_path
 
-SNAPSHOT = Path(__file__).parent / "fixtures" / "deis_demo_snapshot.parquet"
+SNAPSHOT = deis_snapshot_path()
 
 
 def test_constants_are_sane() -> None:
@@ -49,7 +50,10 @@ def test_canonicalize_matches_raw_schema() -> None:
             "IdEstablecimiento": ["24-105", "24-115"],
             "NEstablecimiento": ["Hospital de Puerto Montt", "Hospital de Frutillar"],
             "IdCausa": ["1", "1"],
-            "GlosaCausa": ["SECCIÓN 1. TOTAL ATENCIONES DE URGENCIA", "SECCIÓN 1. TOTAL ATENCIONES DE URGENCIA"],
+            "GlosaCausa": [
+                "SECCIÓN 1. TOTAL ATENCIONES DE URGENCIA",
+                "SECCIÓN 1. TOTAL ATENCIONES DE URGENCIA",
+            ],
             "Total": ["800", "80"],
             "fecha": ["01/03/2025", "01/03/2025"],
         }

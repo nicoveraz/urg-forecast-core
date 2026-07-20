@@ -15,9 +15,16 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
-from lightgbm import LGBMRegressor
+
+from urgencias_core._optional import missing_extra_error
 
 from .protocol import HorizonSpec, future_index
+
+try:
+    import sklearn  # noqa: F401 - LightGBM's LGBMRegressor needs scikit-learn at runtime
+    from lightgbm import LGBMRegressor
+except ImportError as exc:  # pragma: no cover - exercised via the core-only install
+    raise missing_extra_error("models", "LGBQuantileForecaster") from exc
 
 
 class LGBQuantileForecaster:
@@ -27,8 +34,19 @@ class LGBQuantileForecaster:
     """
 
     FEATURE_COLS: tuple[str, ...] = (
-        "hour", "dow", "month", "doy", "week_of_month", "year", "is_weekend",
-        "hour_sin", "hour_cos", "dow_sin", "dow_cos", "month_sin", "month_cos",
+        "hour",
+        "dow",
+        "month",
+        "doy",
+        "week_of_month",
+        "year",
+        "is_weekend",
+        "hour_sin",
+        "hour_cos",
+        "dow_sin",
+        "dow_cos",
+        "month_sin",
+        "month_cos",
     )
 
     def __init__(

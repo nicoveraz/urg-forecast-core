@@ -45,16 +45,8 @@ de espera por cama. Requiere o una nueva columna en el export del EMR o
 un proxy por timestamps de entrada de órdenes. Sprint 3 candidato en
 el plan de `eunosia-forecast`.
 
-## Console scripts / entry points
-
-`pyproject.toml` no define console scripts. El demo y el servidor
-se invocan via `uv run python scripts/demo_*.py` y
-`uv run uvicorn urgencias_core.server.app:app`. Es intencional: este
-código no pretende ser un CLI instalable.
-
-## Console logging unificado
-
-Varios módulos usan `print()` (demos) y otros usan `logging.getLogger(__name__)`
-(deis, simulation). Estandarizar sobre logging con un handler por
-defecto en los demos haría los usos más configurables. No es
-crítico.
+> **Nota (v0.1.0):** los ítems previos de esta hoja de ruta sobre *console
+> scripts / entry points* y *logging unificado* ya fueron implementados
+> (ver `CHANGELOG.md`): `pyproject.toml` define los console scripts
+> `urgencias-demo-synthetic`, `urgencias-demo-deis` y `urgencias-server`, y
+> `urgencias_core._logging.setup_logging` unifica la salida por consola.

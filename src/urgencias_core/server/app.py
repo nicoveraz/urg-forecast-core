@@ -20,15 +20,20 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from fastapi import FastAPI, Query, Request
-from fastapi.responses import HTMLResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
+
+from urgencias_core._optional import missing_extra_error
+
+try:
+    from fastapi import FastAPI, Query, Request
+    from fastapi.responses import HTMLResponse
+    from fastapi.staticfiles import StaticFiles
+    from fastapi.templating import Jinja2Templates
+except ImportError as exc:  # pragma: no cover - exercised via the core-only install
+    raise missing_extra_error("server", "The reference server") from exc
 
 from urgencias_core.data.loader import load_visits
 from urgencias_core.data.timeseries import hourly_timeseries
 from urgencias_core.eval.baselines import SeasonalNaiveBaseline
-from urgencias_core.models.lgb_quantile import LGBQuantileForecaster
 from urgencias_core.models.protocol import HorizonSpec
 from urgencias_core.simulation.engine import simulate
 from urgencias_core.simulation.los_empirical import EmpiricalLOSSampler
@@ -62,6 +67,10 @@ def _select_forecaster(name: str):
     if name in ("seasonal_naive", "naive"):
         return SeasonalNaiveBaseline()
     if name in ("lgb_quantile", "lgb"):
+        # Imported lazily so the seasonal_naive path (and importing the server
+        # module itself) does not require the "models" extra.
+        from urgencias_core.models.lgb_quantile import LGBQuantileForecaster
+
         return LGBQuantileForecaster(n_estimators=200)
     raise ValueError(f"Unknown forecaster: {name!r}")
 
@@ -108,9 +117,7 @@ def create_app(config: ServerConfig | None = None) -> FastAPI:
             "median_los": float(state.visits["los_hours"].median()),
             "mean_occupancy": float(state.hourly["occupancy"].mean()),
             "peak_hour": int(
-                state.hourly.groupby(pd.to_datetime(state.hourly["timestamp"]).dt.hour)[
-                    "occupancy"
-                ]
+                state.hourly.groupby(pd.to_datetime(state.hourly["timestamp"]).dt.hour)["occupancy"]
                 .mean()
                 .idxmax()
             ),
@@ -169,7 +176,9 @@ def create_app(config: ServerConfig | None = None) -> FastAPI:
     ):
         h = int(horizon or cfg.simulation.horizon_hours)
         n = int(n_sims or cfg.simulation.n_sims)
-        census0 = int(current_census if current_census is not None else cfg.simulation.current_census)
+        census0 = int(
+            current_census if current_census is not None else cfg.simulation.current_census
+        )
         sh = int(start_hour if start_hour is not None else cfg.simulation.start_hour)
 
         if arrivals is None:
@@ -193,7 +202,9 @@ def create_app(config: ServerConfig | None = None) -> FastAPI:
         chart = charts.fan_chart(qf)
         table = qf.round(1).to_html(classes="data-table", border=0, index=False)
 
-        exceedance_thresholds = [int(q) for q in np.linspace(max(1, census0), max(1, census0) + 10, 3)]
+        exceedance_thresholds = [
+            int(q) for q in np.linspace(max(1, census0), max(1, census0) + 10, 3)
+        ]
         exceedance_rows = []
         for t in exceedance_thresholds:
             probs = result.exceedance(t)

@@ -129,10 +129,9 @@ def _is_bridge_day(d: date, holidays_lookup: pyholidays.HolidayBase) -> bool:
         right += 1
         cur += timedelta(days=1)
 
-    adjacent_to_holiday = (
-        (d - timedelta(days=1)) in holidays_lookup
-        or (d + timedelta(days=1)) in holidays_lookup
-    )
+    adjacent_to_holiday = (d - timedelta(days=1)) in holidays_lookup or (
+        d + timedelta(days=1)
+    ) in holidays_lookup
     return adjacent_to_holiday and (left + 1 + right) >= 3
 
 
@@ -151,9 +150,7 @@ def _is_school_holiday(d: date) -> bool:
         return True
     if (7, 12) <= md <= (7, 26):
         return True
-    if (9, 17) <= md <= (9, 20):
-        return True
-    return False
+    return (9, 17) <= md <= (9, 20)
 
 
 def _in_annual_window(

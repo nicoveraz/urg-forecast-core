@@ -12,11 +12,12 @@
 
 from __future__ import annotations
 
-from typing import Callable
+from collections.abc import Callable
 
 import numpy as np
 import pandas as pd
 
+from urgencias_core._optional import missing_extra_error
 from urgencias_core.models.protocol import HorizonSpec, future_index
 
 
@@ -54,7 +55,11 @@ class SeasonalNaiveBaseline:
     def predict(self, horizon: HorizonSpec) -> pd.DataFrame:
         if self._key_fn is None or self._history_end is None or self._fallback is None:
             raise RuntimeError("SeasonalNaiveBaseline.predict called before fit")
-        key_fn = _key_func(horizon.grain) if _grain_changed(self._key_fn, horizon.grain) else self._key_fn
+        key_fn = (
+            _key_func(horizon.grain)
+            if _grain_changed(self._key_fn, horizon.grain)
+            else self._key_fn
+        )
         future = future_index(self._history_end, horizon)
         qcols = [f"q{int(round(q * 100))}" for q in sorted(self.quantiles)]
         sorted_q_idx = np.argsort(self.quantiles)
@@ -93,7 +98,10 @@ class StatsForecastWrapper:
         self._alias: str | None = None
 
     def fit(self, history: pd.DataFrame, target_col: str) -> None:
-        from statsforecast import StatsForecast
+        try:
+            from statsforecast import StatsForecast
+        except ImportError as exc:
+            raise missing_extra_error("models", "statsforecast forecasters") from exc
 
         ts = pd.to_datetime(history["timestamp"])
         freq = pd.infer_freq(ts) or "h"
@@ -132,7 +140,10 @@ def auto_arima(
     quantiles: tuple[float, ...] = (0.5, 0.8, 0.9, 0.95),
     **kwargs,
 ) -> StatsForecastWrapper:
-    from statsforecast.models import AutoARIMA
+    try:
+        from statsforecast.models import AutoARIMA
+    except ImportError as exc:
+        raise missing_extra_error("models", "AutoARIMA") from exc
 
     model = AutoARIMA(season_length=season_length, **kwargs)
     return StatsForecastWrapper(model, quantiles=quantiles, name="AutoARIMA")
@@ -143,7 +154,10 @@ def auto_ets(
     quantiles: tuple[float, ...] = (0.5, 0.8, 0.9, 0.95),
     **kwargs,
 ) -> StatsForecastWrapper:
-    from statsforecast.models import AutoETS
+    try:
+        from statsforecast.models import AutoETS
+    except ImportError as exc:
+        raise missing_extra_error("models", "AutoETS") from exc
 
     model = AutoETS(season_length=season_length, **kwargs)
     return StatsForecastWrapper(model, quantiles=quantiles, name="AutoETS")
@@ -154,7 +168,10 @@ def auto_theta(
     quantiles: tuple[float, ...] = (0.5, 0.8, 0.9, 0.95),
     **kwargs,
 ) -> StatsForecastWrapper:
-    from statsforecast.models import AutoTheta
+    try:
+        from statsforecast.models import AutoTheta
+    except ImportError as exc:
+        raise missing_extra_error("models", "AutoTheta") from exc
 
     model = AutoTheta(season_length=season_length, **kwargs)
     return StatsForecastWrapper(model, quantiles=quantiles, name="AutoTheta")
@@ -165,7 +182,10 @@ def mstl(
     quantiles: tuple[float, ...] = (0.5, 0.8, 0.9, 0.95),
     **kwargs,
 ) -> StatsForecastWrapper:
-    from statsforecast.models import MSTL, AutoARIMA
+    try:
+        from statsforecast.models import MSTL, AutoARIMA
+    except ImportError as exc:
+        raise missing_extra_error("models", "MSTL") from exc
 
     trend_fc = kwargs.pop("trend_forecaster", None) or AutoARIMA()
     model = MSTL(season_length=list(season_length), trend_forecaster=trend_fc, **kwargs)

@@ -26,7 +26,6 @@ If you use this code against real DEIS data, credit DEIS MINSAL
 
 from __future__ import annotations
 
-import io
 import logging
 import time
 import zipfile
@@ -34,8 +33,14 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
-import httpx
 import pandas as pd
+
+from urgencias_core._optional import missing_extra_error
+
+try:
+    import httpx
+except ImportError as exc:  # pragma: no cover - exercised via the core-only install
+    raise missing_extra_error("fetch", "The DEIS MINSAL fetcher") from exc
 
 logger = logging.getLogger(__name__)
 
@@ -54,8 +59,14 @@ DEMO_HOSPITALS: dict[str, str] = {
 }
 
 _CANONICAL_COLUMNS = (
-    "year", "date", "facility_code", "facility_name",
-    "cause_id", "cause_group", "age_group", "count",
+    "year",
+    "date",
+    "facility_code",
+    "facility_name",
+    "cause_id",
+    "cause_group",
+    "age_group",
+    "count",
 )
 
 # Legacy "código antiguo" aliases. Older DEIS files use "XX-YYY" form, newer
@@ -232,27 +243,55 @@ def _canonicalize(df: pd.DataFrame, year: int) -> pd.DataFrame:
         return None
 
     facility_code_col = pick(
-        "establecimiento", "idestablecimiento", "cod_establecimiento",
-        "codigoestablecimiento", "codigo_establecimiento", "cod_estab",
-        "cod_esta", "establecimiento_cod",
+        "establecimiento",
+        "idestablecimiento",
+        "cod_establecimiento",
+        "codigoestablecimiento",
+        "codigo_establecimiento",
+        "cod_estab",
+        "cod_esta",
+        "establecimiento_cod",
     )
     facility_name_col = pick(
-        "nestablecimiento", "nombreestablecimiento", "nombre_establecimiento",
-        "estab_nombre", "glosaestablecimiento", "establecimiento_glosa",
+        "nestablecimiento",
+        "nombreestablecimiento",
+        "nombre_establecimiento",
+        "estab_nombre",
+        "glosaestablecimiento",
+        "establecimiento_glosa",
     )
     date_col = pick("fecha", "fechaatencion", "fecha_atencion", "fecha_registro")
     cause_col = pick(
-        "glosacausa", "causa", "nombrecausa", "causa_glosa", "grupo_causa",
-        "grupo_de_causa", "descripcioncausa", "nombre_causa",
+        "glosacausa",
+        "causa",
+        "nombrecausa",
+        "causa_glosa",
+        "grupo_causa",
+        "grupo_de_causa",
+        "descripcioncausa",
+        "nombre_causa",
     )
     cause_id_col = pick("idcausa", "cod_causa", "codigocausa", "causa_id")
     age_col = pick(
-        "grupo_edad", "grupoedad", "grupo_de_edad", "tramo_edad", "tramoedad",
-        "edad_tramo", "edad", "causaedad",
+        "grupo_edad",
+        "grupoedad",
+        "grupo_de_edad",
+        "tramo_edad",
+        "tramoedad",
+        "edad_tramo",
+        "edad",
+        "causaedad",
     )
     count_col = pick(
-        "total", "numtotal", "numero_total", "numeroatenciones", "atenciones",
-        "numero_atenciones", "cantidad", "conteo", "n",
+        "total",
+        "numtotal",
+        "numero_total",
+        "numeroatenciones",
+        "atenciones",
+        "numero_atenciones",
+        "cantidad",
+        "conteo",
+        "n",
     )
 
     required = {"facility_code": facility_code_col, "date": date_col, "count": count_col}
@@ -272,9 +311,7 @@ def _canonicalize(df: pd.DataFrame, year: int) -> pd.DataFrame:
     out["facility_name"] = (
         df[facility_name_col].astype(str).str.strip().values if facility_name_col else ""
     )
-    out["cause_id"] = (
-        df[cause_id_col].astype(str).str.strip().values if cause_id_col else ""
-    )
+    out["cause_id"] = df[cause_id_col].astype(str).str.strip().values if cause_id_col else ""
     out["cause_group"] = df[cause_col].astype(str).str.strip().values if cause_col else ""
     out["age_group"] = df[age_col].astype(str).str.strip().values if age_col else ""
     out["count"] = pd.to_numeric(df[count_col], errors="coerce").fillna(0).astype("int64").values
@@ -321,9 +358,7 @@ def load_year(
                         year=year,
                         message=f"No facility column detected. Columns: {sorted(chunk.columns)}",
                     )
-                chunk = chunk.loc[
-                    chunk[fcol].astype(str).str.strip().isin(facility_filter)
-                ]
+                chunk = chunk.loc[chunk[fcol].astype(str).str.strip().isin(facility_filter)]
                 if len(chunk) == 0:
                     continue
             frames.append(_canonicalize(chunk, year))

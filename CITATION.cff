@@ -1,0 +1,32 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using these metadata."
+title: "urgencias-core"
+abstract: >-
+  Open reference pipeline for Chilean emergency department analytics,
+  probabilistic forecasting, and Monte Carlo occupancy simulation: a
+  visits-to-hourly-occupancy transform, Chilean calendar features, a uniform
+  quantile Forecaster interface (seasonal-naive, statsforecast, LightGBM), an
+  evaluation harness, an empirical-LOS Monte Carlo engine, a DEIS MINSAL
+  open-data client, and a minimal reference dashboard.
+type: software
+authors:
+  - given-names: "Nicolás"
+    family-names: "Vera Zúñiga"
+    orcid: "https://orcid.org/0009-0007-9249-3736"
+    affiliation: "Eunosia, Frutillar, Chile"
+version: "0.1.0"
+date-released: "2026-07-20"
+license: MIT
+repository-code: "https://github.com/nicoveraz/urg-forecast-core"
+url: "https://pypi.org/project/urgencias-core/"
+keywords:
+  - emergency department
+  - emergency medicine
+  - forecasting
+  - time series
+  - Monte Carlo simulation
+  - capacity planning
+  - Chile
+  - DEIS
+# After the first Zenodo release, add the concept DOI here, e.g.:
+# doi: "10.5281/zenodo.XXXXXXX"

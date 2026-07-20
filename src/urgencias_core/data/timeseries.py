@@ -77,9 +77,7 @@ def hourly_timeseries(
     dis_bin = visits["discharge"].dt.floor("h")
     arrivals = arr_bin.value_counts().reindex(index, fill_value=0).astype("int64")
     departures = dis_bin.value_counts().reindex(index, fill_value=0).astype("int64")
-    mean_los_arriving = (
-        visits.groupby(arr_bin)["los_hours"].mean().reindex(index).astype("float64")
-    )
+    mean_los_arriving = visits.groupby(arr_bin)["los_hours"].mean().reindex(index).astype("float64")
 
     out = pd.DataFrame(
         {
