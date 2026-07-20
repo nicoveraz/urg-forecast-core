@@ -6,6 +6,26 @@ and issues are welcome; while on 0.x the API may change between minor versions.
 If you need commercial support or bespoke work on top of this foundation, contact
 the author.
 
+All participation is governed by our [Code of Conduct](CODE_OF_CONDUCT.md).
+
+## Reporting issues and getting support
+
+- **Bugs and feature requests:** open an issue at
+  <https://github.com/nicoveraz/urg-forecast-core/issues>. For a bug, include the
+  package version (`pip show urg-forecast-core`), Python version, OS, a minimal
+  example, and the full traceback.
+- **Questions and usage help:** open an issue with the *question* label, or start
+  a discussion if the repository has Discussions enabled.
+- **Security reports:** see [SECURITY.md](SECURITY.md) — please do not open a
+  public issue for a suspected vulnerability.
+
+## Contributing changes
+
+Fork the repository, create a topic branch, and open a pull request against
+`main`. Before pushing, make sure the checks below pass locally; CI runs the same
+lint, format, test (Python 3.11 and 3.12), build, and core-only-install jobs on
+every pull request.
+
 ## Development
 
 ```bash
