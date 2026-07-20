@@ -10,6 +10,7 @@ tags:
   - Chile
 authors:
   - name: Nicolás Vera Zúñiga
+    orcid: 0009-0007-9249-3736
     affiliation: 1
 affiliations:
   - name: Eunosia, Frutillar, Chile
@@ -84,9 +85,10 @@ demo is framed strictly as a methodological demonstration and is **not** an
 operational, clinical, or quality evaluation of any hospital.
 
 ![Twelve-week holdout backtest of weekly ED attendance at Hospital de Puerto
-Montt (real DEIS MINSAL data). The harness selects `AutoARIMA` here; the true
-values fall inside the P80–P95 band for most weeks. Model selection is repeated
-per site.\label{fig:holdout}](figures/deis_holdout_puerto_montt.png)
+Montt (real DEIS MINSAL data), after trimming partial edge weeks. Grey: training
+tail; red: observed holdout; blue: `AutoARIMA` median with P50–P80 and P80–P95
+bands. The harness selects `AutoARIMA` here by P80 pinball loss; selection is
+repeated per site.\label{fig:holdout}](figures/deis_holdout_puerto_montt.png)
 
 # Functionality and use
 

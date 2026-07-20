@@ -12,6 +12,7 @@ type: software
 authors:
   - given-names: "Nicolás"
     family-names: "Vera Zúñiga"
+    orcid: "https://orcid.org/0009-0007-9249-3736"
     affiliation: "Eunosia, Frutillar, Chile"
 version: "0.1.0"
 date-released: "2026-07-20"

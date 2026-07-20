@@ -35,6 +35,10 @@ First public release — the reference pipeline packaged for `pip install`.
 - Default server fixture resolved a repo-relative path (`parents[3]`) that
   escaped `site-packages` in an installed wheel; it now resolves the bundled
   fixture via `importlib.resources`.
+- DEIS weekly aggregation (`demos.deis._to_weekly`) now trims partial weeks at
+  both series edges, not only a fully-empty trailing week. A most-recent week
+  with a missing day (near-real-time reporting lag) was kept and appeared as a
+  spurious end-of-series drop that contaminated the backtest.
 
 ### Changed
 

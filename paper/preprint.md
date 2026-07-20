@@ -2,7 +2,7 @@
 
 **Nicolás Vera Zúñiga**¹
 
-¹ Eunosia, Frutillar, Chile
+¹ Eunosia, Frutillar, Chile. ORCID: [0009-0007-9249-3736](https://orcid.org/0009-0007-9249-3736)
 
 *Draft preprint — v0.1.0. Intended for arXiv/medRxiv or a health-informatics venue.*
 
@@ -16,7 +16,7 @@
 
 **Methods.** The package converts visit-level records to an hourly occupancy census using an event cumulative-sum construction, engineers Chile-specific calendar features, exposes a uniform `Forecaster` interface over a seasonal-naive baseline, classical statistical models (AutoARIMA, AutoETS, AutoTheta, MSTL), and a per-quantile LightGBM model, and scores them with an evaluation harness using pinball (quantile) loss. A Monte Carlo engine propagates forecast uncertainty and an empirical length-of-stay (LOS) sampler into census bands. We ran a 12-week rolling-origin-free holdout backtest of weekly total ED attendances for two hospitals in the Servicio de Salud Reloncaví (Los Lagos, Chile) using the public DEIS MINSAL *Atenciones de Urgencia* dataset.
 
-**Results.** On the holdout, the harness selected different best models per site by P80 pinball loss: AutoARIMA for the high-complexity Hospital de Puerto Montt (mean absolute error [MAE] 204.9 weekly attendances, P80 pinball loss 65.2) and the seasonal-naive baseline for the low-complexity Hospital de Frutillar (MAE 47.2, P80 pinball loss 16.5). Point-accuracy and calibration rankings did not always agree, underscoring the value of selecting on the operationally relevant quantile.
+**Results.** On the holdout, the harness selected different best models per site by P80 pinball loss: AutoARIMA for the high-complexity Hospital de Puerto Montt (mean absolute error [MAE] 181.1 weekly attendances, P80 pinball loss 71.0) and the seasonal-naive baseline for the low-complexity Hospital de Frutillar (MAE 47.2, P80 pinball loss 16.5). Point-accuracy and calibration rankings did not always agree, underscoring the value of selecting on the operationally relevant quantile.
 
 **Conclusions.** `urgencias-core` lowers the barrier between published ED-forecasting methods and runnable, reproducible tooling. It is released under the MIT license, is installable from PyPI, and is archived on Zenodo. The DEIS demonstration is strictly methodological and is **not** an operational, clinical, or quality evaluation of any hospital.
 
@@ -40,7 +40,7 @@ Because visit-level ED data are sensitive, the package ships a synthetic generat
 
 For real-data demonstration we use the *Atenciones de Urgencia* open dataset published by the Departamento de Estadísticas e Información de Salud (DEIS), Ministerio de Salud de Chile [@deis], distributed under Chile's open-data framework. The dataset provides aggregated counts per facility, per date, per cause group; it does **not** contain visit-level timestamps, so it supports the forecasting layer but not the visit-level occupancy simulator. We use two hospitals in the Servicio de Salud Reloncaví (Los Lagos region): **Hospital de Puerto Montt** (DEIS code 24-105, high-complexity) and **Hospital de Frutillar** (24-115, low-complexity). These were chosen on geographic and pragmatic grounds (regional reference centers with publicly available data), not on any evaluation of quality.
 
-We model the "SECCIÓN 1. TOTAL ATENCIONES DE URGENCIA" total, summing daily counts to a weekly (`W-MON`) grain. The pandemic years 2020–2021 are excluded by default because their regime is not representative for planning the current period; a corrupted source header in the 2020 file makes it unusable without a bespoke parser in any case. The bundled offline snapshot covers 2021–2026 (through 2026-04-11), yielding 223 weekly observations per site after aggregation.
+We model the "SECCIÓN 1. TOTAL ATENCIONES DE URGENCIA" total, summing daily counts to a weekly (`W-MON`) grain. Partial weeks at the series edges are trimmed: DEIS is near-real-time, so the most recent week can be under-counted by reporting lag or a missing day, which would otherwise appear as a spurious end-of-series drop. The pandemic years 2020–2021 are excluded by default because their regime is not representative for planning the current period; a corrupted source header in the 2020 file makes it unusable without a bespoke parser in any case. After aggregation and edge-trimming, the bundled offline snapshot (2021–2026) yields 221 complete weekly observations for Puerto Montt and 222 for Frutillar (the two sites differ because a single day was missing from the most recent Puerto Montt week at snapshot time).
 
 **Framing.** The DEIS analysis is a methodological demonstration of how the forecasting tools behave on real Chilean hospital data. It is not an operational, clinical, or quality evaluation of either hospital.
 
@@ -86,7 +86,7 @@ On the synthetic fixture, the occupancy transform reproduces the expected diurna
 
 ### 4.2 DEIS 12-week holdout backtest
 
-We held out the last 12 weeks (2026-01-19 to 2026-04-06) as test and trained on the prior weeks, comparing all five forecasters. Selection uses P80 pinball loss (`qloss_80`). Table 1 reports the results.
+We held out the last 12 complete weeks per site (ending 2026-03-30 for Puerto Montt and 2026-04-06 for Frutillar, after trimming partial edge weeks) as test and trained on the prior weeks, comparing all five forecasters. Selection uses P80 pinball loss (`qloss_80`). Table 1 reports the results.
 
 **Table 1.** Twelve-week holdout metrics for weekly total ED attendances (lower is better; best `qloss_80` per site in bold).
 
@@ -94,25 +94,25 @@ We held out the last 12 weeks (2026-01-19 to 2026-04-06) as test and trained on 
 
 | Model | MAE | RMSE | MAPE | qloss_50 | qloss_80 |
 |---|---:|---:|---:|---:|---:|
-| SeasonalNaive | 199.6 | 261.4 | 0.11 | 99.8 | 129.6 |
-| **AutoARIMA** | 204.9 | 245.4 | 0.12 | 102.4 | **65.2** |
-| AutoETS | 260.0 | 328.5 | 0.14 | 130.0 | 101.3 |
-| AutoTheta | 255.8 | 322.8 | 0.14 | 127.9 | 107.0 |
-| MSTL | 191.0 | 213.5 | 0.11 | 95.5 | 78.3 |
+| SeasonalNaive | 203.8 | 262.6 | 0.11 | 101.9 | 129.3 |
+| **AutoARIMA** | 181.1 | 216.4 | 0.10 | 90.5 | **71.0** |
+| AutoETS | 266.4 | 357.3 | 0.14 | 133.2 | 115.6 |
+| AutoTheta | 266.4 | 357.3 | 0.14 | 133.2 | 118.4 |
+| MSTL | 172.7 | 204.4 | 0.10 | 86.3 | 76.0 |
 
 *Hospital de Frutillar (24-115, low-complexity)*
 
 | Model | MAE | RMSE | MAPE | qloss_50 | qloss_80 |
 |---|---:|---:|---:|---:|---:|
 | **SeasonalNaive** | 47.2 | 66.9 | 0.12 | 23.6 | **16.5** |
-| AutoARIMA | 62.7 | 74.2 | 0.16 | 31.3 | 22.3 |
-| AutoETS | 47.8 | 57.9 | 0.12 | 23.9 | 21.4 |
-| AutoTheta | 60.4 | 74.0 | 0.16 | 30.2 | 17.6 |
-| MSTL | 59.7 | 72.2 | 0.16 | 29.9 | 19.0 |
+| AutoARIMA | 65.5 | 77.2 | 0.17 | 32.8 | 22.7 |
+| AutoETS | 49.1 | 59.0 | 0.13 | 24.6 | 20.0 |
+| AutoTheta | 60.2 | 73.8 | 0.16 | 30.1 | 17.6 |
+| MSTL | 57.9 | 70.4 | 0.15 | 29.0 | 18.8 |
 
-Two observations stand out. First, the selected model differs by site: AutoARIMA for Puerto Montt, seasonal-naive for the smaller, noisier Frutillar series — a one-model-fits-all assumption would be wrong for at least one site. Second, point-accuracy and calibration rankings disagree: at Puerto Montt, MSTL has the best MAE/RMSE (191.0 / 213.5) but AutoARIMA has a markedly better P80 pinball loss (65.2 vs 78.3). Because operational planning uses upper quantiles for surge headroom, selecting on `qloss_80` rather than MAE is the appropriate choice, and the harness does so.
+Two observations stand out. First, the selected model differs by site: AutoARIMA for Puerto Montt, seasonal-naive for the smaller, noisier Frutillar series — a one-model-fits-all assumption would be wrong for at least one site. Second, point-accuracy and calibration rankings disagree: at Puerto Montt, MSTL has the best point accuracy (MAE 172.7, RMSE 204.4) but AutoARIMA has the best P80 calibration (pinball loss 71.0 vs 76.0). Because operational planning uses upper quantiles for surge headroom, selecting on `qloss_80` rather than MAE is the appropriate choice, and the harness does so.
 
-The holdout figure for Puerto Montt shows the true values falling inside the P80–P95 band for most weeks, indicating the selected model is reasonably calibrated over the horizon rather than merely accurate on average.
+The holdout figure for Puerto Montt (Figure 1) shows the observed series (red) rising into autumn and the AutoARIMA median with its P50–P80 and P80–P95 bands tracking that rise — once the incomplete final week is trimmed, the spurious end-of-series drop that near-real-time DEIS data would otherwise introduce is gone.
 
 ### 4.3 Operational forecast
 
@@ -129,6 +129,7 @@ The empirical-LOS Monte Carlo simulator is, to our knowledge, an unusually acces
 - **Aggregated DEIS data.** DEIS provides daily counts, not visit-level timestamps, so the occupancy simulator cannot be exercised on DEIS; the real-data demonstration covers the forecasting layer only.
 - **LOS vs. boarding.** The LOS sampler does not separate active clinical workup from boarding (waiting for an inpatient bed); distinguishing them requires an admission-decision timestamp not present in the current schema.
 - **Calendar approximations.** The school calendar is approximate and varies year to year; regional events are configurable but incomplete.
+- **Reporting lag / right-truncation.** DEIS is updated in near-real-time, so the most recent week(s) can be under-counted (reporting lag or a missing day). We trim partial edge weeks to avoid a spurious end-of-series drop, but any near-real-time run should treat the latest complete week with caution.
 - **Excluded years and single holdout.** 2020–2021 are excluded by default; the harness uses a single holdout rather than rolling-origin backtesting (a rolling backtest is on the roadmap).
 - **Scope.** The DEIS analysis is methodological and not a clinical or quality evaluation; results depend on the snapshot date and should be reproduced against the live source for any operational use.
 

@@ -92,15 +92,24 @@ def _daily_totals(df: pd.DataFrame, facility_code: str) -> pd.DataFrame:
     return daily
 
 
-def _to_weekly(daily: pd.DataFrame) -> pd.DataFrame:
-    ts = daily.set_index("timestamp").resample("W-MON")["count"].sum().reset_index()
-    # Drop the final partial week if it does not cover a full week.
-    if len(ts) > 0:
-        last_day_expected = ts["timestamp"].iloc[-1]
-        data_end = daily["timestamp"].max()
-        if data_end < last_day_expected:
-            ts = ts.iloc[:-1]
-    return ts
+def _to_weekly(daily: pd.DataFrame, min_days: int = 7) -> pd.DataFrame:
+    """Aggregate daily counts to weekly totals (weeks ending Monday, W-MON).
+
+    Partial weeks at the series edges — fewer than ``min_days`` days present —
+    are trimmed. This matters most at the trailing edge: DEIS is updated in
+    near-real-time, so the latest week(s) can be under-counted by reporting lag
+    or a missing day and would otherwise appear as a spurious drop that
+    contaminates the backtest. Internal weeks are kept as-is to preserve regular
+    weekly spacing.
+    """
+    agg = daily.set_index("timestamp")["count"].resample("W-MON").agg(["sum", "count"])
+    complete = agg["count"] >= min_days
+    if not complete.any():
+        return pd.DataFrame(
+            {"timestamp": pd.to_datetime([]), "count": pd.Series([], dtype="int64")}
+        )
+    agg = agg.loc[complete.idxmax() : complete[::-1].idxmax()]
+    return agg["sum"].rename("count").reset_index()
 
 
 def _fit_and_predict(fc, train: pd.DataFrame, target: str, horizon: HorizonSpec) -> pd.DataFrame:

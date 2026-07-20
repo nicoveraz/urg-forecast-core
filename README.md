@@ -98,10 +98,11 @@ bands 24 hours ahead — the basis for surge decisions and shift tables.
 ### 4. Real data — weekly backtest on DEIS
 
 The DEIS demo runs the same forecasting layer against real ED attendances from
-Hospital de Puerto Montt. The holdout separates the last 12 weeks as test and
-trains on the prior 52. `AutoARIMA` captures the median with truth inside the
-P80–P95 band for most weeks — evidence the pipeline isn't overfit to the
-synthetic regime.
+Hospital de Puerto Montt. The harness holds out the last 12 complete weeks
+(partial edge weeks are trimmed, since near-real-time DEIS data can under-count
+the latest week) and trains on the prior history; `AutoARIMA` is selected by P80
+pinball loss and tracks the autumn rise — evidence the pipeline isn't overfit to
+the synthetic regime.
 
 ![12-week holdout, Puerto Montt](https://raw.githubusercontent.com/nicoveraz/urg-forecast-core/main/docs/img/deis_holdout_hospital_base_puerto_montt.png)
 

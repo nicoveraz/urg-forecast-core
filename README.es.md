@@ -97,11 +97,12 @@ turnos.
 ### 4. Datos reales — backtest semanal sobre DEIS
 
 El demo DEIS corre la misma capa de forecasting contra atenciones de urgencia
-reales del Hospital de Puerto Montt. El holdout separa las últimas 12 semanas
-como test y entrena sobre las 52 previas. La figura muestra que `AutoARIMA`
-captura la mediana con el verdadero dentro de la banda P80–P95 en la mayoría de
-las semanas — evidencia de que el pipeline sintético no está sobreajustado al
-régimen de la fixture.
+reales del Hospital de Puerto Montt. El harness deja como test las últimas 12
+semanas completas (se recortan las semanas parciales de los bordes, porque los
+datos casi-en-tiempo-real de DEIS pueden subcontar la última semana) y entrena
+sobre la historia previa; `AutoARIMA` es seleccionado por pinball loss P80 y
+sigue el alza de otoño — evidencia de que el pipeline sintético no está
+sobreajustado al régimen de la fixture.
 
 ![Holdout 12 semanas Puerto Montt](docs/img/deis_holdout_hospital_base_puerto_montt.png)
 
