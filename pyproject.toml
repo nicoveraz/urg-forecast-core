@@ -1,11 +1,34 @@
 [project]
 name = "urgencias-core"
-version = "0.0.0"
+version = "0.1.0"
 description = "Reference code for Chilean ED analytics, simulation, and forecasting. Open foundation of Eunosia."
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.11,<3.13"
 authors = [{ name = "Nicolás Vera Z." }]
+keywords = [
+    "emergency-department",
+    "forecasting",
+    "monte-carlo",
+    "simulation",
+    "time-series",
+    "healthcare",
+    "chile",
+    "deis",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Healthcare Industry",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Typing :: Typed",
+]
 dependencies = [
     "pandas>=2.2",
     "numpy>=1.26",
@@ -44,6 +67,11 @@ all = [
     "urgencias-core[models,viz,server,fetch]",
 ]
 
+[project.urls]
+Homepage = "https://github.com/nicoveraz/urg-forecast-core"
+Repository = "https://github.com/nicoveraz/urg-forecast-core"
+Issues = "https://github.com/nicoveraz/urg-forecast-core/issues"
+
 [project.scripts]
 urgencias-demo-synthetic = "urgencias_core.demos.synthetic:main"
 urgencias-demo-deis = "urgencias_core.demos.deis:main"
@@ -67,6 +95,19 @@ artifacts = ["src/urgencias_core/data/_fixtures/*.parquet"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/urgencias_core"]
+
+[tool.hatch.build.targets.sdist]
+# Ship source, tests, and docs prose; drop CI config, dev tooling, rendered
+# images, and build byproducts that bloat the sdist.
+exclude = [
+    "/.github",
+    "/.pre-commit-config.yaml",
+    "/.python-version",
+    "/.pytest_cache",
+    "/docs/img",
+    "/outputs",
+    "/uv.lock",
+]
 
 [tool.ruff]
 line-length = 100
