@@ -1,0 +1,112 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "0.10.11"
+      - name: Set up Python
+        run: uv python install 3.12
+      - name: Ruff lint
+        run: uvx ruff@0.6.9 check .
+      - name: Ruff format check
+        run: uvx ruff@0.6.9 format --check .
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "0.10.11"
+      - name: Set up Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+      - name: Sync dependencies (all extras + dev)
+        run: uv sync --all-extras --dev --python ${{ matrix.python-version }}
+      - name: Run tests
+        run: uv run --python ${{ matrix.python-version }} pytest -q
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "0.10.11"
+      - name: Build sdist and wheel
+        run: uv build
+      - name: Check distribution metadata
+        run: uvx twine check dist/*
+      - name: Upload distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/*
+
+  core-install:
+    # The wheel must be usable with no extras: core modules import, the bundled
+    # fixture resolves, and gated modules raise an actionable "install the extra"
+    # error rather than a bare ImportError. Regression guard for the packaging
+    # path bug where the default fixture escaped site-packages.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "0.10.11"
+      - name: Set up Python
+        run: uv python install 3.12
+      - name: Build wheel
+        run: uv build --wheel
+      - name: Install the wheel core-only in a clean environment
+        run: |
+          uv venv /tmp/coreenv --python 3.12
+          uv pip install --python /tmp/coreenv dist/*.whl
+      - name: Core modules import and the bundled fixture resolves
+        run: |
+          /tmp/coreenv/bin/python - <<'PY'
+          import urgencias_core.data.loader
+          import urgencias_core.data.timeseries
+          import urgencias_core.features.calendar
+          import urgencias_core.simulation.engine
+          import urgencias_core.eval.harness
+          import urgencias_core.eval.baselines  # statsforecast is lazy
+          from urgencias_core.server.config import default_fixture_path
+          assert default_fixture_path().exists(), "packaged fixture missing"
+          print("core import surface OK")
+          PY
+      - name: Gated modules raise actionable errors without their extra
+        run: |
+          /tmp/coreenv/bin/python - <<'PY'
+          cases = [
+              ("urgencias_core.models.lgb_quantile", "models"),
+              ("urgencias_core.server.app", "server"),
+              ("urgencias_core.server.charts", "viz"),
+              ("urgencias_core.data.deis", "fetch"),
+          ]
+          for module, extra in cases:
+              try:
+                  __import__(module)
+              except ImportError as exc:
+                  assert extra in str(exc), f"{module}: message missing {extra!r}: {exc}"
+              else:
+                  raise SystemExit(f"{module} imported without the {extra} extra installed")
+          print("optional-extra guards OK")
+          PY
