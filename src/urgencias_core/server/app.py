@@ -20,15 +20,20 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from fastapi import FastAPI, Query, Request
-from fastapi.responses import HTMLResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
+
+from urgencias_core._optional import missing_extra_error
+
+try:
+    from fastapi import FastAPI, Query, Request
+    from fastapi.responses import HTMLResponse
+    from fastapi.staticfiles import StaticFiles
+    from fastapi.templating import Jinja2Templates
+except ImportError as exc:  # pragma: no cover - exercised via the core-only install
+    raise missing_extra_error("server", "The reference server") from exc
 
 from urgencias_core.data.loader import load_visits
 from urgencias_core.data.timeseries import hourly_timeseries
 from urgencias_core.eval.baselines import SeasonalNaiveBaseline
-from urgencias_core.models.lgb_quantile import LGBQuantileForecaster
 from urgencias_core.models.protocol import HorizonSpec
 from urgencias_core.simulation.engine import simulate
 from urgencias_core.simulation.los_empirical import EmpiricalLOSSampler
@@ -62,6 +67,10 @@ def _select_forecaster(name: str):
     if name in ("seasonal_naive", "naive"):
         return SeasonalNaiveBaseline()
     if name in ("lgb_quantile", "lgb"):
+        # Imported lazily so the seasonal_naive path (and importing the server
+        # module itself) does not require the "models" extra.
+        from urgencias_core.models.lgb_quantile import LGBQuantileForecaster
+
         return LGBQuantileForecaster(n_estimators=200)
     raise ValueError(f"Unknown forecaster: {name!r}")
 

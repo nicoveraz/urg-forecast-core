@@ -18,8 +18,14 @@ import json
 from dataclasses import dataclass, field
 from pathlib import Path
 
-import httpx
 import pandas as pd
+
+from urgencias_core._optional import missing_extra_error
+
+try:
+    import httpx
+except ImportError as exc:  # pragma: no cover - exercised via the core-only install
+    raise missing_extra_error("fetch", "The Open-Meteo weather client") from exc
 
 PUERTO_MONTT = (-41.4689, -72.9411)
 

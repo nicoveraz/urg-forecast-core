@@ -15,9 +15,15 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
-from lightgbm import LGBMRegressor
+
+from urgencias_core._optional import missing_extra_error
 
 from .protocol import HorizonSpec, future_index
+
+try:
+    from lightgbm import LGBMRegressor
+except ImportError as exc:  # pragma: no cover - exercised via the core-only install
+    raise missing_extra_error("models", "LGBQuantileForecaster") from exc
 
 
 class LGBQuantileForecaster:

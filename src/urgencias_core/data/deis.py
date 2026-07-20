@@ -33,8 +33,14 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
-import httpx
 import pandas as pd
+
+from urgencias_core._optional import missing_extra_error
+
+try:
+    import httpx
+except ImportError as exc:  # pragma: no cover - exercised via the core-only install
+    raise missing_extra_error("fetch", "The DEIS MINSAL fetcher") from exc
 
 logger = logging.getLogger(__name__)
 

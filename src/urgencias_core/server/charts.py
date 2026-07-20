@@ -5,10 +5,16 @@ from __future__ import annotations
 import base64
 from io import BytesIO
 
-import matplotlib
+from urgencias_core._optional import missing_extra_error
 
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
+try:
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+except ImportError as exc:  # pragma: no cover - exercised via the core-only install
+    raise missing_extra_error("viz", "Chart rendering") from exc
+
 import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 

@@ -11,8 +11,18 @@ from __future__ import annotations
 from pathlib import Path
 
 import urgencias_core
+from urgencias_core._optional import missing_extra_error
 from urgencias_core.data.loader import load_visits
 from urgencias_core.server.config import DataConfig, default_fixture_path
+
+
+def test_missing_extra_error_names_extra_and_install_command() -> None:
+    err = missing_extra_error("models", "LGBQuantileForecaster")
+    assert isinstance(err, ImportError)
+    msg = str(err)
+    assert "LGBQuantileForecaster" in msg
+    assert "urgencias-core[models]" in msg
+    assert "pip install" in msg
 
 
 def test_default_fixture_exists_and_is_inside_the_package() -> None:
