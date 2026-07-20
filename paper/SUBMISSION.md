@@ -12,57 +12,42 @@ Source Software (https://joss.theoj.org). Not part of the distributed package.
 - **Concept DOI (all versions):** `10.5281/zenodo.21449610`
 - **License:** MIT
 
-## Subject / title
-
-Full paper title (auto-extracted from `paper.md`):
+## Title (form field, auto-extracted from `paper.md`)
 
 > urg-forecast-core: A reference pipeline for emergency department occupancy analytics, forecasting, and Monte Carlo simulation in Chile
 
-Shorter subject line, if a form asks for one:
+## Main subject (form dropdown — type and select the closest match)
 
-> Submission: urg-forecast-core — an open pipeline for ED occupancy analytics, forecasting, and Monte Carlo simulation
+The submission is health-services / health-informatics software whose method
+core is time-series forecasting and stochastic simulation. Try these in order
+and pick the closest option your dropdown offers:
 
-## Message to editors
+1. **Health informatics** / Medical informatics
+2. Medical and health sciences (or Health services research)
+3. Applied statistics / Statistics
+4. Operations research
 
-Dear JOSS editors,
+## Message to editors (answers the form's specific prompts)
 
-I would like to submit **urg-forecast-core**, an open-source (MIT) Python package
-that turns visit-level emergency department (ED) records into operational
-decision support: a visits-to-hourly-occupancy transform, Chile-specific
-calendar features, a uniform quantile `Forecaster` interface (seasonal-naive,
-`statsforecast`, and LightGBM), an evaluation harness, an empirical
-length-of-stay Monte Carlo occupancy simulator, a client for the public DEIS
-MINSAL open dataset, and a minimal reference dashboard.
+No part of this JOSS paper has been published or submitted to another
+peer-reviewed venue. The repository also contains a longer, more detailed
+methods manuscript (`paper/preprint.md`) that I may submit to a preprint or
+health-informatics venue in the future; it is a separate paper, not this JOSS
+submission, and has not been submitted or published anywhere.
 
-**Statement of need.** ED crowding is a well-documented, patient-safety–relevant
-problem, and forecasting ED demand and occupancy is an established basis for
-proactive staffing and surge planning. The reusable building blocks, however,
-are scattered across papers and site-specific notebooks and are frequently not
-installable. urg-forecast-core packages them end-to-end for the Chilean context
-while remaining adaptable elsewhere, and demonstrates the workflow on real
-national open data (DEIS MINSAL).
+Short description: urg-forecast-core is an open-source Python package that turns
+visit-level emergency department records into hourly occupancy series,
+probabilistic (quantile) forecasts, and Monte Carlo census bands, with a client
+for Chile's public DEIS MINSAL open data and a minimal reference dashboard.
 
-**Status.**
-- Published on PyPI as `urg-forecast-core` 0.1.0 and archived on Zenodo
-  (version DOI 10.5281/zenodo.21449611; concept DOI 10.5281/zenodo.21449610).
-- ~3,000 lines across the library, 73 automated tests, CI on Python 3.11 and
-  3.12, fully typed (`py.typed`), documented, MIT-licensed, with a code of
-  conduct and contributing/support guidelines.
+This is a new submission — not a resubmission, and not a second JOSS paper about
+this software.
 
-**Scope.** The work sits at the intersection of health-services research and
-statistics / operations research (time-series forecasting and stochastic
-simulation for capacity planning); please route it to whichever track fits best.
-
-I am the sole author and am not aware of any conflicts of interest with
-potential editors or reviewers. The DEIS demonstration is framed strictly as a
-methodological illustration and is **not** a clinical or quality evaluation of
-any hospital.
-
-Thank you for considering the submission.
-
-Nicolás Vera Zúñiga
-ORCID 0009-0007-9249-3736
-Eunosia, Frutillar, Chile
+Conflicts of interest: none. I am the sole author; there are no financial
+conflicts of interest, and I am not aware of any conflict with potential editors
+or reviewers. The software is MIT-licensed and is the open foundation of an
+emergency-medicine analytics effort (Eunosia), but this submission promotes no
+commercial product.
 
 ## Notes
 
