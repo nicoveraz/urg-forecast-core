@@ -45,3 +45,29 @@ Per release:
 The `publish` workflow then runs tests, verifies the tag matches the package
 version, builds, publishes to PyPI, and creates a GitHub Release with the
 changelog section as its notes.
+
+## Archiving on Zenodo (citable DOI)
+
+Releases are archived on [Zenodo](https://zenodo.org/) for a citable DOI.
+Metadata for the archive comes from `.zenodo.json`; `CITATION.cff` provides the
+citation shown on GitHub.
+
+One-time setup:
+
+1. Sign in to Zenodo with GitHub and, under *GitHub* settings, flip the switch
+   **on** for the `urg-forecast-core` repository.
+2. Cut a release (the tag flow above creates a GitHub Release). Zenodo detects
+   the published GitHub Release, archives the source, and mints two DOIs: a
+   **concept DOI** (always resolves to the latest version) and a
+   **version DOI** (this specific release).
+
+After the first release:
+
+3. Add the concept DOI to `CITATION.cff` (`doi:` field), the README "Citing"
+   section (DOI badge), and `paper/paper.md` if submitting to JOSS.
+4. `.zenodo.json`, `CITATION.cff`, and `paper/paper.md` still contain a
+   placeholder ORCID (`0000-0000-0000-0000`) and affiliation — fill these in
+   before the first release.
+
+For submitting the software paper (JOSS), the archived Zenodo DOI is required at
+submission; draft papers are under `paper/`.

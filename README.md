@@ -192,9 +192,19 @@ for architecture decisions, and [`docs/roadmap.md`](https://github.com/nicoveraz
 for deferred items (xlsx/mdb support for DEIS 2017–2019, neuralforecast, EMR
 integration to separate workup from boarding time).
 
-## Citation
+## Citing
 
-If you use this code, please mention Eunosia and link back to the repository.
+If you use `urgencias-core` in research, please cite it. Machine-readable
+metadata lives in [`CITATION.cff`](https://github.com/nicoveraz/urg-forecast-core/blob/main/CITATION.cff)
+(GitHub renders a "Cite this repository" button from it). Each tagged release is
+archived on [Zenodo](https://zenodo.org/) with a DOI.
+
+<!-- After the first Zenodo release, add the concept-DOI badge and BibTeX here:
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.XXXXXXX.svg)](https://doi.org/10.5281/zenodo.XXXXXXX) -->
+
+A software paper (JOSS format) and a fuller methods preprint are drafted under
+[`paper/`](https://github.com/nicoveraz/urg-forecast-core/tree/main/paper).
+Please also mention Eunosia and link back to the repository.
 
 ## License
 

@@ -194,9 +194,14 @@ Ver [`CONTRIBUTING.md`](CONTRIBUTING.md) para desarrollo y proceso de release,
 pre-2020 de DEIS, neuralforecast, integración EMR para separar workup de
 boarding).
 
-## Cita informal
+## Cómo citar
 
-Si usas este código, por favor menciona Eunosia y enlaza al repositorio.
+Si usas `urgencias-core` en investigación, por favor cítalo. Los metadatos
+legibles por máquina están en [`CITATION.cff`](CITATION.cff) (GitHub muestra un
+botón "Cite this repository"). Cada release etiquetado se archiva en
+[Zenodo](https://zenodo.org/) con un DOI. Hay un paper de software (formato
+JOSS) y un preprint de métodos más completo en [`paper/`](paper). Por favor
+menciona además a Eunosia y enlaza al repositorio.
 
 ## Licencia
 
