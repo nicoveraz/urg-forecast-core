@@ -9,9 +9,18 @@ def test_output_columns() -> None:
     ts = pd.date_range("2024-01-01", periods=10, freq="D")
     feats = calendar_features(ts)
     expected = {
-        "year", "month", "day", "dayofweek", "dayofyear",
-        "week_of_month", "hour", "is_weekend", "is_holiday",
-        "holiday_name", "is_bridge_day", "is_school_holiday",
+        "year",
+        "month",
+        "day",
+        "dayofweek",
+        "dayofyear",
+        "week_of_month",
+        "hour",
+        "is_weekend",
+        "is_holiday",
+        "holiday_name",
+        "is_bridge_day",
+        "is_school_holiday",
         "is_semana_musical_frutillar",
     }
     assert expected.issubset(set(feats.columns))

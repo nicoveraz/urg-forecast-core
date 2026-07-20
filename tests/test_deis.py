@@ -49,7 +49,10 @@ def test_canonicalize_matches_raw_schema() -> None:
             "IdEstablecimiento": ["24-105", "24-115"],
             "NEstablecimiento": ["Hospital de Puerto Montt", "Hospital de Frutillar"],
             "IdCausa": ["1", "1"],
-            "GlosaCausa": ["SECCIÓN 1. TOTAL ATENCIONES DE URGENCIA", "SECCIÓN 1. TOTAL ATENCIONES DE URGENCIA"],
+            "GlosaCausa": [
+                "SECCIÓN 1. TOTAL ATENCIONES DE URGENCIA",
+                "SECCIÓN 1. TOTAL ATENCIONES DE URGENCIA",
+            ],
             "Total": ["800", "80"],
             "fecha": ["01/03/2025", "01/03/2025"],
         }

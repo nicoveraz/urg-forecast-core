@@ -27,8 +27,19 @@ class LGBQuantileForecaster:
     """
 
     FEATURE_COLS: tuple[str, ...] = (
-        "hour", "dow", "month", "doy", "week_of_month", "year", "is_weekend",
-        "hour_sin", "hour_cos", "dow_sin", "dow_cos", "month_sin", "month_cos",
+        "hour",
+        "dow",
+        "month",
+        "doy",
+        "week_of_month",
+        "year",
+        "is_weekend",
+        "hour_sin",
+        "hour_cos",
+        "dow_sin",
+        "dow_cos",
+        "month_sin",
+        "month_cos",
     )
 
     def __init__(

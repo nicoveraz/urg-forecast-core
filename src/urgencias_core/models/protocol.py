@@ -83,7 +83,9 @@ def future_index(
     horizon: HorizonSpec,
 ) -> pd.DatetimeIndex:
     """Build the DatetimeIndex of forecast timestamps for ``horizon``."""
-    start = horizon.start if horizon.start is not None else next_timestamp(history_end, horizon.grain)
+    start = (
+        horizon.start if horizon.start is not None else next_timestamp(history_end, horizon.grain)
+    )
     return pd.date_range(start=start, periods=horizon.length, freq=horizon.grain)
 
 

@@ -33,10 +33,9 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 
-from urgencias_core.data.deis import DEMO_HOSPITALS, fetch_demo_hospitals
+from urgencias_core.data.deis import fetch_demo_hospitals
 from urgencias_core.eval.baselines import (
     SeasonalNaiveBaseline,
     auto_arima,
@@ -44,7 +43,7 @@ from urgencias_core.eval.baselines import (
     auto_theta,
     mstl,
 )
-from urgencias_core.eval.harness import quantile_loss, run_harness
+from urgencias_core.eval.harness import run_harness
 from urgencias_core.models.protocol import HorizonSpec
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -67,7 +66,9 @@ def _daily_totals(df: pd.DataFrame, facility_code: str) -> pd.DataFrame:
     sub = df[df["facility_code"] == facility_code]
     totals = sub[sub["cause_group"] == TOTAL_CAUSE_GLOSA]
     if len(totals) == 0:
-        totals = sub[sub["cause_group"].str.upper().str.contains("SECCI.?N 1", regex=True, na=False)]
+        totals = sub[
+            sub["cause_group"].str.upper().str.contains("SECCI.?N 1", regex=True, na=False)
+        ]
     daily = (
         totals.groupby("date")["count"]
         .sum()
@@ -96,7 +97,9 @@ def _fit_and_predict(fc, train: pd.DataFrame, target: str, horizon: HorizonSpec)
     return fc.predict(horizon)
 
 
-def _plot_holdout(train: pd.DataFrame, test: pd.DataFrame, pred: pd.DataFrame, title: str, out: Path) -> None:
+def _plot_holdout(
+    train: pd.DataFrame, test: pd.DataFrame, pred: pd.DataFrame, title: str, out: Path
+) -> None:
     fig, ax = plt.subplots(figsize=(10, 4))
     window = train.tail(52)
     ax.plot(window["timestamp"], window["count"], color="#777", label="Entrenamiento (52 sem)")
@@ -118,9 +121,19 @@ def _plot_forward(history: pd.DataFrame, forecast: pd.DataFrame, title: str, out
     fig, ax = plt.subplots(figsize=(10, 4))
     hist = history.tail(104)
     ax.plot(hist["timestamp"], hist["count"], color="#444", label="Historia (2 años)")
-    ax.fill_between(forecast["timestamp"], forecast["q80"], forecast["q95"], alpha=0.15, label="P80–P95")
-    ax.fill_between(forecast["timestamp"], forecast["q50"], forecast["q80"], alpha=0.28, label="P50–P80")
-    ax.plot(forecast["timestamp"], forecast["q50"], color="#214", linewidth=1.8, label="Predicción mediana")
+    ax.fill_between(
+        forecast["timestamp"], forecast["q80"], forecast["q95"], alpha=0.15, label="P80–P95"
+    )
+    ax.fill_between(
+        forecast["timestamp"], forecast["q50"], forecast["q80"], alpha=0.28, label="P50–P80"
+    )
+    ax.plot(
+        forecast["timestamp"],
+        forecast["q50"],
+        color="#214",
+        linewidth=1.8,
+        label="Predicción mediana",
+    )
     ax.axvline(hist["timestamp"].iloc[-1], color="#c33", linestyle="--", alpha=0.7, linewidth=0.9)
     ax.set_title(title)
     ax.set_xlabel("Semana")
@@ -204,7 +217,10 @@ def run(offline: bool = False, start_year: int = 2022) -> None:
         baseline_md.append("")
         baseline_md.append(report.table.round(2).to_markdown())
         baseline_md.append("")
-        baseline_md.append(f"**Ganador (qloss_80):** `{best_name}`  —  MAE {best_mae:.1f}, qloss80 {best_qloss:.2f}")
+        baseline_md.append(
+            f"**Ganador (qloss_80):** `{best_name}`  —  "
+            f"MAE {best_mae:.1f}, qloss80 {best_qloss:.2f}"
+        )
         baseline_md.append("")
 
         # Holdout plot: refit the best model on train, predict the holdout window.
@@ -218,14 +234,25 @@ def run(offline: bool = False, start_year: int = 2022) -> None:
             merged = plot_pred.merge(test, on="timestamp", how="inner")
 
         holdout_png = OUTPUTS / f"deis_holdout_{hosp_key}.png"
-        _plot_holdout(train, test, plot_pred, f"{facility_name} — holdout 12 semanas ({best_name})", holdout_png)
+        _plot_holdout(
+            train,
+            test,
+            plot_pred,
+            f"{facility_name} — holdout 12 semanas ({best_name})",
+            holdout_png,
+        )
 
         # Live forward: refit best on ALL data and forecast FORWARD_WEEKS weeks.
         forward_fc = _fresh_baselines()[best_name]
         forward_horizon = HorizonSpec(grain="W-MON", length=FORWARD_WEEKS)
         forward = _fit_and_predict(forward_fc, weekly, "count", forward_horizon)
         forward_png = OUTPUTS / f"deis_forecast_{hosp_key}.png"
-        _plot_forward(weekly, forward, f"{facility_name} — pronóstico semanal 6 meses ({best_name})", forward_png)
+        _plot_forward(
+            weekly,
+            forward,
+            f"{facility_name} — pronóstico semanal 6 meses ({best_name})",
+            forward_png,
+        )
 
         forward_csv = OUTPUTS / f"deis_forecast_{hosp_key}.csv"
         forward[["timestamp", "q50", "q80", "q90"]].to_csv(forward_csv, index=False)
@@ -261,7 +288,7 @@ def run(offline: bool = False, start_year: int = 2022) -> None:
         "operacional, clínica ni de calidad de los hospitales mencionados.",
         "",
         f"- Generado: {datetime.now().strftime('%Y-%m-%d %H:%M')}",
-        f"- Fuente: DEIS MINSAL, *Atenciones de Urgencia* (open data)",
+        "- Fuente: DEIS MINSAL, *Atenciones de Urgencia* (open data)",
         f"- Rango histórico: {df['date'].min().date()} a {df['date'].max().date()}",
         f"- Años excluidos por política COVID: {sorted(COVID_EXCLUDE_YEARS)}",
         f"- Holdout: últimas {HOLDOUT_WEEKS} semanas completas",
@@ -295,7 +322,9 @@ def run(offline: bool = False, start_year: int = 2022) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--offline", action="store_true", help="Use the snapshot only, no network")
-    parser.add_argument("--start-year", type=int, default=2022, help="First DEIS year to fetch (live mode)")
+    parser.add_argument(
+        "--start-year", type=int, default=2022, help="First DEIS year to fetch (live mode)"
+    )
     args = parser.parse_args()
     run(offline=args.offline, start_year=args.start_year)
 

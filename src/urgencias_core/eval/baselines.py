@@ -12,7 +12,7 @@
 
 from __future__ import annotations
 
-from typing import Callable
+from collections.abc import Callable
 
 import numpy as np
 import pandas as pd
@@ -54,7 +54,11 @@ class SeasonalNaiveBaseline:
     def predict(self, horizon: HorizonSpec) -> pd.DataFrame:
         if self._key_fn is None or self._history_end is None or self._fallback is None:
             raise RuntimeError("SeasonalNaiveBaseline.predict called before fit")
-        key_fn = _key_func(horizon.grain) if _grain_changed(self._key_fn, horizon.grain) else self._key_fn
+        key_fn = (
+            _key_func(horizon.grain)
+            if _grain_changed(self._key_fn, horizon.grain)
+            else self._key_fn
+        )
         future = future_index(self._history_end, horizon)
         qcols = [f"q{int(round(q * 100))}" for q in sorted(self.quantiles)]
         sorted_q_idx = np.argsort(self.quantiles)

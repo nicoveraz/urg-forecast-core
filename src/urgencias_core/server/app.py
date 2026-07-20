@@ -108,9 +108,7 @@ def create_app(config: ServerConfig | None = None) -> FastAPI:
             "median_los": float(state.visits["los_hours"].median()),
             "mean_occupancy": float(state.hourly["occupancy"].mean()),
             "peak_hour": int(
-                state.hourly.groupby(pd.to_datetime(state.hourly["timestamp"]).dt.hour)[
-                    "occupancy"
-                ]
+                state.hourly.groupby(pd.to_datetime(state.hourly["timestamp"]).dt.hour)["occupancy"]
                 .mean()
                 .idxmax()
             ),
@@ -169,7 +167,9 @@ def create_app(config: ServerConfig | None = None) -> FastAPI:
     ):
         h = int(horizon or cfg.simulation.horizon_hours)
         n = int(n_sims or cfg.simulation.n_sims)
-        census0 = int(current_census if current_census is not None else cfg.simulation.current_census)
+        census0 = int(
+            current_census if current_census is not None else cfg.simulation.current_census
+        )
         sh = int(start_hour if start_hour is not None else cfg.simulation.start_hour)
 
         if arrivals is None:
@@ -193,7 +193,9 @@ def create_app(config: ServerConfig | None = None) -> FastAPI:
         chart = charts.fan_chart(qf)
         table = qf.round(1).to_html(classes="data-table", border=0, index=False)
 
-        exceedance_thresholds = [int(q) for q in np.linspace(max(1, census0), max(1, census0) + 10, 3)]
+        exceedance_thresholds = [
+            int(q) for q in np.linspace(max(1, census0), max(1, census0) + 10, 3)
+        ]
         exceedance_rows = []
         for t in exceedance_thresholds:
             probs = result.exceedance(t)

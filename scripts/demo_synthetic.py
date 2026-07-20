@@ -42,7 +42,10 @@ def main() -> None:
     OUTPUTS.mkdir(exist_ok=True)
     print(f"Loading fixture: {FIXTURE}")
     visits = load_visits(FIXTURE)
-    print(f"  {len(visits):,} visits, {visits['arrival'].min().date()} -> {visits['arrival'].max().date()}")
+    print(
+        f"  {len(visits):,} visits, "
+        f"{visits['arrival'].min().date()} -> {visits['arrival'].max().date()}"
+    )
 
     print("Computing hourly time series...")
     hourly = hourly_timeseries(visits)
@@ -115,7 +118,11 @@ def main() -> None:
     print(f"Mediana forecast P50 (48h): {pred['q50'].median():.2f}")
     print(f"Mediana sim P50 (hora 12):  {qf['q50'].iloc[11]:.2f}")
     print(f"\nArtefactos en {OUTPUTS.relative_to(REPO_ROOT)}/:")
-    for name in ("demo_synthetic_occupancy.png", "demo_synthetic_forecast.png", "demo_synthetic_simulation.png"):
+    for name in (
+        "demo_synthetic_occupancy.png",
+        "demo_synthetic_forecast.png",
+        "demo_synthetic_simulation.png",
+    ):
         print(f"  - {name}")
 
 

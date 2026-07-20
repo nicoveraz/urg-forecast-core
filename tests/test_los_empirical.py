@@ -49,7 +49,13 @@ def test_log_normal_fallback_for_thin_bucket() -> None:
     for acuity in ["C3", "C4"]:
         for hour in range(24):
             for _ in range(50):
-                rows.append((pd.Timestamp("2024-01-01") + pd.Timedelta(hours=hour), acuity, rng.exponential(2)))
+                rows.append(
+                    (
+                        pd.Timestamp("2024-01-01") + pd.Timedelta(hours=hour),
+                        acuity,
+                        rng.exponential(2),
+                    )
+                )
     for _ in range(5):
         rows.append((pd.Timestamp("2024-01-01") + pd.Timedelta(hours=3), "C1", rng.exponential(10)))
     df = pd.DataFrame(rows, columns=["arrival", "acuity", "los_hours"])

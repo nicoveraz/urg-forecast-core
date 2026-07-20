@@ -14,7 +14,7 @@ user-supplied thresholds.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
@@ -111,8 +111,7 @@ def simulate(
         baseline_count = current_patients
         baseline_acuities_sample = rng.choice(acuity_codes, size=baseline_count, p=acuity_probs)
         baseline_known: list[CurrentPatient] = [
-            CurrentPatient(acuity=str(a), hours_in_ed=0.0)
-            for a in baseline_acuities_sample
+            CurrentPatient(acuity=str(a), hours_in_ed=0.0) for a in baseline_acuities_sample
         ]
     else:
         baseline_known = list(current_patients)

@@ -52,7 +52,13 @@ def test_simulation_route(fixture_path: Path) -> None:
     with _client(fixture_path) as client:
         r = client.get(
             "/simulation",
-            params={"horizon": 12, "n_sims": 50, "current_census": 8, "start_hour": 14, "arrivals": 6.0},
+            params={
+                "horizon": 12,
+                "n_sims": 50,
+                "current_census": 8,
+                "start_hour": 14,
+                "arrivals": 6.0,
+            },
         )
     assert r.status_code == 200
     assert "Monte Carlo" in r.text

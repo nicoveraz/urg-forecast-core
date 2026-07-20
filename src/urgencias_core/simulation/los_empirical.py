@@ -26,9 +26,7 @@ import pandas as pd
 class EmpiricalLOSSampler:
     """Inverse-CDF LOS sampler with log-normal smoothing for thin buckets."""
 
-    quantile_grid: np.ndarray = field(
-        default_factory=lambda: np.linspace(0.005, 0.995, 200)
-    )
+    quantile_grid: np.ndarray = field(default_factory=lambda: np.linspace(0.005, 0.995, 200))
     min_samples: int = 20
     min_los_hours: float = 1 / 60  # 1 minute floor
     seed: int = 42
@@ -42,7 +40,7 @@ class EmpiricalLOSSampler:
     def __post_init__(self) -> None:
         self._rng = np.random.default_rng(self.seed)
 
-    def fit(self, visits: pd.DataFrame) -> "EmpiricalLOSSampler":
+    def fit(self, visits: pd.DataFrame) -> EmpiricalLOSSampler:
         """Fit on a visit-level DataFrame with ``arrival``, ``acuity``, ``los_hours``."""
         required = {"arrival", "acuity", "los_hours"}
         missing = required - set(visits.columns)
@@ -60,7 +58,10 @@ class EmpiricalLOSSampler:
                 self._empirical[(a, int(h))] = np.quantile(samples, self.quantile_grid)
             elif len(samples) >= 2:
                 log_samples = np.log(samples)
-                self._lognormal[(a, int(h))] = (float(log_samples.mean()), float(log_samples.std(ddof=0)))
+                self._lognormal[(a, int(h))] = (
+                    float(log_samples.mean()),
+                    float(log_samples.std(ddof=0)),
+                )
 
         self._fallback_quantiles = np.quantile(los, self.quantile_grid)
 

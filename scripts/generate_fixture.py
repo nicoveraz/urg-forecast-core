@@ -36,10 +36,10 @@ ACUITY_PROBS = {
 # Log-normal LOS parameters per acuity (mu, sigma) in log-hours.
 # Median hours ~ exp(mu). C1/C2 include boarding tail.
 LOS_LOGNORMAL = {
-    "C1": (1.80, 0.80),   # median ~6.0h, long tail (critical + boarding)
-    "C2": (1.40, 0.75),   # median ~4.0h
-    "C3": (0.90, 0.60),   # median ~2.5h
-    "C4": (0.40, 0.55),   # median ~1.5h
+    "C1": (1.80, 0.80),  # median ~6.0h, long tail (critical + boarding)
+    "C2": (1.40, 0.75),  # median ~4.0h
+    "C3": (0.90, 0.60),  # median ~2.5h
+    "C4": (0.40, 0.55),  # median ~1.5h
     "C5": (-0.10, 0.50),  # median ~0.9h
 }
 
@@ -47,7 +47,7 @@ DISPOSITIONS = {
     "C1": {"hospitalizacion": 0.55, "traslado": 0.15, "alta": 0.28, "fallecido": 0.02},
     "C2": {"hospitalizacion": 0.35, "traslado": 0.05, "alta": 0.59, "fallecido": 0.01},
     "C3": {"hospitalizacion": 0.10, "traslado": 0.01, "alta": 0.89, "fallecido": 0.0},
-    "C4": {"hospitalizacion": 0.02, "traslado": 0.0,  "alta": 0.98, "fallecido": 0.0},
+    "C4": {"hospitalizacion": 0.02, "traslado": 0.0, "alta": 0.98, "fallecido": 0.0},
     "C5": {"hospitalizacion": 0.005, "traslado": 0.0, "alta": 0.995, "fallecido": 0.0},
 }
 
@@ -56,10 +56,32 @@ DOW_MULTIPLIER = np.array([1.15, 1.05, 1.00, 1.00, 1.05, 0.95, 0.85])  # Mon..Su
 # Hour-of-day arrival shape, 24 values summing to 1. Morning ramp from ~6am,
 # midday plateau, secondary evening peak, quiet overnight.
 HOUR_WEIGHTS = np.array(
-    [0.020, 0.015, 0.012, 0.010, 0.010, 0.015,
-     0.025, 0.040, 0.055, 0.065, 0.070, 0.070,
-     0.065, 0.060, 0.055, 0.055, 0.055, 0.060,
-     0.065, 0.060, 0.050, 0.045, 0.035, 0.028]
+    [
+        0.020,
+        0.015,
+        0.012,
+        0.010,
+        0.010,
+        0.015,
+        0.025,
+        0.040,
+        0.055,
+        0.065,
+        0.070,
+        0.070,
+        0.065,
+        0.060,
+        0.055,
+        0.055,
+        0.055,
+        0.060,
+        0.065,
+        0.060,
+        0.050,
+        0.045,
+        0.035,
+        0.028,
+    ]
 )
 HOUR_WEIGHTS = HOUR_WEIGHTS / HOUR_WEIGHTS.sum()
 
@@ -142,20 +164,22 @@ def generate(start: str, end: str, seed: int = RNG_SEED) -> pd.DataFrame:
         mask = acuity == code
         n = int(mask.sum())
         if n:
-            disposition[mask] = rng.choice(
-                list(probs.keys()), size=n, p=list(probs.values())
-            )
+            disposition[mask] = rng.choice(list(probs.keys()), size=n, p=list(probs.values()))
 
-    df = pd.DataFrame(
-        {
-            "visit_id": np.arange(total, dtype=np.int64),
-            "arrival": arrival,
-            "discharge": discharge,
-            "acuity": acuity,
-            "disposition": disposition,
-            "los_hours": los_hours,
-        }
-    ).sort_values("arrival").reset_index(drop=True)
+    df = (
+        pd.DataFrame(
+            {
+                "visit_id": np.arange(total, dtype=np.int64),
+                "arrival": arrival,
+                "discharge": discharge,
+                "acuity": acuity,
+                "disposition": disposition,
+                "los_hours": los_hours,
+            }
+        )
+        .sort_values("arrival")
+        .reset_index(drop=True)
+    )
     df["visit_id"] = np.arange(len(df), dtype=np.int64)
     return df
 
@@ -163,7 +187,9 @@ def generate(start: str, end: str, seed: int = RNG_SEED) -> pd.DataFrame:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--start", default="2022-01-01")
-    parser.add_argument("--end", default=None, help="End date (YYYY-MM-DD). Mutually exclusive with --years.")
+    parser.add_argument(
+        "--end", default=None, help="End date (YYYY-MM-DD). Mutually exclusive with --years."
+    )
     parser.add_argument(
         "--years",
         type=int,
