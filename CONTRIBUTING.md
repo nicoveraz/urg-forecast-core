@@ -1,7 +1,47 @@
 # Contributing
 
-`urgencias-core` is reference code, not a maintained package. Fork freely, adapt
-it to your hospital, ship it inside your own product. Pull requests are welcome
-but not promised to be reviewed quickly, and issues may not be answered. If you
-need commercial support or bespoke work on top of this foundation, contact the
-author.
+`urgencias-core` is an open foundation maintained on a best-effort basis. Fork
+freely, adapt it to your hospital, ship it inside your own product. Pull requests
+and issues are welcome; while on 0.x the API may change between minor versions.
+If you need commercial support or bespoke work on top of this foundation, contact
+the author.
+
+## Development
+
+```bash
+uv sync --all-extras --dev   # full toolchain + all optional deps
+uv run pytest -q             # tests
+uv run ruff check .          # lint
+uv run ruff format .         # format (ruff is the single formatter)
+pre-commit install           # optional: run lint/format on commit
+```
+
+The package uses a src layout. Heavy dependencies live behind extras
+(`models`, `viz`, `server`, `fetch`, `all`); modules that need them guard the
+import and raise an actionable error. Keep that pattern when adding code that
+depends on an optional library.
+
+## Cutting a release
+
+Releases publish to PyPI via [Trusted Publishing](https://docs.pypi.org/trusted-publishers/)
+(OIDC) from `.github/workflows/publish.yml` — no API tokens as secrets.
+
+One-time setup: on PyPI, add this repository and the `pypi` environment as a
+trusted publisher for the `urgencias-core` project. Optionally validate metadata
+first by publishing a pre-release (e.g. `0.1.0rc1`) to TestPyPI.
+
+Per release:
+
+1. Bump `version` in `pyproject.toml` (semver).
+2. Move the `## [Unreleased]` notes in `CHANGELOG.md` under a new
+   `## [X.Y.Z] - YYYY-MM-DD` heading and update the compare links.
+3. Commit, then tag and push:
+
+   ```bash
+   git tag vX.Y.Z
+   git push origin main --tags
+   ```
+
+The `publish` workflow then runs tests, verifies the tag matches the package
+version, builds, publishes to PyPI, and creates a GitHub Release with the
+changelog section as its notes.
