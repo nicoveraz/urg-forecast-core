@@ -18,8 +18,9 @@ from urgencias_core.data.deis import (
     fetch_demo_hospitals,
     year_url,
 )
+from urgencias_core.data.fixtures import deis_snapshot_path
 
-SNAPSHOT = Path(__file__).parent / "fixtures" / "deis_demo_snapshot.parquet"
+SNAPSHOT = deis_snapshot_path()
 
 
 def test_constants_are_sane() -> None:

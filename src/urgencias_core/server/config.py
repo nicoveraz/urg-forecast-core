@@ -10,24 +10,21 @@ a ``pip install``.
 from __future__ import annotations
 
 import tomllib
-from importlib import resources
 from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field
 
-_PACKAGED_FIXTURE = "synthetic_ed_visits_demo.parquet"
+from urgencias_core.data.fixtures import synthetic_visits_path
 
 
 def default_fixture_path() -> Path:
     """Filesystem path to the synthetic demo fixture bundled with the package.
 
-    Resolves via :mod:`importlib.resources` so it works whether the package is
-    imported from a source checkout or an installed wheel. The fixture is a
-    compact one-year synthetic ED visit table used as the zero-config default
-    dataset for the reference server and demos.
+    The fixture is a compact one-year synthetic ED visit table used as the
+    zero-config default dataset for the reference server and demos. Resolves
+    correctly from both a source checkout and an installed wheel.
     """
-    resource = resources.files("urgencias_core.data").joinpath("_fixtures", _PACKAGED_FIXTURE)
-    return Path(str(resource))
+    return synthetic_visits_path()
 
 
 class DataConfig(BaseModel):

@@ -44,6 +44,11 @@ all = [
     "urgencias-core[models,viz,server,fetch]",
 ]
 
+[project.scripts]
+urgencias-demo-synthetic = "urgencias_core.demos.synthetic:main"
+urgencias-demo-deis = "urgencias_core.demos.deis:main"
+urgencias-server = "urgencias_core.demos.server:main"
+
 [dependency-groups]
 dev = [
     "pytest>=8.0",

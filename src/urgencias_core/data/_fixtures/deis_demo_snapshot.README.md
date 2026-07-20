@@ -40,12 +40,12 @@ Total 151,108 rows, daily grain, one row per (hospital, date, cause group).
 ## Regeneration
 
 ```bash
-rm tests/fixtures/deis_demo_snapshot.parquet
+rm src/urgencias_core/data/_fixtures/deis_demo_snapshot.parquet
 uv run python -c "
 from urgencias_core.data.deis import fetch_demo_hospitals
 from pathlib import Path
 df = fetch_demo_hospitals(start_year=2021)
-df.to_parquet('tests/fixtures/deis_demo_snapshot.parquet', index=False, compression='zstd')
+df.to_parquet('src/urgencias_core/data/_fixtures/deis_demo_snapshot.parquet', index=False, compression='zstd')
 print(len(df), 'rows')
 "
 ```
