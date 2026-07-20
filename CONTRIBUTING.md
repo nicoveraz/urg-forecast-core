@@ -1,6 +1,6 @@
 # Contributing
 
-`urgencias-core` is an open foundation maintained on a best-effort basis. Fork
+`urg-forecast-core` is an open foundation maintained on a best-effort basis. Fork
 freely, adapt it to your hospital, ship it inside your own product. Pull requests
 and issues are welcome; while on 0.x the API may change between minor versions.
 If you need commercial support or bespoke work on top of this foundation, contact
@@ -27,7 +27,7 @@ Releases publish to PyPI via [Trusted Publishing](https://docs.pypi.org/trusted-
 (OIDC) from `.github/workflows/publish.yml` — no API tokens as secrets.
 
 One-time setup: on PyPI, add this repository and the `pypi` environment as a
-trusted publisher for the `urgencias-core` project. Optionally validate metadata
+trusted publisher for the `urg-forecast-core` project. Optionally validate metadata
 first by publishing a pre-release (e.g. `0.1.0rc1`) to TestPyPI.
 
 Per release:

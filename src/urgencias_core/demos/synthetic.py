@@ -6,7 +6,7 @@ simulator for 24 hours, and writes three PNG charts plus a short summary.
 
 Run with::
 
-    urgencias-demo-synthetic              # after: pip install "urgencias-core[viz]"
+    urgencias-demo-synthetic              # after: pip install "urg-forecast-core[viz]"
     uv run python scripts/demo_synthetic.py   # from a source checkout
 
 Outputs land in ``./outputs`` (override with ``--out``):

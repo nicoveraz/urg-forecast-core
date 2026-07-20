@@ -1,12 +1,12 @@
 """Console entry point that launches the reference FastAPI server.
 
 Equivalent to ``uvicorn urgencias_core.server.app:app`` but installed as the
-``urgencias-server`` command. The server reads ``urgencias-core.toml`` from the
+``urgencias-server`` command. The server reads ``urg-forecast-core.toml`` from the
 current directory if present, otherwise serves the bundled synthetic fixture.
 
 Run with::
 
-    urgencias-server                    # after: pip install "urgencias-core[server]"
+    urgencias-server                    # after: pip install "urg-forecast-core[server]"
     urgencias-server --port 9000 --reload
 """
 
@@ -20,7 +20,7 @@ from urgencias_core._optional import missing_extra_error
 
 def main() -> None:
     setup_logging()
-    parser = argparse.ArgumentParser(description="Launch the urgencias-core reference server.")
+    parser = argparse.ArgumentParser(description="Launch the urg-forecast-core reference server.")
     parser.add_argument("--host", default="127.0.0.1", help="Bind host (default: 127.0.0.1).")
     parser.add_argument("--port", type=int, default=8000, help="Bind port (default: 8000).")
     parser.add_argument("--reload", action="store_true", help="Enable auto-reload (development).")

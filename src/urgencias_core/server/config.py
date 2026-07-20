@@ -1,6 +1,6 @@
 """TOML config loader for the reference HTTP server.
 
-The server reads a single TOML file (default: ``urgencias-core.toml`` in the
+The server reads a single TOML file (default: ``urg-forecast-core.toml`` in the
 current working directory). When no file is present it falls back to a
 built-in default that points at the synthetic fixture shipped inside the
 package, so the server runs out of the box from both a source checkout and
@@ -74,7 +74,7 @@ class ServerConfig(BaseModel):
     simulation: SimulationConfig = Field(default_factory=SimulationConfig)
 
 
-DEFAULT_CONFIG_FILENAME = "urgencias-core.toml"
+DEFAULT_CONFIG_FILENAME = "urg-forecast-core.toml"
 
 
 def load_config(path: str | Path | None = None) -> ServerConfig:

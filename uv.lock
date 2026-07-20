@@ -1136,7 +1136,7 @@ wheels = [
 ]
 
 [[package]]
-name = "urgencias-core"
+name = "urg-forecast-core"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
@@ -1203,8 +1203,8 @@ requires-dist = [
     { name = "scikit-learn", marker = "extra == 'models'", specifier = ">=1.4" },
     { name = "statsforecast", marker = "extra == 'models'", specifier = ">=1.7" },
     { name = "tabulate", marker = "extra == 'viz'", specifier = ">=0.9" },
-    { name = "urgencias-core", extras = ["models", "viz", "server", "fetch"], marker = "extra == 'all'" },
-    { name = "urgencias-core", extras = ["viz"], marker = "extra == 'server'" },
+    { name = "urg-forecast-core", extras = ["models", "viz", "server", "fetch"], marker = "extra == 'all'" },
+    { name = "urg-forecast-core", extras = ["viz"], marker = "extra == 'server'" },
     { name = "uvicorn", marker = "extra == 'server'", specifier = ">=0.29" },
 ]
 provides-extras = ["models", "viz", "server", "fetch", "all"]

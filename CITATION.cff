@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it using these metadata."
-title: "urgencias-core"
+title: "urg-forecast-core"
 abstract: >-
   Open reference pipeline for Chilean emergency department analytics,
   probabilistic forecasting, and Monte Carlo occupancy simulation: a
@@ -18,7 +18,7 @@ version: "0.1.0"
 date-released: "2026-07-20"
 license: MIT
 repository-code: "https://github.com/nicoveraz/urg-forecast-core"
-url: "https://pypi.org/project/urgencias-core/"
+url: "https://pypi.org/project/urg-forecast-core/"
 keywords:
   - emergency department
   - emergency medicine

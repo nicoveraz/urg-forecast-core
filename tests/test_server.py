@@ -21,7 +21,7 @@ def test_index_route(fixture_path: Path) -> None:
     with _client(fixture_path) as client:
         r = client.get("/")
     assert r.status_code == 200
-    assert "urgencias-core" in r.text
+    assert "urg-forecast-core" in r.text
     assert "Análisis descriptivo" in r.text
 
 

@@ -1,8 +1,8 @@
 # urg-forecast-core
 
 [![ci](https://github.com/nicoveraz/urg-forecast-core/actions/workflows/ci.yml/badge.svg)](https://github.com/nicoveraz/urg-forecast-core/actions/workflows/ci.yml)
-[![PyPI](https://img.shields.io/pypi/v/urgencias-core.svg)](https://pypi.org/project/urgencias-core/)
-[![Python](https://img.shields.io/pypi/pyversions/urgencias-core.svg)](https://pypi.org/project/urgencias-core/)
+[![PyPI](https://img.shields.io/pypi/v/urg-forecast-core.svg)](https://pypi.org/project/urg-forecast-core/)
+[![Python](https://img.shields.io/pypi/pyversions/urg-forecast-core.svg)](https://pypi.org/project/urg-forecast-core/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/nicoveraz/urg-forecast-core/blob/main/LICENSE)
 
 Reference code for Chilean emergency department (ED) analytics, simulation, and
@@ -18,8 +18,8 @@ minimal web dashboard.
 ## Install
 
 ```bash
-pip install urgencias-core            # core library (data, timeseries, features, simulation)
-pip install "urgencias-core[all]"     # everything: models, viz, server, and data fetchers
+pip install urg-forecast-core            # core library (data, timeseries, features, simulation)
+pip install "urg-forecast-core[all]"     # everything: models, viz, server, and data fetchers
 ```
 
 The core install is intentionally light (pandas/numpy/pyarrow/holidays/pydantic).
@@ -36,7 +36,7 @@ Heavier capabilities live behind extras — a module that needs one raises a cle
 
 ## Quickstart
 
-After `pip install "urgencias-core[all]"`, three console commands are available.
+After `pip install "urg-forecast-core[all]"`, three console commands are available.
 They run on datasets bundled with the package and write to `./outputs`:
 
 ```bash
@@ -173,14 +173,14 @@ operational, clinical, or quality evaluation of either hospital.
 
 **Attribution and license.** Data published by DEIS MINSAL under Chile's open
 data framework. If you use this code or derivatives for research, maintain DEIS
-attribution and, where relevant, cite `urgencias-core`. The offline snapshot
+attribution and, where relevant, cite `urg-forecast-core`. The offline snapshot
 bundled with the package is a filtered extract of the public dataset for
 reproducibility; it does not replace fetching directly from the source for
 operational use.
 
 ## Project status
 
-`urgencias-core` is an open foundation, developed and maintained by Nicolás
+`urg-forecast-core` is an open foundation, developed and maintained by Nicolás
 Vera Z. as the base of **Eunosia**, a clinical AI platform for emergency
 medicine. It is published on PyPI and maintained on a best-effort basis: while
 on 0.x the API may change between minor versions, and issues and pull requests
@@ -195,7 +195,7 @@ integration to separate workup from boarding time).
 
 ## Citing
 
-If you use `urgencias-core` in research, please cite it. Machine-readable
+If you use `urg-forecast-core` in research, please cite it. Machine-readable
 metadata lives in [`CITATION.cff`](https://github.com/nicoveraz/urg-forecast-core/blob/main/CITATION.cff)
 (GitHub renders a "Cite this repository" button from it). Each tagged release is
 archived on [Zenodo](https://zenodo.org/) with a DOI.

@@ -5,7 +5,7 @@ Designed to be launched with::
 
     uv run uvicorn urgencias_core.server.app:app
 
-It loads a single parquet (configured via ``urgencias-core.toml``, default:
+It loads a single parquet (configured via ``urg-forecast-core.toml``, default:
 the packaged synthetic fixture) at startup and serves three views:
 
 - ``/baseline``  — descriptive analytics over the full history
@@ -80,7 +80,7 @@ def create_app(config: ServerConfig | None = None) -> FastAPI:
     cfg = config or load_config()
     state = _build_state(cfg)
 
-    app = FastAPI(title="urgencias-core reference server", version="0")
+    app = FastAPI(title="urg-forecast-core reference server", version="0")
     app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
     app.state.server_state = state
 

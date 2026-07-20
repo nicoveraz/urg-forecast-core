@@ -1,6 +1,6 @@
 """Helpers for guarding optional-dependency imports with actionable errors.
 
-The core install (``pip install urgencias-core``) ships only the data,
+The core install (``pip install urg-forecast-core``) ships only the data,
 timeseries, feature, and simulation layers. Heavier capabilities live behind
 extras: ``models`` (LightGBM/statsforecast), ``server`` (FastAPI/uvicorn),
 ``viz`` (matplotlib/tabulate), and ``fetch`` (httpx). Modules that need those
@@ -22,5 +22,5 @@ def missing_extra_error(extra: str, feature: str) -> ImportError:
     """
     return ImportError(
         f'{feature} requires the "{extra}" extra. '
-        f'Install it with: pip install "urgencias-core[{extra}]"'
+        f'Install it with: pip install "urg-forecast-core[{extra}]"'
     )

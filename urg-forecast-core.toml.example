@@ -1,6 +1,6 @@
-# Example configuration for the urgencias-core reference server.
+# Example configuration for the urg-forecast-core reference server.
 #
-# Copy to ``urgencias-core.toml`` in the project root and edit to point at
+# Copy to ``urg-forecast-core.toml`` in the project root and edit to point at
 # your own visit-level parquet. If this file is absent, the server runs
 # against the packaged synthetic fixture in tests/fixtures/.
 

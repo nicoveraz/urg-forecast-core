@@ -11,7 +11,7 @@ arrival/discharge timestamps the simulator needs.
 
 Run with::
 
-    urgencias-demo-deis --offline     # after: pip install "urgencias-core[models,viz]"
+    urgencias-demo-deis --offline     # after: pip install "urg-forecast-core[models,viz]"
     urgencias-demo-deis               # live fetch needs the [fetch] extra too
     uv run python scripts/demo_deis.py    # from a source checkout
 

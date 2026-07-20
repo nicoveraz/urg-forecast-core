@@ -1,4 +1,4 @@
-# urgencias-core
+# urg-forecast-core
 
 Código de referencia para análisis, simulación y forecasting de servicios de
 urgencia en Chile. Fundación abierta de **Eunosia**.
@@ -13,8 +13,8 @@ dataset público DEIS MINSAL y un dashboard web mínimo.
 ## Instalación
 
 ```bash
-pip install urgencias-core            # librería core (datos, series, features, simulación)
-pip install "urgencias-core[all]"     # todo: modelos, visualización, servidor y fetchers
+pip install urg-forecast-core            # librería core (datos, series, features, simulación)
+pip install "urg-forecast-core[all]"     # todo: modelos, visualización, servidor y fetchers
 ```
 
 La instalación core es deliberadamente liviana
@@ -32,7 +32,7 @@ qué instalar:
 
 ## Quickstart
 
-Tras `pip install "urgencias-core[all]"` quedan disponibles tres comandos de
+Tras `pip install "urg-forecast-core[all]"` quedan disponibles tres comandos de
 consola. Corren sobre datos incluidos en el paquete y escriben en `./outputs`:
 
 ```bash
@@ -176,13 +176,13 @@ evaluación operacional, clínica ni de calidad de los hospitales mencionados.
 **Atribución y licencia.** Los datos son publicados por DEIS MINSAL bajo el
 marco chileno de datos abiertos. Si usa este código o sus derivados para
 investigación, mantenga la atribución a DEIS y, cuando sea relevante, a
-`urgencias-core`. El snapshot offline incluido en el paquete es un extracto
+`urg-forecast-core`. El snapshot offline incluido en el paquete es un extracto
 filtrado del dataset público para reproducibilidad; no exime al usuario de
 fetchar directamente desde la fuente en usos operacionales.
 
 ## Estado del proyecto
 
-`urgencias-core` es una fundación abierta, desarrollada y mantenida por Nicolás
+`urg-forecast-core` es una fundación abierta, desarrollada y mantenida por Nicolás
 Vera Z. como base de **Eunosia**, una plataforma de IA clínica para medicina de
 urgencia. Se publica en PyPI y se mantiene con esfuerzo razonable: mientras esté
 en 0.x la API puede cambiar entre versiones menores, y los issues y pull
@@ -197,7 +197,7 @@ boarding).
 
 ## Cómo citar
 
-Si usas `urgencias-core` en investigación, por favor cítalo. Los metadatos
+Si usas `urg-forecast-core` en investigación, por favor cítalo. Los metadatos
 legibles por máquina están en [`CITATION.cff`](CITATION.cff) (GitHub muestra un
 botón "Cite this repository"). Cada release etiquetado se archiva en
 [Zenodo](https://zenodo.org/) con un DOI. Hay un paper de software (formato

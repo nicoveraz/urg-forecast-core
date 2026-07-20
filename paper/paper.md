@@ -1,5 +1,5 @@
 ---
-title: 'urgencias-core: A reference pipeline for emergency department occupancy analytics, forecasting, and Monte Carlo simulation in Chile'
+title: 'urg-forecast-core: A reference pipeline for emergency department occupancy analytics, forecasting, and Monte Carlo simulation in Chile'
 tags:
   - Python
   - emergency medicine
@@ -21,7 +21,7 @@ bibliography: paper.bib
 
 # Summary
 
-`urgencias-core` is an open-source Python package that turns visit-level
+`urg-forecast-core` is an open-source Python package that turns visit-level
 emergency department (ED) records into operational decision support. It
 implements an end-to-end reference pipeline: it converts a table of visits
 (one row per patient, with arrival and discharge timestamps) into an hourly
@@ -49,7 +49,7 @@ simulator) are scattered across papers and notebooks, and code released
 alongside studies is frequently tied to a single site's data schema or is not
 installable at all.
 
-`urgencias-core` addresses this gap for the Chilean context specifically, while
+`urg-forecast-core` addresses this gap for the Chilean context specifically, while
 remaining generic enough to adapt elsewhere. It provides:
 
 - **A correct, reusable occupancy transform.** Hourly census is derived from
@@ -92,7 +92,7 @@ repeated per site.\label{fig:holdout}](figures/deis_holdout_puerto_montt.png)
 
 # Functionality and use
 
-After `pip install "urgencias-core[all]"`, three commands run the pipeline on
+After `pip install "urg-forecast-core[all]"`, three commands run the pipeline on
 packaged data and write figures and tables:
 
 ```bash
@@ -109,7 +109,7 @@ Optional-dependency extras (`models`, `viz`, `server`, `fetch`) keep the core
 install minimal; modules that need a heavier library raise an actionable error
 naming the extra to install.
 
-`urgencias-core` is the open foundation of Eunosia, a clinical AI platform for
+`urg-forecast-core` is the open foundation of Eunosia, a clinical AI platform for
 emergency medicine, and is intended both as directly usable tooling and as a
 starting point that a hospital can clone and adapt to its own data.
 

@@ -1,5 +1,5 @@
 [project]
-name = "urgencias-core"
+name = "urg-forecast-core"
 version = "0.1.0"
 description = "Reference code for Chilean ED analytics, simulation, and forecasting. Open foundation of Eunosia."
 readme = "README.md"
@@ -53,7 +53,7 @@ viz = [
 ]
 # The minimal FastAPI reference server (renders charts, so it pulls in viz).
 server = [
-    "urgencias-core[viz]",
+    "urg-forecast-core[viz]",
     "fastapi>=0.110",
     "uvicorn>=0.29",
     "jinja2>=3.1",
@@ -64,7 +64,7 @@ fetch = [
 ]
 # Everything, for running the demos and the full test suite.
 all = [
-    "urgencias-core[models,viz,server,fetch]",
+    "urg-forecast-core[models,viz,server,fetch]",
 ]
 
 [project.urls]

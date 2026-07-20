@@ -2,7 +2,7 @@ name: publish
 
 # Publishes to PyPI on a version tag using PyPI Trusted Publishing (OIDC) — no
 # API tokens stored as secrets. Register this repo + the `pypi` environment as a
-# trusted publisher at https://pypi.org/manage/project/urgencias-core/settings/publishing/
+# trusted publisher at https://pypi.org/manage/project/urg-forecast-core/settings/publishing/
 # before the first release. See CONTRIBUTING.md "Cutting a release".
 
 on:
@@ -55,7 +55,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: pypi
-      url: https://pypi.org/p/urgencias-core
+      url: https://pypi.org/p/urg-forecast-core
     permissions:
       id-token: write # required for trusted publishing (OIDC)
     steps:

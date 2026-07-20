@@ -1,4 +1,4 @@
-# urgencias-core: an open reference pipeline for emergency department occupancy analytics, probabilistic forecasting, and Monte Carlo simulation, with a demonstration on Chilean DEIS open data
+# urg-forecast-core: an open reference pipeline for emergency department occupancy analytics, probabilistic forecasting, and Monte Carlo simulation, with a demonstration on Chilean DEIS open data
 
 **Nicolás Vera Zúñiga**¹
 
@@ -12,13 +12,13 @@
 
 **Background.** Emergency department (ED) crowding is a global, patient-safety–relevant problem, and short- and medium-horizon forecasting of ED demand and occupancy is a well-established lever for proactive staffing and surge planning. However, the reusable building blocks — a correct visits-to-occupancy transform, locally appropriate calendar features, comparable quantile forecasters, an evaluation harness, and a stochastic occupancy simulator — remain scattered and are often not installable, reproducible, or adapted to a given country's data.
 
-**Objective.** We present `urgencias-core`, an open-source Python package that packages this pipeline end to end for the Chilean context while remaining generic enough to adapt elsewhere, and we demonstrate it on public national data.
+**Objective.** We present `urg-forecast-core`, an open-source Python package that packages this pipeline end to end for the Chilean context while remaining generic enough to adapt elsewhere, and we demonstrate it on public national data.
 
 **Methods.** The package converts visit-level records to an hourly occupancy census using an event cumulative-sum construction, engineers Chile-specific calendar features, exposes a uniform `Forecaster` interface over a seasonal-naive baseline, classical statistical models (AutoARIMA, AutoETS, AutoTheta, MSTL), and a per-quantile LightGBM model, and scores them with an evaluation harness using pinball (quantile) loss. A Monte Carlo engine propagates forecast uncertainty and an empirical length-of-stay (LOS) sampler into census bands. We ran a 12-week rolling-origin-free holdout backtest of weekly total ED attendances for two hospitals in the Servicio de Salud Reloncaví (Los Lagos, Chile) using the public DEIS MINSAL *Atenciones de Urgencia* dataset.
 
 **Results.** On the holdout, the harness selected different best models per site by P80 pinball loss: AutoARIMA for the high-complexity Hospital de Puerto Montt (mean absolute error [MAE] 181.1 weekly attendances, P80 pinball loss 71.0) and the seasonal-naive baseline for the low-complexity Hospital de Frutillar (MAE 47.2, P80 pinball loss 16.5). Point-accuracy and calibration rankings did not always agree, underscoring the value of selecting on the operationally relevant quantile.
 
-**Conclusions.** `urgencias-core` lowers the barrier between published ED-forecasting methods and runnable, reproducible tooling. It is released under the MIT license, is installable from PyPI, and is archived on Zenodo. The DEIS demonstration is strictly methodological and is **not** an operational, clinical, or quality evaluation of any hospital.
+**Conclusions.** `urg-forecast-core` lowers the barrier between published ED-forecasting methods and runnable, reproducible tooling. It is released under the MIT license, is installable from PyPI, and is archived on Zenodo. The DEIS demonstration is strictly methodological and is **not** an operational, clinical, or quality evaluation of any hospital.
 
 ---
 
@@ -28,7 +28,7 @@ ED crowding degrades timeliness and quality of care and is associated with worse
 
 Despite this, moving from a published method to something a hospital analytics team can run remains difficult. Three recurring frictions are: (i) the visits-to-occupancy transform is easy to get subtly wrong (double counting, grid-boundary errors); (ii) calendar features must reflect the *local* holiday and school calendar and seasonal structure, which country-agnostic tooling does not encode; and (iii) code released with studies is frequently tied to one site's schema, lacks probabilistic (as opposed to point) forecasts, or is not packaged for installation.
 
-`urgencias-core` targets these frictions for Chile specifically. Its contributions are: a correct, reusable occupancy transform; Chilean calendar features; a uniform quantile-`Forecaster` interface spanning a strong baseline, classical models, and gradient boosting; an evaluation harness that enforces that model complexity must earn its keep; an empirical-LOS Monte Carlo occupancy simulator; a client for the public DEIS MINSAL dataset with an offline snapshot for reproducibility; and a minimal reference dashboard. The software is typed, `src`-layout, and split into optional-dependency extras so that the core installs lightly.
+`urg-forecast-core` targets these frictions for Chile specifically. Its contributions are: a correct, reusable occupancy transform; Chilean calendar features; a uniform quantile-`Forecaster` interface spanning a strong baseline, classical models, and gradient boosting; an evaluation harness that enforces that model complexity must earn its keep; an empirical-LOS Monte Carlo occupancy simulator; a client for the public DEIS MINSAL dataset with an offline snapshot for reproducibility; and a minimal reference dashboard. The software is typed, `src`-layout, and split into optional-dependency extras so that the core installs lightly.
 
 ## 2. Data
 
@@ -135,7 +135,7 @@ The empirical-LOS Monte Carlo simulator is, to our knowledge, an unusually acces
 
 ## 7. Software availability
 
-`urgencias-core` is released under the MIT license. Source: <https://github.com/nicoveraz/urg-forecast-core>. Install: `pip install "urgencias-core[all]"`. Archived releases and a citable DOI are provided via Zenodo (see `CITATION.cff`). The version described here is 0.1.0.
+`urg-forecast-core` is released under the MIT license. Source: <https://github.com/nicoveraz/urg-forecast-core>. Install: `pip install "urg-forecast-core[all]"`. Archived releases and a citable DOI are provided via Zenodo (see `CITATION.cff`). The version described here is 0.1.0.
 
 ## Acknowledgements
 

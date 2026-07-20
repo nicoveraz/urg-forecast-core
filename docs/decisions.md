@@ -1,7 +1,7 @@
 # Decisiones arquitectónicas
 
 Este documento registra las decisiones de diseño no obvias detrás de
-`urgencias-core`. Cada sección es de tipo "qué se decidió, por qué, y
+`urg-forecast-core`. Cada sección es de tipo "qué se decidió, por qué, y
 cómo retractarlo". No es exhaustivo — la mayoría del código se explica
 solo; lo que está aquí vale la pena recordar.
 
@@ -155,13 +155,13 @@ feature, no un accidente.
 
 Esto es deliberadamente minimal. El dashboard interactivo bonito vive
 en el repo privado `eunosia-forecast` y es una decisión comercial de
-frontend separada. `urgencias-core/server` existe para que alguien que
+frontend separada. `urg-forecast-core/server` existe para que alguien que
 clone el repo pueda abrir su navegador y ver qué hace el código sin
 tener que leerlo.
 
 ## Publicación como paquete PyPI
 
-Desde v0.1.0 `urgencias-core` se publica en PyPI con versionado semántico
+Desde v0.1.0 `urg-forecast-core` se publica en PyPI con versionado semántico
 (la API puede cambiar entre versiones menores mientras esté en 0.x),
 `CHANGELOG.md`, `CITATION.cff` y archivado en Zenodo. La instalación core es
 liviana; las dependencias pesadas viven detrás de extras

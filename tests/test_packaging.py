@@ -21,7 +21,7 @@ def test_missing_extra_error_names_extra_and_install_command() -> None:
     assert isinstance(err, ImportError)
     msg = str(err)
     assert "LGBQuantileForecaster" in msg
-    assert "urgencias-core[models]" in msg
+    assert "urg-forecast-core[models]" in msg
     assert "pip install" in msg
 
 
