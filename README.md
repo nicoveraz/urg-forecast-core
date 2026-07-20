@@ -4,6 +4,7 @@
 [![PyPI](https://img.shields.io/pypi/v/urg-forecast-core.svg)](https://pypi.org/project/urg-forecast-core/)
 [![Python](https://img.shields.io/pypi/pyversions/urg-forecast-core.svg)](https://pypi.org/project/urg-forecast-core/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/nicoveraz/urg-forecast-core/blob/main/LICENSE)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21449610.svg)](https://doi.org/10.5281/zenodo.21449610)
 
 Reference code for Chilean emergency department (ED) analytics, simulation, and
 forecasting. Open foundation of **Eunosia**.
@@ -198,10 +199,10 @@ integration to separate workup from boarding time).
 If you use `urg-forecast-core` in research, please cite it. Machine-readable
 metadata lives in [`CITATION.cff`](https://github.com/nicoveraz/urg-forecast-core/blob/main/CITATION.cff)
 (GitHub renders a "Cite this repository" button from it). Each tagged release is
-archived on [Zenodo](https://zenodo.org/) with a DOI.
+archived on [Zenodo](https://zenodo.org/):
 
-<!-- After the first Zenodo release, add the concept-DOI badge and BibTeX here:
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.XXXXXXX.svg)](https://doi.org/10.5281/zenodo.XXXXXXX) -->
+- **Concept DOI** (always the latest version): [10.5281/zenodo.21449610](https://doi.org/10.5281/zenodo.21449610)
+- **This version (v0.1.0):** [10.5281/zenodo.21449611](https://doi.org/10.5281/zenodo.21449611)
 
 A software paper (JOSS format) and a fuller methods preprint are drafted under
 [`paper/`](https://github.com/nicoveraz/urg-forecast-core/tree/main/paper).

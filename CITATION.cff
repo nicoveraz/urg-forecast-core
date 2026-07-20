@@ -17,8 +17,17 @@ authors:
 version: "0.1.0"
 date-released: "2026-07-20"
 license: MIT
+# Concept DOI (always resolves to the latest version).
+doi: "10.5281/zenodo.21449610"
 repository-code: "https://github.com/nicoveraz/urg-forecast-core"
 url: "https://pypi.org/project/urg-forecast-core/"
+identifiers:
+  - type: doi
+    value: "10.5281/zenodo.21449610"
+    description: "Concept DOI (all versions)"
+  - type: doi
+    value: "10.5281/zenodo.21449611"
+    description: "Version DOI (v0.1.0)"
 keywords:
   - emergency department
   - emergency medicine
@@ -28,5 +37,3 @@ keywords:
   - capacity planning
   - Chile
   - DEIS
-# After the first Zenodo release, add the concept DOI here, e.g.:
-# doi: "10.5281/zenodo.XXXXXXX"

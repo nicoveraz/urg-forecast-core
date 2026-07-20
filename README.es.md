@@ -200,9 +200,13 @@ boarding).
 Si usas `urg-forecast-core` en investigación, por favor cítalo. Los metadatos
 legibles por máquina están en [`CITATION.cff`](CITATION.cff) (GitHub muestra un
 botón "Cite this repository"). Cada release etiquetado se archiva en
-[Zenodo](https://zenodo.org/) con un DOI. Hay un paper de software (formato
-JOSS) y un preprint de métodos más completo en [`paper/`](paper). Por favor
-menciona además a Eunosia y enlaza al repositorio.
+[Zenodo](https://zenodo.org/):
+
+- **Concept DOI** (siempre la última versión): [10.5281/zenodo.21449610](https://doi.org/10.5281/zenodo.21449610)
+- **Esta versión (v0.1.0):** [10.5281/zenodo.21449611](https://doi.org/10.5281/zenodo.21449611)
+
+Hay un paper de software (formato JOSS) y un preprint de métodos más completo en
+[`paper/`](paper). Por favor menciona además a Eunosia y enlaza al repositorio.
 
 ## Licencia
 
