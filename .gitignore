@@ -31,6 +31,9 @@ build/
 .vscode/
 *.swp
 
+# Agent/harness scratch (git worktrees created by tooling)
+.claude/worktrees/
+
 # Env
 .env
 .env.*

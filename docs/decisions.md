@@ -159,14 +159,19 @@ frontend separada. `urgencias-core/server` existe para que alguien que
 clone el repo pueda abrir su navegador y ver qué hace el código sin
 tener que leerlo.
 
-## Ningún paquete PyPI
+## Publicación como paquete PyPI
 
-No hay versioning, changelog, citation.cff, ni publicación a PyPI.
-`pyproject.toml` solo existe para que `uv sync` funcione localmente.
+Desde v0.1.0 `urgencias-core` se publica en PyPI con versionado semántico
+(la API puede cambiar entre versiones menores mientras esté en 0.x),
+`CHANGELOG.md`, `CITATION.cff` y archivado en Zenodo. La instalación core es
+liviana; las dependencias pesadas viven detrás de extras
+(`models`, `viz`, `server`, `fetch`).
 
-Razón: `urgencias-core` es **código de referencia**, no un paquete
-mantenido. Prometer estabilidad de API crea obligaciones que no
-queremos. Si alguien quiere depender de él, fork y pin a un commit.
+Razón del cambio: abrir la base como paquete instalable y citable baja la
+barrera de adopción para equipos de análisis hospitalario e investigación en
+servicios de salud. No implica un SLA de soporte: se mantiene con esfuerzo
+razonable y, mientras esté en 0.x, la estabilidad de API es best-effort. Quien
+necesite garantías fuertes puede fijar (pin) una versión.
 
 ---
 
@@ -174,7 +179,7 @@ queremos. Si alguien quiere depender de él, fork y pin a un commit.
 
 Los parquets de entrada pueden ser tz-aware o tz-naive; el loader
 normaliza a tz-naive (UTC). La fixture sintética es tz-naive porque
-generar 3 años de datos horarios tz-aware en America/Santiago cruza
+generar varios años de datos horarios tz-aware en America/Santiago cruza
 múltiples transiciones DST y produce timestamps "nonexistent" alrededor
 de las fechas de cambio. Los exports reales de EMRs chilenos
 históricamente también se publican tz-naive asumiendo hora local.

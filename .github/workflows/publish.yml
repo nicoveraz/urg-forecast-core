@@ -85,6 +85,7 @@ jobs:
           awk -v v="$VERSION" '
             $0 ~ "^## \\[" v "\\]" { grab=1; next }
             grab && /^## \[/ { exit }
+            grab && /^\[/ { exit }   # stop at link-reference definitions ([x.y.z]: url)
             grab { print }
           ' CHANGELOG.md > RELEASE_NOTES.md
           if [ ! -s RELEASE_NOTES.md ]; then

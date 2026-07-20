@@ -80,7 +80,7 @@ urgencias-server = "urgencias_core.demos.server:main"
 [dependency-groups]
 dev = [
     "pytest>=8.0",
-    "ruff>=0.4",
+    "ruff==0.6.9", # pinned to match pre-commit and CI so format style can't drift
     "pre-commit>=3.7",
 ]
 
@@ -104,8 +104,10 @@ exclude = [
     "/.pre-commit-config.yaml",
     "/.python-version",
     "/.pytest_cache",
+    "/.zenodo.json",
     "/docs/img",
     "/outputs",
+    "/paper",
     "/uv.lock",
 ]
 
