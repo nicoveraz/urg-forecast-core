@@ -27,13 +27,15 @@ implements an end-to-end reference pipeline: it converts a table of visits
 (one row per patient, with arrival and discharge timestamps) into an hourly
 occupancy census, engineers Chile-specific calendar features, produces
 probabilistic (quantile) forecasts of arrivals and occupancy under a single
-`Forecaster` interface, and runs a Monte Carlo census simulator that propagates
-forecast uncertainty and empirical length-of-stay (LOS) into 24-hour-ahead
-census bands. A reader for the public DEIS MINSAL *Atenciones de Urgencia*
-open dataset lets the same tools run on real Chilean hospital data, and a
-minimal, dependency-light web server renders the pipeline's outputs as a
-dashboard. The package ships typed code, packaged demo datasets, and console
-entry points so that the full pipeline runs immediately after installation.
+`Forecaster` interface, and runs a Monte Carlo census simulator that combines
+Poisson sampling of arrivals around a forecast's mean with an empirical
+length-of-stay (LOS) sampler to produce short-horizon (e.g., 24-hour) census
+bands. A reader for the public DEIS MINSAL *Atenciones de Urgencia* open dataset
+[@deis] lets the same tools run on real Chilean hospital data, and a minimal,
+dependency-light web server renders the pipeline's outputs as a dashboard. Built
+on pandas [@pandas] and NumPy [@numpy], the package ships typed code, packaged
+demo datasets, and console entry points so that the full pipeline runs
+immediately after installing the demo extras (`pip install "urg-forecast-core[all]"`).
 
 # Statement of need
 
@@ -67,9 +69,9 @@ remaining generic enough to adapt elsewhere. It provides:
   columns. An evaluation harness scores them side by side with a built-in
   "complexity must justify itself" warning: a candidate that does not beat the
   baselines by a set margin should not ship.
-- **A Monte Carlo occupancy simulator.** Future arrivals sampled from a
-  forecast are combined with an empirical LOS sampler conditional on
-  (acuity, arrival hour) to produce census uncertainty bands 24 hours ahead —
+- **A Monte Carlo occupancy simulator.** Arrivals are sampled (Poisson) around
+  a forecast's mean and combined with an empirical LOS sampler conditional on
+  (acuity, arrival hour) to produce short-horizon (e.g., 24-hour) census bands —
   the basis for shift and surge decisions [@gul2015].
 - **Real-data reproducibility.** A DEIS MINSAL client fetches and caches the
   national open dataset, with a bundled offline snapshot for reproducible runs.
@@ -109,9 +111,9 @@ Optional-dependency extras (`models`, `viz`, `server`, `fetch`) keep the core
 install minimal; modules that need a heavier library raise an actionable error
 naming the extra to install.
 
-`urg-forecast-core` is the open foundation of Eunosia, a clinical AI platform for
-emergency medicine, and is intended both as directly usable tooling and as a
-starting point that a hospital can clone and adapt to its own data.
+`urg-forecast-core` is the open foundation of a broader emergency-medicine
+analytics effort (Eunosia) and is intended both as directly usable tooling and
+as a starting point that a hospital can clone and adapt to its own data.
 
 # Acknowledgements
 

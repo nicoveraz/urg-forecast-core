@@ -188,11 +188,20 @@ on 0.x the API may change between minor versions, and issues and pull requests
 are welcome but not guaranteed a fast response. If you need commercial support
 or bespoke work on top of this foundation, contact the author.
 
-See [`CONTRIBUTING.md`](https://github.com/nicoveraz/urg-forecast-core/blob/main/CONTRIBUTING.md)
-for development and release procedures, [`docs/decisions.md`](https://github.com/nicoveraz/urg-forecast-core/blob/main/docs/decisions.md)
-for architecture decisions, and [`docs/roadmap.md`](https://github.com/nicoveraz/urg-forecast-core/blob/main/docs/roadmap.md)
+See [`docs/decisions.md`](https://github.com/nicoveraz/urg-forecast-core/blob/main/docs/decisions.md)
+for architecture decisions and [`docs/roadmap.md`](https://github.com/nicoveraz/urg-forecast-core/blob/main/docs/roadmap.md)
 for deferred items (xlsx/mdb support for DEIS 2017–2019, neuralforecast, EMR
 integration to separate workup from boarding time).
+
+## Contributing and support
+
+- **Report bugs and problems:** open an issue at
+  [the issue tracker](https://github.com/nicoveraz/urg-forecast-core/issues).
+- **Ask questions / get support:** open an issue with the `question` label.
+- **Contribute:** see [`CONTRIBUTING.md`](https://github.com/nicoveraz/urg-forecast-core/blob/main/CONTRIBUTING.md)
+  for the development setup and release procedure. Run the tests with
+  `uv run pytest -q`. All participation is governed by the
+  [Code of Conduct](https://github.com/nicoveraz/urg-forecast-core/blob/main/CODE_OF_CONDUCT.md).
 
 ## Citing
 
