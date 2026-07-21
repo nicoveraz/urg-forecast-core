@@ -1,5 +1,10 @@
 # Decisiones arquitectónicas
 
+> **In English:** this is an architecture-decision log — the non-obvious design
+> choices behind `urg-forecast-core`, each as "what was decided, why, and how to
+> reverse it". Written in Spanish (the project's working language); the code and
+> its docstrings are in English. Not required reading to use the library.
+
 Este documento registra las decisiones de diseño no obvias detrás de
 `urg-forecast-core`. Cada sección es de tipo "qué se decidió, por qué, y
 cómo retractarlo". No es exhaustivo — la mayoría del código se explica

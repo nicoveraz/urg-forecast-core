@@ -1,5 +1,10 @@
 # Roadmap
 
+> **In English:** deliberately deferred items (not bugs) — things intentionally
+> left out of the v1 bootstrap on a cost/value basis or pending external
+> dependencies: xlsx/mdb support for DEIS 2017–2019, neuralforecast models, and
+> EMR integration to separate workup from boarding time. Written in Spanish.
+
 Items diferidos conscientemente durante el bootstrap v1. No son bugs;
 son decisiones de no implementar algo ahora por costo/valor o por
 dependencias externas no resueltas.
