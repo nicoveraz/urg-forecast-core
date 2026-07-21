@@ -1,0 +1,30 @@
+name: paper
+
+# Compile the JOSS paper to a draft PDF so bibliography/formatting problems
+# surface before submission (the same Open Journals toolchain the editorialbot
+# runs). Scoped to paper changes to keep the main CI fast.
+on:
+  push:
+    paths:
+      - "paper/**"
+      - ".github/workflows/paper.yml"
+  pull_request:
+    paths:
+      - "paper/**"
+  workflow_dispatch:
+
+jobs:
+  draft:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build draft JOSS paper
+        uses: openjournals/openjournals-draft-action@master
+        with:
+          journal: joss
+          paper-path: paper/paper.md
+      - name: Upload paper PDF
+        uses: actions/upload-artifact@v4
+        with:
+          name: paper
+          path: paper/paper.pdf

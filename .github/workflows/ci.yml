@@ -82,6 +82,14 @@ jobs:
       - name: Core modules import and the bundled fixture resolves
         run: |
           /tmp/coreenv/bin/python - <<'PY'
+          # The curated top-level API must import (and expose __version__) with
+          # no extras — i.e. it must not re-export any gated module.
+          import urgencias_core
+          from urgencias_core import (
+              load_visits, hourly_timeseries, calendar_features,
+              HorizonSpec, SeasonalNaiveBaseline, run_harness, simulate,
+          )
+          assert urgencias_core.__version__, "no __version__"
           import urgencias_core.data.loader
           import urgencias_core.data.timeseries
           import urgencias_core.features.calendar
@@ -90,7 +98,7 @@ jobs:
           import urgencias_core.eval.baselines  # statsforecast is lazy
           from urgencias_core.server.config import default_fixture_path
           assert default_fixture_path().exists(), "packaged fixture missing"
-          print("core import surface OK")
+          print("core import surface OK, version", urgencias_core.__version__)
           PY
       - name: Gated modules raise actionable errors without their extra
         run: |
@@ -100,6 +108,7 @@ jobs:
               ("urgencias_core.server.app", "server"),
               ("urgencias_core.server.charts", "viz"),
               ("urgencias_core.data.deis", "fetch"),
+              ("urgencias_core.features.weather", "fetch"),
           ]
           for module, extra in cases:
               try:
