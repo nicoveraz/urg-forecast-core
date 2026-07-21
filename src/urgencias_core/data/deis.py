@@ -368,6 +368,8 @@ def load_year(
     except SchemaDriftError as e:
         logger.warning("Schema drift in year %d: %s", e.year, e)
         return None
+    except (TypeError, AttributeError, NameError):
+        raise  # programming errors must surface, not be swallowed as "parse failure"
     except Exception as e:
         logger.warning("Parse failure in year %d: %s", year, e)
         return None
@@ -448,6 +450,8 @@ def fetch_demo_hospitals(
             client=client,
             facility_filter=codes,
         )
+    except (TypeError, AttributeError, NameError):
+        raise  # programming errors must surface, not fall through to the snapshot
     except Exception as e:
         logger.warning("Live fetch failed: %s. Falling back to snapshot.", e)
         df = pd.DataFrame()

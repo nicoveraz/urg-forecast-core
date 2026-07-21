@@ -1,12 +1,14 @@
 """Minimal FastAPI reference server.
 
 Server-rendered HTML with embedded base64 PNG charts. Zero JS, no build step.
-Designed to be launched with::
+The app is built by the :func:`create_app` factory (no module-level instance,
+so importing this module is side-effect free). Launch with::
 
-    uv run uvicorn urgencias_core.server.app:app
+    uv run uvicorn --factory urgencias_core.server.app:create_app
 
-It loads a single parquet (configured via ``urg-forecast-core.toml``, default:
-the packaged synthetic fixture) at startup and serves three views:
+or via the ``urgencias-server`` console command. It loads a single parquet
+(configured via ``urg-forecast-core.toml``, default: the packaged synthetic
+fixture) at startup and serves three views:
 
 - ``/baseline``  — descriptive analytics over the full history
 - ``/forecast``  — runs the configured forecaster on the recent window
@@ -225,7 +227,4 @@ def create_app(config: ServerConfig | None = None) -> FastAPI:
     return app
 
 
-app = create_app()
-
-
-__all__ = ["app", "create_app", "ServerState"]
+__all__ = ["create_app", "ServerState"]
