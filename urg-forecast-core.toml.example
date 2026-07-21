@@ -1,13 +1,15 @@
 # Example configuration for the urg-forecast-core reference server.
 #
 # Copy to ``urg-forecast-core.toml`` in the project root and edit to point at
-# your own visit-level parquet. If this file is absent, the server runs
-# against the packaged synthetic fixture in tests/fixtures/.
+# your own visit-level parquet. If this file is absent — or the [data].parquet
+# line below is omitted — the server runs against the packaged synthetic
+# fixture bundled inside the installed package.
 
 [data]
-# Path to your visit-level parquet. Must match the loader schema (see
-# urgencias_core/data/loader.py for required columns).
-parquet = "tests/fixtures/synthetic_ed_visits.parquet"
+# Path to YOUR visit-level parquet. Must match the loader schema (see
+# urgencias_core/data/loader.py for required columns). Omit this line to use
+# the packaged synthetic fixture instead.
+parquet = "/absolute/path/to/your/ed_visits.parquet"
 
 [forecast]
 # Forecaster: "seasonal_naive" or "lgb_quantile".

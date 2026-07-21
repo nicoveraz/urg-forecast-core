@@ -1,6 +1,6 @@
 """Console entry point that launches the reference FastAPI server.
 
-Equivalent to ``uvicorn urgencias_core.server.app:app`` but installed as the
+Equivalent to ``uvicorn --factory urgencias_core.server.app:create_app`` but installed as the
 ``urgencias-server`` command. The server reads ``urg-forecast-core.toml`` from the
 current directory if present, otherwise serves the bundled synthetic fixture.
 
@@ -32,7 +32,8 @@ def main() -> None:
         raise missing_extra_error("server", "The reference server") from exc
 
     uvicorn.run(
-        "urgencias_core.server.app:app",
+        "urgencias_core.server.app:create_app",
+        factory=True,
         host=args.host,
         port=args.port,
         reload=args.reload,

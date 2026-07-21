@@ -4,6 +4,8 @@ version = "0.1.0"
 description = "Reference code for Chilean ED analytics, simulation, and forecasting. Open foundation of Eunosia."
 readme = "README.md"
 license = { file = "LICENSE" }
+# Upper bound tracks the optional forecasting stack (numba/statsforecast),
+# which does not yet publish wheels for 3.13; revisit once it does.
 requires-python = ">=3.11,<3.13"
 authors = [{ name = "Nicolás Vera Z." }]
 keywords = [
@@ -120,4 +122,11 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-filterwarnings = ["ignore::DeprecationWarning"]
+# Only silence third-party deprecations we can't act on (statsforecast/numba
+# pull these in); keep our own deprecations visible rather than a blanket ignore.
+filterwarnings = [
+    "default::DeprecationWarning",
+    "ignore::DeprecationWarning:statsforecast.*",
+    "ignore::DeprecationWarning:numba.*",
+    "ignore::DeprecationWarning:pandas.*",
+]

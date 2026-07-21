@@ -55,11 +55,9 @@ class SeasonalNaiveBaseline:
     def predict(self, horizon: HorizonSpec) -> pd.DataFrame:
         if self._key_fn is None or self._history_end is None or self._fallback is None:
             raise RuntimeError("SeasonalNaiveBaseline.predict called before fit")
-        key_fn = (
-            _key_func(horizon.grain)
-            if _grain_changed(self._key_fn, horizon.grain)
-            else self._key_fn
-        )
+        # Rebuild the key function from the requested grain: the fitted freq is
+        # not stored, so the horizon grain is the source of truth on predict.
+        key_fn = _key_func(horizon.grain)
         future = future_index(self._history_end, horizon)
         qcols = [f"q{int(round(q * 100))}" for q in sorted(self.quantiles)]
         sorted_q_idx = np.argsort(self.quantiles)
@@ -140,6 +138,10 @@ def auto_arima(
     quantiles: tuple[float, ...] = (0.5, 0.8, 0.9, 0.95),
     **kwargs,
 ) -> StatsForecastWrapper:
+    """AutoARIMA forecaster (statsforecast) wrapped to the Forecaster protocol.
+
+    Requires the ``models`` extra; raises an actionable error if it is missing.
+    """
     try:
         from statsforecast.models import AutoARIMA
     except ImportError as exc:
@@ -154,6 +156,10 @@ def auto_ets(
     quantiles: tuple[float, ...] = (0.5, 0.8, 0.9, 0.95),
     **kwargs,
 ) -> StatsForecastWrapper:
+    """AutoETS forecaster (statsforecast) wrapped to the Forecaster protocol.
+
+    Requires the ``models`` extra; raises an actionable error if it is missing.
+    """
     try:
         from statsforecast.models import AutoETS
     except ImportError as exc:
@@ -168,6 +174,10 @@ def auto_theta(
     quantiles: tuple[float, ...] = (0.5, 0.8, 0.9, 0.95),
     **kwargs,
 ) -> StatsForecastWrapper:
+    """AutoTheta forecaster (statsforecast) wrapped to the Forecaster protocol.
+
+    Requires the ``models`` extra; raises an actionable error if it is missing.
+    """
     try:
         from statsforecast.models import AutoTheta
     except ImportError as exc:
@@ -182,6 +192,11 @@ def mstl(
     quantiles: tuple[float, ...] = (0.5, 0.8, 0.9, 0.95),
     **kwargs,
 ) -> StatsForecastWrapper:
+    """MSTL (multi-seasonal decomposition) forecaster wrapped to the protocol.
+
+    Defaults to daily+weekly seasonality with an AutoARIMA trend. Requires the
+    ``models`` extra; raises an actionable error if it is missing.
+    """
     try:
         from statsforecast.models import MSTL, AutoARIMA
     except ImportError as exc:
@@ -211,12 +226,6 @@ def _key_func(freq: str | None) -> Callable[[pd.Timestamp], tuple]:
     if f.startswith("M"):
         return lambda t: (t.month,)
     return lambda t: (t.dayofweek, t.hour)
-
-
-def _grain_changed(fitted_fn: Callable, horizon_grain: str) -> bool:
-    # Rebuild key function if grain differs. We don't store the original freq
-    # string, so safest is to always rebuild from horizon.grain on predict.
-    return True
 
 
 def _infer_alias(pred: pd.DataFrame) -> str:
