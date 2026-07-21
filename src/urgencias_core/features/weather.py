@@ -143,3 +143,6 @@ def _open_meteo_hourly_to_frame(payload: dict) -> pd.DataFrame:
     df = df.rename(columns={"time": "timestamp"})
     df["timestamp"] = pd.to_datetime(df["timestamp"])
     return df
+
+
+__all__ = ["fetch_history", "fetch_forecast", "WeatherConfig"]

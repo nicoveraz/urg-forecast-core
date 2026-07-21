@@ -167,3 +167,6 @@ def _in_annual_window(
         return pd.Series([start <= md <= end for md in month_day], index=ts.index)
     # wraps year end (e.g. Dec -> Feb)
     return pd.Series([md >= start or md <= end for md in month_day], index=ts.index)
+
+
+__all__ = ["calendar_features", "CalendarConfig"]

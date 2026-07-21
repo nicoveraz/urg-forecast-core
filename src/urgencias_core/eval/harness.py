@@ -3,17 +3,20 @@ periods, and report MAE/RMSE/MAPE + quantile (pinball) loss per quantile.
 
 Includes a ≥5% improvement rule: the best candidate must beat the best
 baseline by at least ``warning_threshold`` on the check quantile (default
-P80 pinball loss), otherwise a visible warning is printed to stdout.
+P80 pinball loss), otherwise a warning is emitted via the package logger.
 """
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, replace
 
 import numpy as np
 import pandas as pd
 
 from urgencias_core.models.protocol import Forecaster, HorizonSpec
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -154,12 +157,10 @@ def run_harness(
             for name, qs in missing_quantiles.items():
                 qs_str = ", ".join(f"q{q}" for q in qs)
                 print(f"  - {name}: missing {qs_str}")
-        if warning_triggered:
-            banner = "=" * 78
-            print(f"\n{banner}")
-            print("WARNING: complexity not justified")
-            print(warning_message)
-            print(banner)
+    # Surface the "complexity not justified" warning via the logger regardless
+    # of verbosity, so it is never silently lost when verbose=False.
+    if warning_triggered:
+        logger.warning("complexity not justified — %s", warning_message)
 
     return HarnessReport(
         table=table,
