@@ -10,6 +10,15 @@ drawn from its acuity bucket.
 The output is the per-simulation, per-hour census matrix, plus convenience
 derivatives: per-hour empirical quantiles and exceedance probabilities for
 user-supplied thresholds.
+
+Census definition (fixed 2026-09): each cell is the **time-weighted mean of the
+instantaneous census during that hour** — the same quantity
+``urgencias_core.data.timeseries`` reports as ``occupancy``, so simulated and
+observed census are directly comparable. Until 2026-09 the engine counted
+patients still present at the END of the hour, which silently dropped everyone
+who arrived and left inside the same hour and under-counted the census by ~30 %
+on a typical ED (median LOS ~1.8 h). Anything calibrated against the old
+behaviour (staffing thresholds, exceedance probabilities) shifts upward.
 """
 
 from __future__ import annotations
@@ -37,7 +46,10 @@ class SimulationResult:
     Attributes
     ----------
     census
-        Array of shape ``(n_sims, horizon_hours)`` with end-of-hour census.
+        Array of shape ``(n_sims, horizon_hours)``; each entry is the
+        time-weighted MEAN census during that hour (same definition as
+        ``timeseries.hourly_timeseries``'s ``occupancy``), so values are
+        fractional.
     hours_since_start
         Array of shape ``(horizon_hours,)`` with hour offsets 1..H.
     """
@@ -55,6 +67,30 @@ class SimulationResult:
     def exceedance(self, threshold: float) -> np.ndarray:
         """Empirical P(census > threshold) for each future hour."""
         return np.mean(self.census > threshold, axis=0)
+
+
+def _mean_census_per_hour(
+    arrivals: np.ndarray, departures: np.ndarray, horizon: int
+) -> np.ndarray:
+    """Time-weighted mean census for each hour ``[h, h+1)``, h = 0..horizon-1.
+
+    Exact, not sampled: person-hours accumulated up to ``T`` are
+    ``F(T) = sum(min(departure, T)) - sum(min(arrival, T))``, so the mean census
+    during hour ``h`` is ``F(h+1) - F(h)``. Matches the definition
+    ``data.timeseries._occupancy_by_events`` uses for observed occupancy.
+    """
+    a = np.sort(np.asarray(arrivals, dtype="float64"))
+    d = np.sort(np.asarray(departures, dtype="float64"))
+    ca = np.concatenate(([0.0], np.cumsum(a)))
+    cd = np.concatenate(([0.0], np.cumsum(d)))
+    edges = np.arange(horizon + 1, dtype="float64")
+
+    def _clipped_sum(x_sorted: np.ndarray, cum: np.ndarray, t: np.ndarray) -> np.ndarray:
+        k = np.searchsorted(x_sorted, t, side="right")
+        return cum[k] + (len(x_sorted) - k) * t
+
+    f = _clipped_sum(d, cd, edges) - _clipped_sum(a, ca, edges)
+    return np.diff(f)
 
 
 def simulate(
@@ -91,6 +127,12 @@ def simulate(
         Quantile levels to summarize the result with.
     seed
         RNG seed for reproducibility.
+
+    Returns
+    -------
+    SimulationResult
+        ``census[s, h]`` is the time-weighted mean census during hour ``h`` of
+        simulation ``s`` — comparable to observed ``occupancy``, and fractional.
     """
     arrivals_mean = np.asarray(arrivals_mean, dtype="float64")
     if arrivals_mean.ndim != 1:
@@ -105,7 +147,7 @@ def simulate(
     acuity_probs = acuity_probs / acuity_probs.sum()
 
     rng = np.random.default_rng(seed)
-    census = np.zeros((n_sims, horizon), dtype="int32")
+    census = np.zeros((n_sims, horizon), dtype="float64")
 
     if isinstance(current_patients, int):
         baseline_count = current_patients
@@ -119,31 +161,35 @@ def simulate(
     for s in range(n_sims):
         # Residual LOS for current patients: sample fresh from acuity bucket
         # at current hour_of_day. Subtract hours already in ED (truncate to 0).
-        depart_times: list[float] = []
+        # They are present from t=0.
+        arrive_times: list[np.ndarray] = []
+        depart_times: list[np.ndarray] = []
         if baseline_known:
             acuities = np.array([p.acuity for p in baseline_known])
             hours = np.full(len(baseline_known), start_hour, dtype="int64")
             los_samples = los_sampler.sample_many(acuities, hours)
             already_in = np.array([p.hours_in_ed for p in baseline_known], dtype="float64")
             remaining = np.maximum(los_samples - already_in, 1 / 60)
-            depart_times.extend(remaining.tolist())
+            arrive_times.append(np.zeros(len(baseline_known), dtype="float64"))
+            depart_times.append(remaining.astype("float64"))
 
-        # Per-hour arrivals
-        for h in range(horizon):
-            n_arrivals = rng.poisson(arrivals_mean[h])
-            if n_arrivals > 0:
-                arrived_acuities = rng.choice(acuity_codes, size=n_arrivals, p=acuity_probs)
-                arrival_hod = (start_hour + h) % 24
-                hours = np.full(n_arrivals, arrival_hod, dtype="int64")
-                los_new = los_sampler.sample_many(arrived_acuities, hours)
-                # Arrivals occur uniformly within the hour; approximate by placing
-                # them at hour start. Departure time (in hours since sim start):
-                depart_times.extend((h + los_new).tolist())
+        # Arrivals placed UNIFORMLY inside their hour. Pinning them to the hour
+        # mark, as the old code did, is what made sub-hour stays invisible.
+        n_arrivals = rng.poisson(arrivals_mean)
+        total = int(n_arrivals.sum())
+        if total > 0:
+            hour_of = np.repeat(np.arange(horizon), n_arrivals)
+            arrived_acuities = rng.choice(acuity_codes, size=total, p=acuity_probs)
+            arrival_hod = ((start_hour + hour_of) % 24).astype("int64")
+            los_new = los_sampler.sample_many(arrived_acuities, arrival_hod)
+            arr = hour_of + rng.random(total)
+            arrive_times.append(arr)
+            depart_times.append(arr + los_new)
 
-            # End-of-hour census: count patients with depart_time > (h + 1)
-            end_of_hour = h + 1
-            alive = sum(1 for d in depart_times if d > end_of_hour)
-            census[s, h] = alive
+        if arrive_times:
+            census[s] = _mean_census_per_hour(
+                np.concatenate(arrive_times), np.concatenate(depart_times), horizon
+            )
 
     hours_since_start = np.arange(1, horizon + 1)
     return SimulationResult(
