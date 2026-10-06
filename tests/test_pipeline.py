@@ -91,7 +91,10 @@ def test_run_forecast_on_snapshot() -> None:
     assert len(result.forecast) == 8
     assert {"q50", "q80", "q90", "q95"} <= set(result.forecast.columns)
     assert (result.forecast["q95"] >= result.forecast["q50"]).all()
-    assert set(result.backtest.index) == {"SeasonalNaive", "AutoARIMA", "AutoETS"}
+    assert set(result.backtest.index) == {"SeasonalNaive", "AutoARIMA", "Armónico", "MSTL"}
+    assert result.backtest_origins == 3
+    covered, total = result.coverage80
+    assert total == 3 * 8 and 0 <= covered <= total
     assert result.best == result.backtest["qloss_80"].idxmin()
     assert len(result.backtest_pred) == 8
 
@@ -140,3 +143,48 @@ def test_facility_name_uses_most_recent_name() -> None:
         }
     )
     assert facility_name(df, "23-100") == "Hospital Base San José de Osorno"
+
+
+def test_rolling_origins_shrink_with_short_history() -> None:
+    df = load_deis(["24-115"], offline=True)
+    weekly = weekly_series(df, "24-115").tail(104 + 12 + 4)
+    result = run_forecast(weekly, 12)
+    assert result.backtest_origins == 1
+
+
+def test_failing_model_is_skipped() -> None:
+    from urgencias_core.pipeline import default_models
+
+    class Broken:
+        def fit(self, history, target_col):
+            raise ValueError("boom")
+
+        def predict(self, horizon):  # pragma: no cover
+            raise AssertionError
+
+    df = load_deis(["24-115"], offline=True)
+    models = default_models() | {"Broken": Broken}
+    result = run_forecast(weekly_series(df, "24-115"), 4, models=models)
+    assert "Broken" in result.skipped
+    assert "Broken" not in result.backtest.index
+
+
+def test_harmonic_regression_follows_annual_cycle() -> None:
+    import numpy as np
+
+    from urgencias_core.models.harmonic import HarmonicRegression
+    from urgencias_core.models.protocol import HorizonSpec
+
+    ts = pd.date_range("2020-01-06", periods=260, freq="W-MON")
+    t = np.arange(260)
+    y = (
+        1000
+        + 200 * np.sin(2 * np.pi * t / (365.25 / 7))
+        + np.random.default_rng(0).normal(0, 10, 260)
+    )
+    hist = pd.DataFrame({"timestamp": ts[:208], "count": y[:208]})
+    m = HarmonicRegression(k=2)
+    m.fit(hist, "count")
+    pred = m.predict(HorizonSpec(grain="W-MON", length=52))
+    assert np.mean(np.abs(pred["q50"].to_numpy() - y[208:])) < 40
+    assert (pred["q95"] >= pred["q50"]).all()

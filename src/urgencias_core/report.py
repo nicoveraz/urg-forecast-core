@@ -15,7 +15,6 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
-import numpy as np  # noqa: E402
 from tabulate import tabulate  # noqa: E402
 
 from urgencias_core.pipeline import COVID_EXCLUDE_YEARS, ForecastResult  # noqa: E402
@@ -40,13 +39,6 @@ def output_dir(base: Path, result: ForecastResult) -> Path:
 
 def _fmt_date(ts) -> str:
     return ts.strftime("%Y-%m-%d")
-
-
-def backtest_coverage(result: ForecastResult) -> tuple[int, int]:
-    """Weeks in the backtest where the actual value stayed at or below P80."""
-    actual = result.backtest_actual["count"].to_numpy()
-    p80 = result.backtest_pred["q80"].to_numpy()[: len(actual)]
-    return int(np.sum(actual <= p80)), len(actual)
 
 
 def backtest_table(result: ForecastResult) -> str:
@@ -83,12 +75,18 @@ def forecast_table(result: ForecastResult) -> str:
     )
 
 
+def _backtest_title(result: ForecastResult) -> str:
+    w, k = result.backtest_weeks, result.backtest_origins
+    windows = f"{k} ventanas de {w} semanas" if k > 1 else f"últimas {w} semanas"
+    return f"Backtest: {windows}, promedio (el modelo elegido se marca con *)"
+
+
 def summary_text(result: ForecastResult, today: date | None = None) -> str:
     today = today or date.today()
     h = result.history
     first, last = h["timestamp"].iloc[0], h["timestamp"].iloc[-1]
     lag_weeks = (today - last.date()).days // 7
-    covered, n_bt = backtest_coverage(result)
+    covered, n_bt = result.coverage80
     excluded = "–".join(str(y) for y in sorted(COVID_EXCLUDE_YEARS))
 
     lines = [
@@ -107,9 +105,14 @@ def summary_text(result: ForecastResult, today: date | None = None) -> str:
         )
     lines += [
         "",
-        f"Backtest: últimas {result.backtest_weeks} semanas (el mejor modelo se marca con *)",
+        _backtest_title(result),
         backtest_table(result),
-        f"El valor real quedó bajo el P80 en {covered} de {n_bt} semanas.",
+        f"Con {result.best}, el valor real quedó bajo el P80 en {covered} de {n_bt} semanas.",
+        *(
+            [f"Modelos omitidos por error de ajuste: {', '.join(result.skipped)}."]
+            if result.skipped
+            else []
+        ),
         "",
         f"Pronóstico con {result.best}: atenciones semanales",
         forecast_table(result),

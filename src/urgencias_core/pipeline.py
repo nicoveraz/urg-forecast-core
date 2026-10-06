@@ -18,14 +18,20 @@ from __future__ import annotations
 import logging
 import re
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
+import numpy as np
 import pandas as pd
 
 from urgencias_core.data.deis import deis_reachable, facility_code_variants, fetch
 from urgencias_core.data.fixtures import deis_snapshot_path
-from urgencias_core.eval.baselines import SeasonalNaiveBaseline, auto_arima, auto_ets
-from urgencias_core.eval.harness import run_harness
+from urgencias_core.eval.baselines import (
+    SeasonalNaiveBaseline,
+    StatsForecastWrapper,
+    auto_arima,
+)
+from urgencias_core.eval.harness import quantile_loss
+from urgencias_core.models.harmonic import HarmonicRegression
 from urgencias_core.models.protocol import Forecaster, HorizonSpec
 
 COVID_EXCLUDE_YEARS = frozenset({2020, 2021})
@@ -182,18 +188,35 @@ def facility_name(df: pd.DataFrame, code: str) -> str:
 
 
 # AutoARIMA with a 52-week season is slow with the full search (~20 s per fit).
-# The approximate, bounded search below runs in ~1 s with a modest accuracy cost
-# on the demo hospitals. Swap in ``auto_arima(season_length=52)`` for the full
-# search when time is not an issue.
+# The approximate, bounded search below runs in ~1 s; on live DEIS data for seven
+# hospitals its quantile loss was within 3% of the full search.
 FAST_ARIMA = dict(approximation=True, max_p=2, max_q=2, max_P=1, max_Q=1)
+
+BACKTEST_ORIGINS = 3  # rolling backtest windows
+BACKTEST_STEP = 8  # weeks between window starts
+MIN_TRAIN_WEEKS = 2 * SEASON_WEEKS  # MSTL needs two full seasons
+QUANTILES = (0.5, 0.8, 0.9, 0.95)
+
+
+def _mstl() -> Forecaster:
+    from statsforecast.models import MSTL, AutoETS
+
+    model = MSTL(season_length=[SEASON_WEEKS], trend_forecaster=AutoETS(model="ZZN"))
+    return StatsForecastWrapper(model, name="MSTL")
 
 
 def default_models() -> dict[str, Callable[[], Forecaster]]:
-    """Factories for the baseline battery (fresh instance per fit)."""
+    """Factories for the model battery (fresh instance per fit).
+
+    SeasonalNaive is the reference. The other three all capture the annual
+    cycle in different ways; on live DEIS data none of them won everywhere, so
+    the best one is chosen per establishment by rolling backtest.
+    """
     return {
         "SeasonalNaive": SeasonalNaiveBaseline,
         "AutoARIMA": lambda: auto_arima(season_length=SEASON_WEEKS, **FAST_ARIMA),
-        "AutoETS": lambda: auto_ets(season_length=SEASON_WEEKS),
+        "Armónico": HarmonicRegression,
+        "MSTL": _mstl,
     }
 
 
@@ -202,13 +225,16 @@ class ForecastResult:
     code: str
     name: str
     history: pd.DataFrame  # weekly: timestamp, count
-    backtest_weeks: int
-    backtest: pd.DataFrame  # one row per model: mae, mape, qloss_80, ...
+    backtest_weeks: int  # length of each backtest window
+    backtest: pd.DataFrame  # one row per model, averaged over windows
     best: str
-    backtest_pred: pd.DataFrame  # best model on the backtest window
+    backtest_pred: pd.DataFrame  # best model on the most recent window
     forecast: pd.DataFrame  # timestamp, q50, q80, q90, q95
     horizon_weeks: int
     source: str = SOURCE_LIVE
+    backtest_origins: int = 1
+    coverage80: tuple[int, int] = (0, 0)  # best model: weeks at/below P80, total weeks
+    skipped: dict[str, str] = field(default_factory=dict)  # model -> error
 
     @property
     def backtest_actual(self) -> pd.DataFrame:
@@ -216,7 +242,25 @@ class ForecastResult:
 
 
 def min_weeks_needed(horizon_weeks: int) -> int:
-    return min(horizon_weeks, MAX_BACKTEST_WEEKS) + SEASON_WEEKS
+    return min(horizon_weeks, MAX_BACKTEST_WEEKS) + MIN_TRAIN_WEEKS
+
+
+def _score(actual: pd.DataFrame, pred: pd.DataFrame) -> dict:
+    y = actual["count"].to_numpy(dtype=float)
+    q50 = pred["q50"].to_numpy(dtype=float)[: len(y)]
+    nz = y != 0
+    row = {
+        "mae": float(np.mean(np.abs(y - q50))),
+        "mape": float(np.mean(np.abs((y[nz] - q50[nz]) / y[nz]))) if nz.any() else float("nan"),
+    }
+    for q in QUANTILES:
+        col = f"q{int(round(q * 100))}"
+        row[f"qloss_{int(round(q * 100))}"] = quantile_loss(
+            y, pred[col].to_numpy(dtype=float)[: len(y)], q
+        )
+    row["_covered"] = int(np.sum(y <= pred["q80"].to_numpy(dtype=float)[: len(y)]))
+    row["_n"] = len(y)
+    return row
 
 
 def run_forecast(
@@ -227,53 +271,78 @@ def run_forecast(
     name: str = "",
     models: dict[str, Callable[[], Forecaster]] | None = None,
     source: str = SOURCE_LIVE,
+    origins: int = BACKTEST_ORIGINS,
+    step: int = BACKTEST_STEP,
 ) -> ForecastResult:
-    """Backtest ``models`` and forecast ``horizon_weeks`` ahead with the best one.
+    """Rolling backtest of ``models``, then forecast with the best one.
 
-    The backtest window equals the horizon, capped at 26 weeks, so the reported
-    error reflects the horizon you asked for. Needs ``backtest + 52`` complete
-    weeks of history; raises ``NoDataError`` otherwise.
+    Each backtest window is as long as the horizon (capped at 26 weeks). Up to
+    ``origins`` windows are used, ``step`` weeks apart, so the choice does not
+    hinge on a single season; fewer are used when history is short. The best
+    model has the lowest mean P80 quantile loss across windows. A model that
+    fails to fit is skipped and reported in ``skipped``.
     """
     models = models or default_models()
-    backtest_weeks = min(horizon_weeks, MAX_BACKTEST_WEEKS)
-    if len(history) < backtest_weeks + SEASON_WEEKS:
+    bt = min(horizon_weeks, MAX_BACKTEST_WEEKS)
+    n = len(history)
+    if n < bt + MIN_TRAIN_WEEKS:
         raise NoDataError(
-            f"{name or code}: se necesitan al menos {backtest_weeks + SEASON_WEEKS} "
-            f"semanas completas y hay {len(history)}."
+            f"{name or code}: se necesitan al menos {bt + MIN_TRAIN_WEEKS} "
+            f"semanas completas y hay {n}."
         )
+    usable = 1 + (n - bt - MIN_TRAIN_WEEKS) // step
+    origins = max(1, min(origins, usable))
+    spec = HorizonSpec(grain=GRAIN, length=bt, quantiles=QUANTILES)
 
-    bt_horizon = HorizonSpec(grain=GRAIN, length=backtest_weeks)
-    report = run_harness(
-        series=history,
-        target_col="count",
-        horizon=bt_horizon,
-        holdout_length=backtest_weeks,
-        baselines={k: f() for k, f in models.items()},
-        verbose=False,
-    )
-    table = report.table.drop(columns=["role"], errors="ignore")
+    rows: list[dict] = []
+    skipped: dict[str, str] = {}
+    latest_preds: dict[str, pd.DataFrame] = {}
+    for k in range(origins):
+        cut = n - bt - k * step
+        train = history.iloc[:cut].reset_index(drop=True)
+        actual = history.iloc[cut : cut + bt].reset_index(drop=True)
+        for model_name, factory in models.items():
+            if model_name in skipped:
+                continue
+            try:
+                fc = factory()
+                fc.fit(train, "count")
+                pred = fc.predict(spec).reset_index(drop=True)
+            except Exception as exc:  # noqa: BLE001 - one bad model must not sink the run
+                logger.warning("%s: se omite (%s)", model_name, str(exc)[:80])
+                skipped[model_name] = str(exc)
+                continue
+            # statsforecast can offset weekly stamps slightly; align to actual weeks.
+            pred["timestamp"] = actual["timestamp"].to_numpy()[: len(pred)]
+            rows.append({"model": model_name, **_score(actual, pred)})
+            if k == 0:
+                latest_preds[model_name] = pred
+
+    scores = pd.DataFrame([r for r in rows if r["model"] not in skipped])
+    if scores.empty:
+        raise NoDataError(f"{name or code}: ningún modelo pudo ajustarse.")
+    sums = scores.groupby("model")[["_covered", "_n"]].sum()
+    table = scores.drop(columns=["_covered", "_n"]).groupby("model").mean()
     best = str(table["qloss_80"].idxmin())
-
-    actual = history.iloc[-backtest_weeks:].reset_index(drop=True)
-    bt_pred = report.predictions[best].reset_index(drop=True)
-    # statsforecast can offset weekly stamps slightly; align to the actual weeks.
-    bt_pred["timestamp"] = actual["timestamp"].to_numpy()[: len(bt_pred)]
 
     fc = models[best]()
     fc.fit(history, "count")
-    forward = fc.predict(HorizonSpec(grain=GRAIN, length=horizon_weeks))
+    forward = fc.predict(HorizonSpec(grain=GRAIN, length=horizon_weeks, quantiles=QUANTILES))
 
     return ForecastResult(
         code=code,
         name=name or code,
         history=history,
-        backtest_weeks=backtest_weeks,
+        backtest_weeks=bt,
         backtest=table,
         best=best,
-        backtest_pred=bt_pred,
+        backtest_pred=latest_preds[best],
         forecast=forward,
         horizon_weeks=horizon_weeks,
         source=source,
+        backtest_origins=origins,
+        coverage80=(int(sums.loc[best, "_covered"]), int(sums.loc[best, "_n"])),
+        skipped=skipped,
     )
 
 

@@ -76,10 +76,14 @@ Pronóstico con AutoARIMA: atenciones semanales
    datos publicados.
 2. Suma el total de atenciones por semana completa (las semanas incompletas de
    los extremos se descartan, porque el DEIS reporta con rezago). Se excluyen
-   2020–2021 por la pandemia.
-3. Compara tres modelos (seasonal naive, AutoARIMA y AutoETS) en un backtest
-   sobre las últimas semanas, tantas como el horizonte (máximo 26), y elige el
-   de menor pérdida por cuantil P80.
+   2020–2021 por la pandemia, y los archivos 2017–2019 (xlsx/mdb) todavía no se
+   leen, así que en la práctica la historia parte en 2022 aunque uses `--desde`.
+3. Compara cuatro modelos (seasonal naive como referencia, AutoARIMA, una
+   regresión armónica y MSTL) en tres ventanas de backtest tan largas como el
+   horizonte (máximo 26 semanas), y elige el de menor pérdida por cuantil P80
+   promedio. Con datos en vivo de siete hospitales ningún modelo ganó en todos,
+   así que la elección se hace por establecimiento; ver
+   [`docs/model-selection.md`](https://github.com/nicoveraz/urg-forecast-core/blob/main/docs/model-selection.md).
 4. Reajusta ese modelo con toda la historia y pronostica el horizonte pedido.
 
 `urg-forecast demo` intenta primero con el DEIS y, si no hay conexión, usa un
@@ -106,13 +110,14 @@ from urgencias_core import load_deis, weekly_series, run_forecast
 df = load_deis(["24-105"], start_year=2019)
 semanal = weekly_series(df, "24-105")             # timestamp, count
 resultado = run_forecast(semanal, horizon_weeks=12)
-resultado.backtest                                 # MAE, MAPE y pérdidas por cuantil por modelo
+resultado.backtest                                 # por modelo, promedio de las ventanas
 resultado.forecast                                 # timestamp, q50, q80, q90, q95
 ```
 
 **Tu propio modelo.** Cualquier clase con `fit(history, target_col)` y
 `predict(horizon)` que devuelva `timestamp, q50, q80, q90, q95` cumple el
-protocolo `Forecaster`. Agrégala junto a los baselines y compite en el mismo
+protocolo `Forecaster`; `urgencias_core/models/harmonic.py` es un ejemplo
+corto. Agrégala junto a los baselines y compite en el mismo
 backtest:
 
 ```python

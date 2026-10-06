@@ -19,8 +19,16 @@ if you depend on the removed modules.
   establishment's DEIS code) and `pronosticar` (backtest + forecast for any
   establishment). Prints a summary with ASCII tables and writes CSVs and PNGs
   to a folder per establishment.
-- Configurable horizon: `-H 12`, `12s` (weeks) or `6m` (months). The backtest
-  window matches the horizon, capped at 26 weeks.
+- Configurable horizon: `-H 12`, `12s` (weeks) or `6m` (months).
+- Rolling backtest: three windows as long as the horizon (max. 26 weeks), 8
+  weeks apart; the model with the lowest mean P80 quantile loss is used.
+  Models that fail to fit are skipped and reported.
+- Model set: SeasonalNaive (reference), AutoARIMA, `HarmonicRegression`
+  (trend + annual Fourier terms + AutoARIMA residuals, new in
+  `urgencias_core.models.harmonic`) and MSTL. Chosen from a comparison on live
+  DEIS data for seven hospitals (`docs/model-selection.md`,
+  `experiments/model_comparison.py`). AutoETS was dropped: with a 52-week
+  period statsforecast discards its seasonality and the forecast is flat.
 - `urg-forecast demo` downloads the latest DEIS data and falls back to the
   bundled snapshot when offline; the summary states which source was used and
   warns when the data are more than four weeks old.
@@ -29,6 +37,8 @@ if you depend on the removed modules.
 - `data.deis.facility_code_variants`, `facilities_in_file`, `list_facilities`
   and `deis_reachable`. Codes are accepted as `24-105` or `124105`.
 - `HarnessReport.predictions`: holdout predictions per forecaster.
+- The most recent DEIS facility name is shown; skipped DEIS years get short
+  Spanish messages.
 
 ### Changed
 

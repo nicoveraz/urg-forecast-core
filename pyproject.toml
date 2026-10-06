@@ -79,6 +79,7 @@ exclude = [
     "/.pytest_cache",
     "/.zenodo.json",
     "/docs/img",
+    "/experiments",
     "/outputs",
     "/urg-forecast-salida",
     "/uv.lock",

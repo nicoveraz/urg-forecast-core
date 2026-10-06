@@ -74,10 +74,15 @@ Pronóstico con AutoARIMA: atenciones semanales
    while DEIS is still correcting it. You always model the latest published
    data.
 2. Sums total attendances per complete week (partial weeks at the edges are
-   dropped, since DEIS reports with a lag). 2020–2021 are excluded (COVID).
-3. Backtests three models — seasonal naive, AutoARIMA and AutoETS — on the last
-   weeks, as many as the horizon (max. 26), and picks the one with the lowest
-   P80 quantile loss.
+   dropped, since DEIS reports with a lag). 2020–2021 are excluded (COVID),
+   and the 2017–2019 files (xlsx/mdb) are not read yet, so in practice the
+   history starts in 2022 even with `--desde`.
+3. Backtests four models — seasonal naive (reference), AutoARIMA, a harmonic
+   regression and MSTL — over three windows as long as the horizon (max. 26
+   weeks), and picks the one with the lowest mean P80 quantile loss. On live
+   data for seven hospitals no single model won everywhere, so the choice is
+   made per establishment; see
+   [`docs/model-selection.md`](https://github.com/nicoveraz/urg-forecast-core/blob/main/docs/model-selection.md).
 4. Refits that model on all the history and forecasts the horizon you asked for.
 
 `urg-forecast demo` tries DEIS first and falls back to a snapshot bundled with
@@ -103,13 +108,13 @@ from urgencias_core import load_deis, weekly_series, run_forecast
 df = load_deis(["24-105"], start_year=2019)
 weekly = weekly_series(df, "24-105")              # timestamp, count
 result = run_forecast(weekly, horizon_weeks=12)
-result.backtest                                    # MAE, MAPE, quantile losses per model
+result.backtest                                    # per model, averaged over windows
 result.forecast                                    # timestamp, q50, q80, q90, q95
 ```
 
 **Your own model.** Anything with `fit(history, target_col)` and
 `predict(horizon)` returning `timestamp, q50, q80, q90, q95` satisfies the
-`Forecaster` protocol. Pass it next to the baselines and it competes in the
+`Forecaster` protocol; `urgencias_core/models/harmonic.py` is a short example. Pass it next to the baselines and it competes in the
 same backtest:
 
 ```python
