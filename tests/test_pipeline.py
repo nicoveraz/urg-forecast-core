@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -188,3 +189,39 @@ def test_harmonic_regression_follows_annual_cycle() -> None:
     pred = m.predict(HorizonSpec(grain="W-MON", length=52))
     assert np.mean(np.abs(pred["q50"].to_numpy() - y[208:])) < 40
     assert (pred["q95"] >= pred["q50"]).all()
+
+
+def test_calibration_widens_too_narrow_bands() -> None:
+    from urgencias_core.pipeline import apply_calibration, calibration_factors
+
+    rng = np.random.default_rng(1)
+    y = 100 + rng.normal(0, 20, 60)
+    actual = pd.DataFrame({"count": y})
+    # Bands far too narrow: q80 = q50 + 2 while sd is 20
+    pred = pd.DataFrame({"q50": 100.0, "q80": 102.0, "q90": 103.0, "q95": 104.0}, index=range(60))
+    f = calibration_factors([actual], [pred])
+    assert f["q80"] > 3
+    widened = apply_calibration(pred.assign(timestamp=0), f)
+    assert np.mean(y <= widened["q80"]) >= 0.78
+    assert (widened["q95"] >= widened["q90"]).all() and (widened["q90"] >= widened["q80"]).all()
+
+
+def test_calibration_never_narrows() -> None:
+    from urgencias_core.pipeline import calibration_factors
+
+    actual = pd.DataFrame({"count": np.full(30, 100.0)})
+    pred = pd.DataFrame({"q50": 100.0, "q80": 150.0, "q90": 160.0, "q95": 170.0}, index=range(30))
+    assert set(calibration_factors([actual], [pred]).values()) == {1.0}
+
+
+def test_resolve_models_builtin_custom_and_errors() -> None:
+    from urgencias_core.pipeline import resolve_models
+
+    assert list(resolve_models(["autoarima", "Armonico"])) == ["AutoARIMA", "Armónico"]
+    custom = resolve_models(["urgencias_core.models.harmonic:HarmonicRegression"])
+    assert list(custom) == ["HarmonicRegression"]
+    with pytest.raises(ValueError, match="desconocido"):
+        resolve_models(["nada"])
+    with pytest.raises(ValueError, match="importar"):
+        resolve_models(["no_existe:Clase"])
+    assert len(resolve_models(None)) == 4

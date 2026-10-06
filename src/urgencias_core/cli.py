@@ -32,9 +32,15 @@ ejemplos:
   urg-forecast pronosticar 24-105
   urg-forecast pronosticar 24-105 --horizonte 12
   urg-forecast pronosticar 24-105 24-115 --horizonte 6m --salida resultados/
+  urg-forecast pronosticar 24-105 --modelo AutoARIMA
+  urg-forecast pronosticar 24-105 --modelo mi_modulo:MiModelo --modelo MSTL
 
-Horizonte: semanas (12 o 12s) o meses (6m). El backtest usa las últimas
-semanas, tantas como el horizonte (máximo 26), para estimar el error.
+Horizonte: semanas (12 o 12s) o meses (6m). El backtest usa tres ventanas tan
+largas como el horizonte (máximo 26 semanas) y los intervalos se ensanchan
+según su error (desactívalo con --sin-calibrar).
+
+Modelo propio: una clase con fit(history, target_col) y predict(horizon) que
+devuelva timestamp, q50, q80, q90, q95, importable desde el directorio actual.
 
 Es una base para construir encima, no un pronóstico operacional validado.
 """
@@ -77,6 +83,19 @@ def build_parser() -> argparse.ArgumentParser:
             default=DEFAULT_OUT,
             metavar="CARPETA",
             help=f"carpeta para CSV y figuras (por defecto: ./{DEFAULT_OUT})",
+        )
+        p.add_argument(
+            "-m",
+            "--modelo",
+            action="append",
+            metavar="NOMBRE",
+            help="modelo a usar (repetible): SeasonalNaive, AutoARIMA, Armonico, MSTL, "
+            "o 'modulo:Clase' para uno propio. Por defecto compara los cuatro y usa el mejor.",
+        )
+        p.add_argument(
+            "--sin-calibrar",
+            action="store_true",
+            help="no ensanchar los intervalos según el error del backtest",
         )
 
     p_demo = sub.add_parser(
@@ -141,15 +160,26 @@ def _forecast(
     start_year: int,
     offline: bool,
     fallback: bool = False,
+    model_names: list[str] | None = None,
+    calibrate: bool = True,
 ) -> int:
     from urgencias_core.pipeline import (
         NoDataError,
         facility_name,
         load_deis,
+        resolve_models,
         run_forecast,
         weekly_series,
     )
     from urgencias_core.report import output_dir, summary_text, write_outputs
+
+    if model_names and any(":" in m for m in model_names) and "" not in sys.path:
+        sys.path.insert(0, "")  # console scripts don't import from the current directory
+    try:
+        models = resolve_models(model_names)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
 
     log.info("Cargando datos DEIS%s...", " (snapshot offline)" if offline else "")
     try:
@@ -164,7 +194,13 @@ def _forecast(
         log.info("Modelando %s (%s)...", name, code)
         try:
             result = run_forecast(
-                weekly_series(df, code), horizon, code=code, name=name, source=df.attrs["source"]
+                weekly_series(df, code),
+                horizon,
+                code=code,
+                name=name,
+                source=df.attrs["source"],
+                models=models,
+                calibrate=calibrate,
             )
         except NoDataError as exc:
             print(f"error: {exc}", file=sys.stderr)
@@ -225,11 +261,26 @@ def main(argv: list[str] | None = None) -> int:
         from urgencias_core.pipeline import DEMO_FACILITIES
 
         return _forecast(
-            list(DEMO_FACILITIES), args.horizonte, args.salida, 2022, args.offline, fallback=True
+            list(DEMO_FACILITIES),
+            args.horizonte,
+            args.salida,
+            2022,
+            args.offline,
+            fallback=True,
+            model_names=args.modelo,
+            calibrate=not args.sin_calibrar,
         )
     if args.command == "buscar":
         return _search(args.texto, args.anio)
-    return _forecast(args.codigos, args.horizonte, args.salida, args.desde, args.offline)
+    return _forecast(
+        args.codigos,
+        args.horizonte,
+        args.salida,
+        args.desde,
+        args.offline,
+        model_names=args.modelo,
+        calibrate=not args.sin_calibrar,
+    )
 
 
 def entrypoint() -> None:

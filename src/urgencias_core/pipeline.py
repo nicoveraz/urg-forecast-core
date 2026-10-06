@@ -15,6 +15,7 @@ Everything returns plain DataFrames; plotting and printing live in
 
 from __future__ import annotations
 
+import importlib
 import logging
 import re
 from collections.abc import Callable
@@ -220,6 +221,41 @@ def default_models() -> dict[str, Callable[[], Forecaster]]:
     }
 
 
+def resolve_models(names: list[str] | None) -> dict[str, Callable[[], Forecaster]]:
+    """Model factories for ``names``: built-in names or ``"module.path:Class"``.
+
+    ``None`` or an empty list returns :func:`default_models`. A custom class is
+    imported from the given module and must be constructible without arguments
+    and satisfy the :class:`~urgencias_core.models.protocol.Forecaster`
+    protocol. Raises ``ValueError`` for unknown names or bad imports.
+    """
+    builtin = default_models()
+    if not names:
+        return builtin
+    lookup = {k.lower(): k for k in builtin} | {"armonico": "Armónico"}
+    out: dict[str, Callable[[], Forecaster]] = {}
+    for name in names:
+        if ":" in name:
+            module_name, _, attr = name.partition(":")
+            try:
+                module = importlib.import_module(module_name)
+                cls = getattr(module, attr)
+            except (ImportError, AttributeError) as exc:
+                raise ValueError(f"no se pudo importar el modelo {name!r}: {exc}") from exc
+            if not (hasattr(cls, "fit") and hasattr(cls, "predict")):
+                raise ValueError(f"{name!r} no tiene métodos fit y predict")
+            out[attr] = cls
+        elif name.lower() in lookup:
+            key = lookup[name.lower()]
+            out[key] = builtin[key]
+        else:
+            raise ValueError(
+                f"modelo desconocido: {name!r}. Opciones: {', '.join(builtin)} "
+                "o 'modulo:Clase' para un modelo propio."
+            )
+    return out
+
+
 @dataclass
 class ForecastResult:
     code: str
@@ -235,6 +271,8 @@ class ForecastResult:
     backtest_origins: int = 1
     coverage80: tuple[int, int] = (0, 0)  # best model: weeks at/below P80, total weeks
     skipped: dict[str, str] = field(default_factory=dict)  # model -> error
+    # Factor applied to each upper band (q - q50) after calibration; 1.0 = unchanged.
+    interval_scale: dict[str, float] = field(default_factory=dict)
 
     @property
     def backtest_actual(self) -> pd.DataFrame:
@@ -263,6 +301,49 @@ def _score(actual: pd.DataFrame, pred: pd.DataFrame) -> dict:
     return row
 
 
+def calibration_factors(
+    actuals: list[pd.DataFrame], preds: list[pd.DataFrame], quantiles=QUANTILES
+) -> dict[str, float]:
+    """Scale factors that make each upper band reach its nominal coverage.
+
+    For each quantile ``q`` above the median, the factor is the ``q``-th
+    empirical quantile of ``(y - q50) / (q_pred - q50)`` over all backtest
+    weeks: multiplying the band width by it would have covered a fraction ``q``
+    of those weeks. Factors are never below 1 (bands are widened, never
+    narrowed), so a well-calibrated model is left unchanged.
+    """
+    y = np.concatenate([a["count"].to_numpy(dtype=float) for a in actuals])
+    out: dict[str, float] = {}
+    for q in quantiles:
+        if q <= 0.5:
+            continue
+        col = f"q{int(round(q * 100))}"
+        med = np.concatenate(
+            [p["q50"].to_numpy(dtype=float)[: len(a)] for a, p in zip(actuals, preds, strict=True)]
+        )
+        up = np.concatenate(
+            [p[col].to_numpy(dtype=float)[: len(a)] for a, p in zip(actuals, preds, strict=True)]
+        )
+        width = up - med
+        ok = width > 1e-9
+        if ok.sum() < 5:
+            out[col] = 1.0
+            continue
+        ratio = (y[ok] - med[ok]) / width[ok]
+        out[col] = float(max(1.0, np.quantile(ratio, q)))
+    return out
+
+
+def apply_calibration(forecast: pd.DataFrame, factors: dict[str, float]) -> pd.DataFrame:
+    """Widen each upper band of ``forecast`` by its factor, keeping bands ordered."""
+    out = forecast.copy()
+    prev = out["q50"]
+    for col in sorted(factors, key=lambda c: int(c[1:])):
+        out[col] = np.maximum(out["q50"] + factors[col] * (forecast[col] - forecast["q50"]), prev)
+        prev = out[col]
+    return out
+
+
 def run_forecast(
     history: pd.DataFrame,
     horizon_weeks: int,
@@ -273,6 +354,7 @@ def run_forecast(
     source: str = SOURCE_LIVE,
     origins: int = BACKTEST_ORIGINS,
     step: int = BACKTEST_STEP,
+    calibrate: bool = True,
 ) -> ForecastResult:
     """Rolling backtest of ``models``, then forecast with the best one.
 
@@ -281,6 +363,10 @@ def run_forecast(
     hinge on a single season; fewer are used when history is short. The best
     model has the lowest mean P80 quantile loss across windows. A model that
     fails to fit is skipped and reported in ``skipped``.
+
+    With ``calibrate=True`` the forward intervals are widened by
+    :func:`calibration_factors`, computed from the chosen model's backtest
+    errors. The reported backtest coverage is always the raw, uncalibrated one.
     """
     models = models or default_models()
     bt = min(horizon_weeks, MAX_BACKTEST_WEEKS)
@@ -297,6 +383,7 @@ def run_forecast(
     rows: list[dict] = []
     skipped: dict[str, str] = {}
     latest_preds: dict[str, pd.DataFrame] = {}
+    all_preds: dict[str, list[tuple[pd.DataFrame, pd.DataFrame]]] = {}
     for k in range(origins):
         cut = n - bt - k * step
         train = history.iloc[:cut].reset_index(drop=True)
@@ -315,6 +402,7 @@ def run_forecast(
             # statsforecast can offset weekly stamps slightly; align to actual weeks.
             pred["timestamp"] = actual["timestamp"].to_numpy()[: len(pred)]
             rows.append({"model": model_name, **_score(actual, pred)})
+            all_preds.setdefault(model_name, []).append((actual, pred))
             if k == 0:
                 latest_preds[model_name] = pred
 
@@ -328,6 +416,11 @@ def run_forecast(
     fc = models[best]()
     fc.fit(history, "count")
     forward = fc.predict(HorizonSpec(grain=GRAIN, length=horizon_weeks, quantiles=QUANTILES))
+    scale: dict[str, float] = {}
+    if calibrate:
+        pairs = all_preds[best]
+        scale = calibration_factors([a for a, _ in pairs], [p for _, p in pairs])
+        forward = apply_calibration(forward, scale)
 
     return ForecastResult(
         code=code,
@@ -343,6 +436,7 @@ def run_forecast(
         backtest_origins=origins,
         coverage80=(int(sums.loc[best, "_covered"]), int(sums.loc[best, "_n"])),
         skipped=skipped,
+        interval_scale=scale,
     )
 
 
@@ -357,6 +451,9 @@ __all__ = [
     "load_deis",
     "min_weeks_needed",
     "parse_horizon",
+    "resolve_models",
+    "calibration_factors",
+    "apply_calibration",
     "run_forecast",
     "to_weekly",
     "weekly_series",

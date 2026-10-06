@@ -20,6 +20,12 @@ if you depend on the removed modules.
   establishment). Prints a summary with ASCII tables and writes CSVs and PNGs
   to a folder per establishment.
 - Configurable horizon: `-H 12`, `12s` (weeks) or `6m` (months).
+- `-m/--modelo` (repeatable) picks built-in models or a custom
+  `module:Class` importable from the current directory
+  (`pipeline.resolve_models`).
+- Interval calibration: forward bands are widened by the chosen model's
+  backtest error when they were too narrow (`pipeline.calibration_factors`,
+  `apply_calibration`); `--sin-calibrar` disables it.
 - Rolling backtest: three windows as long as the horizon (max. 26 weeks), 8
   weeks apart; the model with the lowest mean P80 quantile loss is used.
   Models that fail to fit are skipped and reported.

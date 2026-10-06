@@ -8,8 +8,9 @@
 
 **A free, open base for forecasting emergency department demand in Chile from
 public DEIS MINSAL data.** One command gives you a backtest and a weekly
-forecast for any establishment that reports to DEIS. It is a starting point to
-build on, not a finished product.
+forecast for any establishment that reports to DEIS. It is a first
+approximation: tuning it to your setting is up to you, and the code is built
+for that.
 
 *Leer en [español](https://github.com/nicoveraz/urg-forecast-core/blob/main/README.es.md).*
 
@@ -22,6 +23,8 @@ urg-forecast demo                      # Puerto Montt and Frutillar hospitals
 urg-forecast buscar "osorno"           # find your establishment's DEIS code
 urg-forecast pronosticar 24-105        # backtest + 26-week forecast
 urg-forecast pronosticar 24-105 -H 6m  # choose the horizon: 12, 12s (weeks) or 6m (months)
+urg-forecast pronosticar 24-105 -m AutoARIMA          # use one model instead of comparing
+urg-forecast pronosticar 24-105 -m my_module:MyModel  # or your own model
 ```
 
 Each run prints a summary with ASCII tables and writes CSVs and figures to
@@ -85,6 +88,8 @@ Pronóstico con Armónico: atenciones semanales
    made per establishment; see
    [`docs/model-selection.md`](https://github.com/nicoveraz/urg-forecast-core/blob/main/docs/model-selection.md).
 4. Refits that model on all the history and forecasts the horizon you asked for.
+5. Widens the forecast intervals by the backtest error when they were too
+   narrow there (never narrows them). `--sin-calibrar` turns this off.
 
 `urg-forecast demo` tries DEIS first and falls back to a snapshot bundled with
 the package when there is no connection; the summary says which one was used.
@@ -95,9 +100,8 @@ the package when there is no connection; the summary says which one was used.
 - The models are **statistical baselines** with no tuning for your
   establishment, no weather and no local events.
 - It forecasts **total weekly attendances only**, not by cause, age or acuity.
-- Prediction intervals can be too narrow. In the example above, P80 held in
-  only 24 of 78 backtest weeks, because the windows include 2026's unusually
-  high respiratory season. The summary always reports this, so check it.
+- Intervals are approximate. Step 5 widens them by past error, which does not
+  anticipate an unusual season. The summary reports backtest coverage; check it.
 - It has not been validated as a clinical or operational decision tool.
 
 The value is in what you add. That is the point of the next section.
@@ -118,8 +122,10 @@ result.forecast                                    # timestamp, q50, q80, q90, q
 
 **Your own model.** Anything with `fit(history, target_col)` and
 `predict(horizon)` returning `timestamp, q50, q80, q90, q95` satisfies the
-`Forecaster` protocol; `urgencias_core/models/harmonic.py` is a short example. Pass it next to the baselines and it competes in the
-same backtest:
+`Forecaster` protocol; `urgencias_core/models/harmonic.py` is a short example.
+From the command line, put it in a `.py` file in the current directory and
+pass `-m file:Class` (repeat `-m` to compare it against built-in models). In
+Python, pass it next to the defaults and it competes in the same backtest:
 
 ```python
 from urgencias_core.pipeline import default_models

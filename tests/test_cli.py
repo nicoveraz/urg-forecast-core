@@ -78,3 +78,15 @@ def test_facilities_in_file_lists_unique_pairs(tmp_path) -> None:
     with zipfile.ZipFile(path, "w") as zf:
         zf.writestr("AtencionesUrgencia2024.csv", csv.encode("latin-1"))
     assert sorted(facilities_in_file(path, 2024)["facility_code"]) == ["24-105", "24-115"]
+
+
+def test_single_model_option(tmp_path, capsys) -> None:
+    code = cli.main(["demo", "--offline", "-H", "4", "-m", "MSTL", "-o", str(tmp_path)])
+    assert code == 0
+    out = capsys.readouterr().out
+    assert "MSTL *" in out and "AutoARIMA" not in out
+
+
+def test_unknown_model_fails_cleanly(tmp_path, capsys) -> None:
+    assert cli.main(["demo", "--offline", "-m", "nada", "-o", str(tmp_path)]) == 2
+    assert "modelo desconocido" in capsys.readouterr().err

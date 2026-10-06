@@ -9,8 +9,8 @@
 **Una base abierta y gratuita para pronosticar la demanda de los servicios de
 urgencia en Chile con datos públicos del DEIS MINSAL.** Con un solo comando
 obtienes un backtest y un pronóstico semanal para cualquier establecimiento que
-reporte al DEIS. Es un punto de partida para construir encima, no un producto
-terminado.
+reporte al DEIS. Es una aproximación inicial: ajustarla a tu realidad es
+trabajo tuyo, y el código está hecho para eso.
 
 *Read this in [English](https://github.com/nicoveraz/urg-forecast-core/blob/main/README.md).*
 
@@ -23,6 +23,8 @@ urg-forecast demo                      # hospitales de Puerto Montt y Frutillar
 urg-forecast buscar "osorno"           # busca el código DEIS de tu establecimiento
 urg-forecast pronosticar 24-105        # backtest + pronóstico a 26 semanas
 urg-forecast pronosticar 24-105 -H 6m  # elige el horizonte: 12, 12s (semanas) o 6m (meses)
+urg-forecast pronosticar 24-105 -m AutoARIMA          # usa un modelo en vez de comparar
+urg-forecast pronosticar 24-105 -m mi_modulo:MiModelo  # o un modelo propio
 ```
 
 Cada ejecución imprime un resumen con tablas ASCII y guarda CSV y figuras en
@@ -86,6 +88,8 @@ Pronóstico con Armónico: atenciones semanales
    así que la elección se hace por establecimiento; ver
    [`docs/model-selection.md`](https://github.com/nicoveraz/urg-forecast-core/blob/main/docs/model-selection.md).
 4. Reajusta ese modelo con toda la historia y pronostica el horizonte pedido.
+5. Ensancha los intervalos del pronóstico según el error del backtest cuando
+   ahí resultaron estrechos (nunca los angosta). `--sin-calibrar` lo desactiva.
 
 `urg-forecast demo` intenta primero con el DEIS y, si no hay conexión, usa un
 snapshot incluido en el paquete; el resumen indica cuál se usó. `--offline`
@@ -97,10 +101,9 @@ fuerza el snapshot.
   establecimiento, sin clima y sin eventos locales.
 - Pronostica **solo el total semanal de atenciones**, sin desglose por causa,
   edad ni categorización.
-- Los intervalos pueden quedar demasiado estrechos. En el ejemplo de arriba,
-  el P80 se cumplió en solo 24 de 78 semanas del backtest, porque las ventanas
-  incluyen la temporada respiratoria inusualmente alta de 2026. El resumen
-  siempre lo informa, así que revísalo.
+- Los intervalos son aproximados. El paso 5 los ensancha según el error
+  pasado, lo que no anticipa una temporada inusual. El resumen informa la
+  cobertura del backtest; revísala.
 - No ha sido validado como herramienta de decisión clínica ni operacional.
 
 El valor está en lo que le agregues. Para eso es la siguiente sección.
@@ -122,8 +125,10 @@ resultado.forecast                                 # timestamp, q50, q80, q90, q
 **Tu propio modelo.** Cualquier clase con `fit(history, target_col)` y
 `predict(horizon)` que devuelva `timestamp, q50, q80, q90, q95` cumple el
 protocolo `Forecaster`; `urgencias_core/models/harmonic.py` es un ejemplo
-corto. Agrégala junto a los baselines y compite en el mismo
-backtest:
+corto. Desde la línea de comandos, déjala en un archivo `.py` en la carpeta
+actual y usa `-m archivo:Clase` (repite `-m` para compararla con los modelos
+incluidos). En Python, agrégala junto a los modelos por defecto y compite en el
+mismo backtest:
 
 ```python
 from urgencias_core.pipeline import default_models
