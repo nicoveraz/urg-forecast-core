@@ -138,3 +138,23 @@ def test_download_year_cache_hit_no_refetch(tmp_path: Path) -> None:
     client.close()
     assert result.status == "cached"
     assert calls == []
+
+
+def test_cache_previous_year_refreshed_early_in_year(tmp_path: Path) -> None:
+    import os
+    from datetime import datetime
+
+    from urgencias_core.data.deis import _cache_is_fresh
+
+    f = tmp_path / "AtencionesUrgencia2025.zip"
+    f.write_bytes(b"x")
+    old = datetime(2026, 1, 1).timestamp()
+    os.utime(f, (old, old))
+    # February: last year's file is still being revised, a month-old copy is stale
+    assert not _cache_is_fresh(f, 2025, 2026, now=datetime(2026, 2, 1))
+    # April: last year's file is final
+    assert _cache_is_fresh(f, 2025, 2026, now=datetime(2026, 4, 1))
+    # Two years back is always final
+    assert _cache_is_fresh(f, 2024, 2026, now=datetime(2026, 2, 1))
+    # Current year: refreshed after 7 days
+    assert not _cache_is_fresh(f, 2026, 2026, now=datetime(2026, 2, 1))

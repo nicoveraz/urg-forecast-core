@@ -1,29 +1,28 @@
 ---
-name: Bug report
-about: Report a problem so it can be reproduced and fixed
+name: Reportar un error
+about: Describe un problema para poder reproducirlo y corregirlo
 title: ''
 labels: bug
 assignees: ''
 ---
 
-**What happened**
-A clear description of the bug.
+**Qué pasó**
+Descripción clara del error.
 
-**To reproduce**
-Minimal steps or a code snippet:
+**Cómo reproducirlo**
+El comando o un fragmento mínimo de código:
 
-```python
-# ...
+```bash
+urg-forecast pronosticar 24-105 -H 12
 ```
 
-**Expected behavior**
+**Qué esperabas**
 
 
-**Environment**
-- urg-forecast-core version: `python -c "import urgencias_core; print(urgencias_core.__version__)"`
-- Python version:
-- OS:
-- Installed extras: core / models / viz / server / fetch / all
+**Entorno**
+- Versión: `urg-forecast --version`
+- Versión de Python:
+- Sistema operativo:
 
-**Additional context**
-Tracebacks, logs, or schema notes. Please do NOT paste patient-level data.
+**Contexto adicional**
+Mensajes de error completos o registros. NO pegues datos de pacientes.

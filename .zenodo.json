@@ -1,6 +1,6 @@
 {
-  "title": "urg-forecast-core: reference pipeline for Chilean emergency department analytics, forecasting, and simulation",
-  "description": "<p>Open-source Python package that turns visit-level emergency department (ED) records into operational decision support: a visits-to-hourly-occupancy transform, Chilean calendar features, a uniform quantile <code>Forecaster</code> interface (seasonal-naive, statsforecast, LightGBM), an evaluation harness with pinball-loss scoring, an empirical length-of-stay Monte Carlo occupancy simulator, a client for the public DEIS MINSAL <em>Atenciones de Urgencia</em> dataset, and a minimal reference dashboard. Open foundation of Eunosia.</p>",
+  "title": "urg-forecast-core: open base for forecasting Chilean emergency department demand from DEIS data",
+  "description": "<p>Open-source Python package and command-line tool that forecasts weekly emergency department attendances for any Chilean establishment from the public DEIS MINSAL <em>Atenciones de Urgencia</em> dataset: a DEIS client, weekly aggregation, a quantile <code>Forecaster</code> interface with statistical baselines, and a backtest harness with pinball-loss scoring. A starting point to build on, not a finished product.</p>",
   "upload_type": "software",
   "access_right": "open",
   "license": "MIT",
@@ -16,7 +16,6 @@
     "emergency medicine",
     "forecasting",
     "time series",
-    "Monte Carlo simulation",
     "capacity planning",
     "Chile",
     "DEIS",

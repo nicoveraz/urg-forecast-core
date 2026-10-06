@@ -1,9 +1,8 @@
 """Console logging setup shared by the command-line entry points.
 
-Library modules (e.g. the DEIS fetcher) log via ``logging.getLogger(__name__)``.
-The demos previously printed directly to stdout. ``setup_logging`` routes both
-through a single, configurable handler with a clean, print-like format so demo
-output reads naturally while remaining tunable.
+Library modules log via ``logging.getLogger(__name__)``. ``setup_logging``
+sends progress messages to stderr with a print-like format, so the CLI's
+stdout carries only the report.
 """
 
 from __future__ import annotations

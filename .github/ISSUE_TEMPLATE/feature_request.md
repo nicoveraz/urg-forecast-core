@@ -1,20 +1,20 @@
 ---
-name: Feature request
-about: Suggest an idea or improvement
+name: Proponer una mejora
+about: Sugiere una idea o mejora
 title: ''
 labels: enhancement
 assignees: ''
 ---
 
-**Problem / motivation**
-What are you trying to do that the library doesn't support yet?
+**Problema o motivación**
+¿Qué quieres hacer que la herramienta todavía no permite?
 
-**Proposed solution**
-
-
-**Alternatives considered**
+**Solución propuesta**
 
 
-**Scope**
-Is this in scope for a reference ED analytics / simulation / forecasting
-library? See `docs/roadmap.md` for already-deferred items.
+**Alternativas consideradas**
+
+
+**Alcance**
+¿Calza con una base de pronóstico con datos DEIS? Revisa `docs/roadmap.md` para
+ver brechas e ideas ya conocidas.

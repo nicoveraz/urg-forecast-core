@@ -20,8 +20,8 @@ jobs:
           version: "0.10.11"
       - name: Set up Python
         run: uv python install 3.12
-      - name: Sync dependencies (all extras + dev)
-        run: uv sync --all-extras --dev
+      - name: Sync dependencies (dev)
+        run: uv sync --dev
       - name: Run tests
         run: uv run pytest -q
 

@@ -9,7 +9,7 @@ P80 pinball loss), otherwise a warning is emitted via the package logger.
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 
 import numpy as np
 import pandas as pd
@@ -26,6 +26,8 @@ class HarnessReport:
     table: pd.DataFrame
     warning_triggered: bool
     warning_message: str
+    # Holdout predictions per forecaster (timestamp + quantile columns).
+    predictions: dict[str, pd.DataFrame] = field(default_factory=dict)
 
 
 def quantile_loss(y_true: np.ndarray, y_pred: np.ndarray, q: float) -> float:
@@ -86,9 +88,11 @@ def run_harness(
     all_forecasters += [(n, f, "candidate") for n, f in candidates.items()]
 
     missing_quantiles: dict[str, list[int]] = {}
+    predictions: dict[str, pd.DataFrame] = {}
     for name, fc, role in all_forecasters:
         fc.fit(train, target_col)
         pred = fc.predict(eval_horizon)
+        predictions[name] = pred
         merged = pred.merge(test[["timestamp", target_col]], on="timestamp", how="inner")
         if len(merged) == 0:
             raise RuntimeError(
@@ -166,6 +170,7 @@ def run_harness(
         table=table,
         warning_triggered=warning_triggered,
         warning_message=warning_message,
+        predictions=predictions,
     )
 
 
