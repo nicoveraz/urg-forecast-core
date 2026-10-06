@@ -52,11 +52,6 @@ Changelog = "https://github.com/nicoveraz/urg-forecast-core/blob/main/CHANGELOG.
 urg-forecast = "urgencias_core.cli:entrypoint"
 
 [dependency-groups]
-docs = [
-    "mkdocs>=1.6,<2",
-    "mkdocs-material>=9.5,<10",
-    "mkdocs-include-markdown-plugin>=7,<8",
-]
 dev = [
     "pytest>=8.0",
     "ruff==0.6.9", # pinned to match pre-commit and CI so format style can't drift
@@ -88,8 +83,7 @@ exclude = [
     "/experiments",
     "/outputs",
     "/urg-forecast-salida",
-    "/site",
-    "/mkdocs.yml",
+    "/sitio",
     "/uv.lock",
 ]
 
