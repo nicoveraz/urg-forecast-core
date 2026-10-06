@@ -32,7 +32,7 @@ export default defineConfig({
         { label: "Extender", slug: "extender" },
         { label: "Hoja de ruta", slug: "roadmap" },
         { label: "Cambios", slug: "cambios" },
-        { label: "Acerca del proyecto", slug: "acerca" },
+        { label: "Acerca de", slug: "acerca" },
         {
           label: "English (README)",
           link: "https://github.com/nicoveraz/urg-forecast-core/blob/main/README.en.md",

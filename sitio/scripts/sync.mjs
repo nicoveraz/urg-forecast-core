@@ -92,7 +92,7 @@ write("uso", { title: "Uso", description: "Comandos, opciones y qué revisar ant
   section("uso", "modelos"));
 write("extender", { title: "Extender", description: "La API en Python y cómo agregar tus propios modelos." },
   stripH2(section("extender", "acerca"), "Extender"));
-write("acerca", { title: "Acerca del proyecto", description: "Datos, estado del proyecto, cita y licencia." },
+write("acerca", { title: "Acerca de", description: "Datos, estado del proyecto, cita y licencia." },
   section("acerca", "fin"));
 write("modelos", { title: "Modelos", description: "Los modelos incluidos, cuándo conviene cada uno y cómo agregar el tuyo." },
   stripH1(read("docs/modelos.md")));
