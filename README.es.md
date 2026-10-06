@@ -58,13 +58,14 @@ Backtest: 3 ventanas de 26 semanas, promedio (el modelo elegido se marca con *)
 | SeasonalNaive |   359 |     17.6 |         230.0 |
 +---------------+-------+----------+---------------+
 Con Armónico, el valor real quedó bajo el P80 en 24 de 78 semanas.
+Intervalos del pronóstico ensanchados según ese error: P80 x2.8, P90 x2.6, P95 x2.1.
 
 Pronóstico con Armónico: atenciones semanales
 +--------------------+-------+-------+-------+
 | Semana (termina)   |   P50 |   P80 |   P95 |
 |--------------------+-------+-------+-------|
-| 2026-09-21         |  2042 |  2118 |  2191 |
-| 2026-09-28         |  2027 |  2117 |  2204 |
+| 2026-09-21         |  2042 |  2259 |  2350 |
+| 2026-09-28         |  2027 |  2284 |  2393 |
 | ...                |       |       |       |
 ```
 

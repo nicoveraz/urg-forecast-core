@@ -85,7 +85,7 @@ def _calibration_line(result: ForecastResult) -> str:
     widened = {c: f for c, f in result.interval_scale.items() if f >= 1.05}
     if not widened:
         return ""
-    parts = ", ".join(f"{c.upper()} x{f:.1f}" for c, f in sorted(widened.items()))
+    parts = ", ".join(f"P{c[1:]} x{f:.1f}" for c, f in sorted(widened.items()))
     return f"Intervalos del pronóstico ensanchados según ese error: {parts}."
 
 
