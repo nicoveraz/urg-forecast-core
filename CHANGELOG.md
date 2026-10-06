@@ -7,6 +7,11 @@ API puede cambiar entre versiones menores).
 
 ## [Sin publicar]
 
+### Agregado
+
+- Sección Comunidad en el sitio: cómo contribuir, código de conducta y
+  seguridad. El código de conducta ahora está en español.
+
 ## [0.3.0] - 2026-10-06
 
 ### Agregado

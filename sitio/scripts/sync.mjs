@@ -31,7 +31,20 @@ const ANCHORS = {
 
 const README = "https://github.com/nicoveraz/urg-forecast-core/blob/main/README.md#";
 
+// Repo files that are also site pages (community docs, changelog).
+const PAGES = {
+  "CONTRIBUTING.md": "contribuir/",
+  "CODE_OF_CONDUCT.md": "conducta/",
+  "SECURITY.md": "seguridad/",
+  "CHANGELOG.md": "cambios/",
+};
+const BLOB_ROOT = "https://github.com/nicoveraz/urg-forecast-core/blob/main/";
+
 function fixLinks(md, page) {
+  for (const [file, target] of Object.entries(PAGES)) {
+    md = md.split(`](${BLOB_ROOT}${file})`).join(`](${BASE}/${target})`);
+    md = md.split(`](${file})`).join(`](${BASE}/${target})`);
+  }
   // README.md#section links (from docs/*.md) -> the site page holding that section.
   md = md.split(README).join("#");
   md = md.replace(new RegExp(BLOB.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&") + "([\\w-]+)\\.md", "g"),
@@ -105,5 +118,12 @@ write("roadmap", { title: "Hoja de ruta", description: "Brechas conocidas y prim
   stripH1(read("docs/roadmap.md")));
 write("cambios", { title: "Registro de cambios", description: "Cambios de cada versión." },
   stripH1(read("CHANGELOG.md")));
+
+write("contribuir", { title: "Cómo contribuir", description: "Reportar problemas, proponer cambios y preparar el entorno de desarrollo." },
+  stripH1(read("CONTRIBUTING.md")));
+write("conducta", { title: "Código de conducta", description: "Cómo nos tratamos en la comunidad del proyecto." },
+  stripH1(read("CODE_OF_CONDUCT.md")));
+write("seguridad", { title: "Seguridad", description: "Versiones con soporte y cómo reportar una vulnerabilidad." },
+  stripH1(read("SECURITY.md")));
 
 console.log("sync: pages written to src/content/docs/");

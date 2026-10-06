@@ -15,7 +15,7 @@ Toda participación se rige por el [Código de Conducta](CODE_OF_CONDUCT.md).
   incluye la versión (`urg-forecast --version`), la versión de Python, el
   sistema operativo, el comando que corriste y el mensaje de error completo.
 - **Preguntas de uso:** abre un issue con la etiqueta *question*.
-- **Seguridad:** revisa [SECURITY.md](SECURITY.md); no abras un issue público
+- **Seguridad:** revisa la [política de seguridad](SECURITY.md); no abras un issue público
   por una posible vulnerabilidad.
 
 No pegues datos de pacientes en issues ni pull requests.
@@ -32,8 +32,9 @@ traducción al inglés (`README.en.md`) se actualiza cuando corresponde. Los
 docstrings y comentarios del código van en inglés.
 
 El sitio (<https://nicoveraz.github.io/urg-forecast-core/>) se arma con Astro
-Starlight en `sitio/`. Sus páginas se generan del README, de `docs/` y del
-CHANGELOG (`sitio/scripts/sync.mjs`): Inicio, Uso, Extender y Acerca de son
+Starlight en `sitio/`. Sus páginas se generan del README, de `docs/`, del
+CHANGELOG y de este archivo, `CODE_OF_CONDUCT.md` y `SECURITY.md`
+(`sitio/scripts/sync.mjs`): Inicio, Uso, Extender y Acerca de son
 secciones del README marcadas con comentarios `<!-- sitio:... -->`, así que se
 editan en el README. La página Demo lee los pronósticos que el workflow semanal `datos.yml` publica
 en la rama `datos`; para probarla localmente, copia la carpeta `demo/` de esa
