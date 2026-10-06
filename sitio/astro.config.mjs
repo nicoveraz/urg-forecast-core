@@ -32,6 +32,14 @@ export default defineConfig({
         },
         { label: "Extender", slug: "extender" },
         { label: "Hoja de ruta", slug: "roadmap" },
+        {
+          label: "Comunidad",
+          items: [
+            { label: "Cómo contribuir", slug: "contribuir" },
+            { label: "Código de conducta", slug: "conducta" },
+            { label: "Seguridad", slug: "seguridad" },
+          ],
+        },
         { label: "Cambios", slug: "cambios" },
         { label: "Acerca de", slug: "acerca" },
         {

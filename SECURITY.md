@@ -7,8 +7,8 @@ PyPI recibe correcciones.
 
 | Versión | Soporte |
 |---|---|
-| 0.2.x | ✅ |
-| < 0.2 | ❌ |
+| 0.3.x | ✅ |
+| < 0.3 | ❌ |
 
 ## Reportar una vulnerabilidad
 
@@ -16,7 +16,7 @@ Por favor **no abras un issue público** por una posible vulnerabilidad.
 
 Repórtala de forma privada con
 ["Report a vulnerability"](https://github.com/nicoveraz/urg-forecast-core/security/advisories/new)
-de GitHub (Security → Advisories) o por correo a **nicovera@quetru.cl**.
+en GitHub (pestaña Security → Advisories) o por correo a **nicovera@quetru.cl**.
 
 Incluye una descripción, los pasos para reproducirla y la versión afectada. Es
 un proyecto con un solo mantenedor: el primer acuse de recibo puede tardar un par
