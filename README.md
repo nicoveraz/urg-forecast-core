@@ -35,32 +35,33 @@ Each run prints a summary with ASCII tables and writes CSVs and figures to
 | `historia_semanal.csv` | the weekly series that was modeled |
 | `pronostico.png`, `backtest.png` | figures |
 
-Example output with the bundled snapshot (`urg-forecast demo --offline`; interface in Spanish):
+Example output of `urg-forecast demo` with live DEIS data on 2026-10-05 (interface in Spanish):
 
 ```text
 Hospital de Puerto Montt (24-105)
 =================================
 
-Datos      snapshot DEIS incluido en el paquete; atenciones totales por semana
-Historia   2022-01-10 a 2026-03-30 (221 semanas completas; 2020–2021 excluidos)
+Datos      DEIS MINSAL (descarga actualizada); atenciones totales por semana
+Historia   2022-01-10 a 2026-09-14 (245 semanas completas; 2020–2021 excluidos)
 Horizonte  26 semanas
-Atención   los datos terminan hace 27 semanas; el pronóstico parte desde esa fecha, no desde hoy.
 
-Backtest: últimas 26 semanas (el mejor modelo se marca con *)
+Backtest: 3 ventanas de 26 semanas, promedio (el modelo elegido se marca con *)
 +---------------+-------+----------+---------------+
 | Modelo        |   MAE |   MAPE % |   Pérdida P80 |
 |---------------+-------+----------+---------------|
-| AutoARIMA *   |   124 |      7.5 |          46.1 |
-| AutoETS       |   201 |     13.1 |          76.5 |
-| SeasonalNaive |   161 |      9.0 |          94.3 |
+| Armónico *    |   207 |     10.7 |          91.0 |
+| MSTL          |   231 |     11.9 |          91.6 |
+| AutoARIMA     |   232 |     11.7 |         104.0 |
+| SeasonalNaive |   359 |     17.6 |         230.0 |
 +---------------+-------+----------+---------------+
-El valor real quedó bajo el P80 en 21 de 26 semanas.
+Con Armónico, el valor real quedó bajo el P80 en 24 de 78 semanas.
 
-Pronóstico con AutoARIMA: atenciones semanales
+Pronóstico con Armónico: atenciones semanales
 +--------------------+-------+-------+-------+
 | Semana (termina)   |   P50 |   P80 |   P95 |
 |--------------------+-------+-------+-------|
-| 2026-04-06         |  2127 |  2212 |  2293 |
+| 2026-09-21         |  2042 |  2118 |  2191 |
+| 2026-09-28         |  2027 |  2117 |  2204 |
 | ...                |       |       |       |
 ```
 
@@ -94,6 +95,9 @@ the package when there is no connection; the summary says which one was used.
 - The models are **statistical baselines** with no tuning for your
   establishment, no weather and no local events.
 - It forecasts **total weekly attendances only**, not by cause, age or acuity.
+- Prediction intervals can be too narrow. In the example above, P80 held in
+  only 24 of 78 backtest weeks, because the windows include 2026's unusually
+  high respiratory season. The summary always reports this, so check it.
 - It has not been validated as a clinical or operational decision tool.
 
 The value is in what you add. That is the point of the next section.

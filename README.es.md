@@ -36,32 +36,33 @@ Cada ejecución imprime un resumen con tablas ASCII y guarda CSV y figuras en
 | `historia_semanal.csv` | la serie semanal que se modeló |
 | `pronostico.png`, `backtest.png` | figuras |
 
-Ejemplo de salida con el snapshot incluido (`urg-forecast demo --offline`):
+Ejemplo de salida de `urg-forecast demo` con datos DEIS en vivo, el 5 de octubre de 2026:
 
 ```text
 Hospital de Puerto Montt (24-105)
 =================================
 
-Datos      snapshot DEIS incluido en el paquete; atenciones totales por semana
-Historia   2022-01-10 a 2026-03-30 (221 semanas completas; 2020–2021 excluidos)
+Datos      DEIS MINSAL (descarga actualizada); atenciones totales por semana
+Historia   2022-01-10 a 2026-09-14 (245 semanas completas; 2020–2021 excluidos)
 Horizonte  26 semanas
-Atención   los datos terminan hace 27 semanas; el pronóstico parte desde esa fecha, no desde hoy.
 
-Backtest: últimas 26 semanas (el mejor modelo se marca con *)
+Backtest: 3 ventanas de 26 semanas, promedio (el modelo elegido se marca con *)
 +---------------+-------+----------+---------------+
 | Modelo        |   MAE |   MAPE % |   Pérdida P80 |
 |---------------+-------+----------+---------------|
-| AutoARIMA *   |   124 |      7.5 |          46.1 |
-| AutoETS       |   201 |     13.1 |          76.5 |
-| SeasonalNaive |   161 |      9.0 |          94.3 |
+| Armónico *    |   207 |     10.7 |          91.0 |
+| MSTL          |   231 |     11.9 |          91.6 |
+| AutoARIMA     |   232 |     11.7 |         104.0 |
+| SeasonalNaive |   359 |     17.6 |         230.0 |
 +---------------+-------+----------+---------------+
-El valor real quedó bajo el P80 en 21 de 26 semanas.
+Con Armónico, el valor real quedó bajo el P80 en 24 de 78 semanas.
 
-Pronóstico con AutoARIMA: atenciones semanales
+Pronóstico con Armónico: atenciones semanales
 +--------------------+-------+-------+-------+
 | Semana (termina)   |   P50 |   P80 |   P95 |
 |--------------------+-------+-------+-------|
-| 2026-04-06         |  2127 |  2212 |  2293 |
+| 2026-09-21         |  2042 |  2118 |  2191 |
+| 2026-09-28         |  2027 |  2117 |  2204 |
 | ...                |       |       |       |
 ```
 
@@ -96,6 +97,10 @@ fuerza el snapshot.
   establecimiento, sin clima y sin eventos locales.
 - Pronostica **solo el total semanal de atenciones**, sin desglose por causa,
   edad ni categorización.
+- Los intervalos pueden quedar demasiado estrechos. En el ejemplo de arriba,
+  el P80 se cumplió en solo 24 de 78 semanas del backtest, porque las ventanas
+  incluyen la temporada respiratoria inusualmente alta de 2026. El resumen
+  siempre lo informa, así que revísalo.
 - No ha sido validado como herramienta de decisión clínica ni operacional.
 
 El valor está en lo que le agregues. Para eso es la siguiente sección.
