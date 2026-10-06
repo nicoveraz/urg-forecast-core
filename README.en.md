@@ -204,19 +204,45 @@ result.backtest                                    # per model, averaged over wi
 result.forecast                                    # timestamp, q50, q80, q90, q95
 ```
 
-**Your own model.** Anything with `fit(history, target_col)` and
-`predict(horizon)` returning `timestamp, q50, q80, q90, q95` satisfies the
-`Forecaster` protocol; `urgencias_core/models/harmonic.py` is a short example.
-From the command line, put it in a `.py` file in the current directory and
-pass `-m file:Class` (repeat `-m` to compare it against built-in models). In
-Python, pass it next to the defaults and it competes in the same backtest:
+### Adding your own model
+
+A model is a class with two methods: `fit(history, target_col)` receives the
+weekly history (`timestamp` plus `target_col`); `predict(horizon)` returns one
+row per future week with `timestamp, q50, q80, q90, q95` (`horizon.length`
+weeks, `horizon.quantiles`). The constructor must not require arguments.
+
+The step-by-step example in the Spanish README
+([Extender](https://github.com/nicoveraz/urg-forecast-core/blob/main/README.md#extender))
+builds `PromedioAnual`: each future week is the mean of the same ISO week over
+the last three years, with intervals from that rule's past errors. Save it as
+`mi_modelo.py` where you run the command and compare it with built-in models:
+
+```bash
+urg-forecast pronosticar 24-105 -H 12 -m mi_modelo:PromedioAnual -m AutoARIMA -m MSTL
+```
+
+It is scored in the same backtest windows and wins only with the lowest P80
+loss. From Python:
 
 ```python
 from urgencias_core.pipeline import default_models
+from mi_modelo import PromedioAnual
 
-models = default_models() | {"Mine": MyForecaster}
-result = run_forecast(weekly, 12, models=models)
+modelos = default_models() | {"PromedioAnual": PromedioAnual}
+resultado = run_forecast(weekly, 12, models=modelos)
 ```
+
+More examples in `src/urgencias_core/models/`: `harmonic.py` and
+`ensemble.py`.
+
+### Asking an AI assistant to extend it
+
+The Spanish README has a ready-to-paste instruction for an AI assistant
+(ChatGPT, Claude, Copilot…) with the context and rules a custom model needs:
+[Pedirle a una IA que lo extienda](https://github.com/nicoveraz/urg-forecast-core/blob/main/README.md#pedirle-a-una-ia-que-lo-extienda).
+Judge what it returns like any other model: by the backtest table.
+
+### Other ideas
 
 **Other series.** `load_deis` returns daily counts by cause and age group, so
 you can model respiratory causes or pediatrics instead of the total.

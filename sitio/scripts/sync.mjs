@@ -29,7 +29,11 @@ const ANCHORS = {
   extender: "extender/",
 };
 
+const README = "https://github.com/nicoveraz/urg-forecast-core/blob/main/README.md#";
+
 function fixLinks(md, page) {
+  // README.md#section links (from docs/*.md) -> the site page holding that section.
+  md = md.split(README).join("#");
   md = md.replace(new RegExp(BLOB.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&") + "([\\w-]+)\\.md", "g"),
     (_, slug) => `${BASE}/${slug}/`);
   md = md.replace(/\]\(([\w-]+)\.md(#[\w-]+)?\)/g, (_, slug, hash = "") => `](${BASE}/${slug}/${hash})`);
@@ -88,7 +92,7 @@ write("uso", { title: "Uso", description: "Comandos, opciones y qué revisar ant
   section("uso", "modelos"));
 write("extender", { title: "Extender", description: "La API en Python y cómo agregar tus propios modelos." },
   stripH2(section("extender", "acerca"), "Extender"));
-write("acerca", { title: "Acerca", description: "Datos, estado del proyecto, cita y licencia." },
+write("acerca", { title: "Acerca del proyecto", description: "Datos, estado del proyecto, cita y licencia." },
   section("acerca", "fin"));
 write("modelos", { title: "Modelos", description: "Los modelos incluidos, cuándo conviene cada uno y cómo agregar el tuyo." },
   stripH1(read("docs/modelos.md")));

@@ -33,7 +33,7 @@ docstrings y comentarios del código van en inglés.
 
 El sitio (<https://nicoveraz.github.io/urg-forecast-core/>) se arma con Astro
 Starlight en `sitio/`. Sus páginas se generan del README, de `docs/` y del
-CHANGELOG (`sitio/scripts/sync.mjs`): Inicio, Uso, Extender y Acerca son
+CHANGELOG (`sitio/scripts/sync.mjs`): Inicio, Uso, Extender y Acerca del proyecto son
 secciones del README marcadas con comentarios `<!-- sitio:... -->`, así que se
 editan en el README. Para verlo localmente (Node 22):
 

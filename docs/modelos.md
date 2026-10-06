@@ -119,55 +119,16 @@ feriados futuros se conocen, así que la variable sirve también para pronostica
 
 ## Agregar tu propio modelo
 
-Cualquier clase con estos dos métodos sirve:
-
-```python
-class MiModelo:
-    def fit(self, history, target_col):
-        # history: DataFrame con columnas timestamp y target_col (semanal)
-        ...
-
-    def predict(self, horizon):
-        # horizon.length: semanas a pronosticar
-        # Debe devolver un DataFrame con timestamp, q50, q80, q90, q95
-        ...
-```
-
-El constructor no debe recibir argumentos obligatorios. Ejemplo completo, que
-reutiliza AutoARIMA con la búsqueda completa:
-
-```python
-# mi_modelo.py
-from urgencias_core.eval.baselines import auto_arima
-
-
-class ArimaCompleto:
-    def __init__(self):
-        self._m = auto_arima(season_length=52)
-
-    def fit(self, history, target_col):
-        self._m.fit(history, target_col)
-
-    def predict(self, horizon):
-        return self._m.predict(horizon)
-```
-
-Guárdalo en la carpeta donde corres el comando y úsalo así:
+Cualquier clase con `fit(history, target_col)` y `predict(horizon)` que devuelva
+`timestamp, q50, q80, q90, q95` sirve. Guárdala en un `.py` en la carpeta donde
+corres el comando y compárala con los incluidos:
 
 ```bash
-urg-forecast pronosticar 24-105 -m mi_modelo:ArimaCompleto -m AutoARIMA -m MSTL
+urg-forecast pronosticar 24-105 -m mi_modelo:MiClase -m AutoARIMA -m MSTL
 ```
 
-Compite en el mismo backtest que los demás y aparece en la tabla. Desde Python:
-
-```python
-from urgencias_core import load_deis, run_forecast, weekly_series
-from urgencias_core.pipeline import default_models
-from mi_modelo import ArimaCompleto
-
-semanal = weekly_series(load_deis(["24-105"]), "24-105")
-resultado = run_forecast(semanal, 12, models=default_models() | {"Mio": ArimaCompleto})
-```
+El paso a paso, con un modelo completo y cómo leer el resultado, está en
+[Extender](https://github.com/nicoveraz/urg-forecast-core/blob/main/README.md#extender).
 
 ## Ideas para seguir
 

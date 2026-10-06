@@ -211,20 +211,131 @@ resultado.backtest                                 # por modelo, promedio de las
 resultado.forecast                                 # timestamp, q50, q80, q90, q95
 ```
 
-**Tu propio modelo.** Cualquier clase con `fit(history, target_col)` y
-`predict(horizon)` que devuelva `timestamp, q50, q80, q90, q95` cumple el
-protocolo `Forecaster`; `urgencias_core/models/harmonic.py` es un ejemplo
-corto. Desde la línea de comandos, déjala en un archivo `.py` en la carpeta
-actual y usa `-m archivo:Clase` (repite `-m` para compararla con los modelos
-incluidos). En Python, agrégala junto a los modelos por defecto y compite en el
-mismo backtest:
+### Agregar tu propio modelo
+
+Un modelo es una clase con dos métodos:
+
+- `fit(history, target_col)`: recibe la historia semanal (un DataFrame con
+  `timestamp` y la columna `target_col`) y aprende lo que necesite.
+- `predict(horizon)`: devuelve un DataFrame con una fila por semana futura y las
+  columnas `timestamp`, `q50`, `q80`, `q90` y `q95`. `horizon.length` es la
+  cantidad de semanas y `horizon.quantiles` los cuantiles pedidos.
+
+El constructor no debe exigir argumentos.
+
+**1. Escribe el modelo.** Este ejemplo pronostica cada semana como el promedio
+de esa misma semana en los últimos tres años, y arma los intervalos con los
+errores que esa regla tuvo en el pasado. Guárdalo como `mi_modelo.py` en la
+carpeta donde vas a correr el comando:
+
+```python
+# mi_modelo.py
+import numpy as np
+import pandas as pd
+
+from urgencias_core.models.protocol import future_index
+
+
+class PromedioAnual:
+    """Cada semana futura = promedio de esa misma semana en los últimos años."""
+
+    def __init__(self, años=3):
+        self.años = años
+
+    def fit(self, history, target_col):
+        s = history.set_index("timestamp")[target_col].astype(float)
+        self.ultima_semana = s.index[-1]
+        # Promedio de cada semana del año (1 a 53), solo con los últimos años.
+        recientes = s[s.index > s.index[-1] - pd.DateOffset(years=self.años)]
+        self.promedio = recientes.groupby(recientes.index.isocalendar().week).mean()
+        # Errores históricos de esa regla, para armar los intervalos.
+        estimado = pd.Series(s.index.isocalendar().week.to_numpy()).map(self.promedio)
+        self.errores = (s.to_numpy() - estimado.to_numpy())[estimado.notna().to_numpy()]
+
+    def predict(self, horizon):
+        fechas = future_index(self.ultima_semana, horizon)
+        centro = fechas.isocalendar().week.map(self.promedio).to_numpy(dtype=float)
+        salida = pd.DataFrame({"timestamp": fechas})
+        for q, columna in zip(horizon.quantiles, horizon.quantile_columns):
+            # q50 es el promedio; q80, q90 y q95 le suman el error de ese cuantil.
+            salida[columna] = centro + (np.quantile(self.errores, q) if q > 0.5 else 0.0)
+        return salida
+```
+
+**2. Compáralo con los modelos incluidos.** Pásalo con `-m archivo:Clase` y
+repite `-m` para cada modelo contra el que quieras compararlo:
+
+```bash
+urg-forecast pronosticar 24-105 -H 12 -m mi_modelo:PromedioAnual -m AutoARIMA -m MSTL
+```
+
+**3. Lee la tabla de backtest.** Tu modelo aparece junto a los demás, evaluado
+en las mismas ventanas, y gana solo si tiene la menor pérdida P80:
+
+```text
++---------------+-------+----------+---------------+
+| Modelo        |   MAE |   MAPE % |   Pérdida P80 |
+|---------------+-------+----------+---------------|
+| MSTL *        |   122 |      7.4 |          50.3 |
+| AutoARIMA     |   118 |      7.1 |          51.0 |
+| PromedioAnual |   182 |     10.5 |          99.5 |
++---------------+-------+----------+---------------+
+```
+
+Acá la regla simple pierde: no sigue los cambios de nivel recientes. Ese es el
+punto de comparar antes de confiar en un modelo. Si el tuyo gana de forma
+consistente en tu establecimiento, úsalo solo con `-m mi_modelo:PromedioAnual`.
+
+**Desde Python** es lo mismo: agrega tu clase a los modelos por defecto.
 
 ```python
 from urgencias_core.pipeline import default_models
+from mi_modelo import PromedioAnual
 
-modelos = default_models() | {"Mio": MiForecaster}
+modelos = default_models() | {"PromedioAnual": PromedioAnual}
 resultado = run_forecast(semanal, 12, models=modelos)
+print(resultado.backtest)
 ```
+
+Más ejemplos en `src/urgencias_core/models/`: `harmonic.py` (regresión con
+términos de Fourier y feriados) y `ensemble.py` (combina varios modelos).
+
+### Pedirle a una IA que lo extienda
+
+Si usas un asistente de IA (ChatGPT, Claude, Copilot u otro), copia esta
+instrucción, reemplaza lo que está entre corchetes y pégala. Le da el contexto y
+las reglas que necesita para que el modelo funcione con `urg-forecast`:
+
+```text
+Estoy usando urg-forecast-core, un paquete de Python para pronosticar las
+atenciones semanales de un servicio de urgencia en Chile con datos públicos del
+DEIS MINSAL (https://github.com/nicoveraz/urg-forecast-core).
+Antes de responder, lee:
+- https://nicoveraz.github.io/urg-forecast-core/extender/
+- https://nicoveraz.github.io/urg-forecast-core/modelos/
+
+Lo que quiero: [describe el modelo o el cambio, por ejemplo: "un modelo que use
+las vacaciones de invierno como variable" o "probar Prophet"].
+
+Reglas:
+1. Escribe una sola clase en un archivo mi_modelo.py, con fit(history,
+   target_col) y predict(horizon). El constructor no debe exigir argumentos.
+2. history es un DataFrame con una fila por semana (semanas que terminan en
+   lunes) y las columnas timestamp y target_col.
+3. predict debe devolver un DataFrame con horizon.length filas y las columnas
+   timestamp, q50, q80, q90 y q95, con q50 <= q80 <= q90 <= q95. Usa
+   urgencias_core.models.protocol.future_index(ultima_semana, horizon) para
+   las fechas.
+4. Si necesitas una biblioteca adicional, dime cómo instalarla.
+5. No uses datos de pacientes ni envíes datos a servicios externos.
+6. Termina con el comando para compararlo con los modelos incluidos:
+   urg-forecast pronosticar [código DEIS] -H 12 -m mi_modelo:[Clase] -m AutoARIMA -m MSTL
+```
+
+Revisa lo que te entregue igual que cualquier modelo: lo que importa es la
+tabla de backtest, no la explicación.
+
+### Otras ideas
 
 **Otras series.** `load_deis` entrega conteos diarios por causa y grupo de
 edad, así que puedes modelar las causas respiratorias o la urgencia pediátrica
