@@ -340,6 +340,13 @@ class SchemaDriftError(Exception):
         self.year = year
 
 
+def _short(exc: Exception) -> str:
+    text = str(exc)
+    if "No CSV found" in text:
+        return "formato xlsx/mdb no soportado"
+    return text[:80]
+
+
 def load_year(
     year: int,
     cache_dir: Path | str = DEFAULT_CACHE_DIR,
@@ -357,9 +364,9 @@ def load_year(
     result = download_year(year, cache_dir=cache_dir, client=client)
     if result.status in ("not_available", "error") or result.path is None:
         if result.status == "not_available":
-            logger.warning("DEIS year %d not available (404). Skipping.", year)
+            logger.warning("DEIS %d: archivo no publicado; se omite.", year)
         else:
-            logger.warning("DEIS year %d failed: %s. Skipping.", year, result.detail)
+            logger.warning("DEIS %d: no se pudo descargar (%s); se omite.", year, result.detail)
         return None
 
     frames: list[pd.DataFrame] = []
@@ -380,12 +387,13 @@ def load_year(
             return pd.DataFrame(columns=_CANONICAL_COLUMNS)
         return pd.concat(frames, ignore_index=True)
     except SchemaDriftError as e:
-        logger.warning("Schema drift in year %d: %s", e.year, e)
+        logger.warning("DEIS %d: formato no reconocido; se omite.", e.year)
+        logger.debug("Schema drift in year %d: %s", e.year, e)
         return None
     except (TypeError, AttributeError, NameError):
         raise  # programming errors must surface, not be swallowed as "parse failure"
     except Exception as e:
-        logger.warning("Parse failure in year %d: %s", year, e)
+        logger.warning("DEIS %d: no se pudo leer (%s); se omite.", year, _short(e))
         return None
 
 

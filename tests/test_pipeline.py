@@ -129,3 +129,14 @@ def test_fallback_when_live_fetch_is_empty(monkeypatch) -> None:
     assert df.attrs["source"] == pl.SOURCE_SNAPSHOT
     with pytest.raises(pl.NoDataError, match="No hay datos DEIS"):
         pl.load_deis(["24-105"])
+
+
+def test_facility_name_uses_most_recent_name() -> None:
+    df = pd.DataFrame(
+        {
+            "facility_code": ["23-100", "123100"],
+            "facility_name": ["Hospital Base de Osorno", "Hospital Base San José de Osorno"],
+            "date": pd.to_datetime(["2022-01-01", "2026-01-01"]),
+        }
+    )
+    assert facility_name(df, "23-100") == "Hospital Base San José de Osorno"

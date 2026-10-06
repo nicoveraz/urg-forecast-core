@@ -169,8 +169,11 @@ def weekly_series(df: pd.DataFrame, code: str) -> pd.DataFrame:
 
 
 def facility_name(df: pd.DataFrame, code: str) -> str:
+    """Most recent published name (DEIS names change over the years)."""
     rows = df[df["facility_code"].astype(str).isin(facility_code_variants(code))]
-    return str(rows["facility_name"].iloc[0]) if len(rows) else code
+    if rows.empty:
+        return code
+    return str(rows.sort_values("date")["facility_name"].iloc[-1])
 
 
 # ---------------------------------------------------------------------------
