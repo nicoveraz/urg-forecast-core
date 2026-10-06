@@ -43,6 +43,16 @@ jobs:
           cache: npm
           cache-dependency-path: sitio/package-lock.json
       - run: npm ci
+      - name: Demo data from the datos branch
+        working-directory: .
+        run: |
+          if git fetch --depth 1 origin datos 2>/dev/null; then
+            mkdir -p sitio/public/datos
+            git archive FETCH_HEAD demo | tar -x -C sitio/public/datos
+            ls sitio/public/datos/demo | wc -l
+          else
+            echo "No datos branch yet; the demo page will say data is not available."
+          fi
       - run: npm run build
       - name: Upload Pages artifact
         if: github.event_name != 'pull_request'

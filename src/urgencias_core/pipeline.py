@@ -83,6 +83,7 @@ class NoDataError(RuntimeError):
 
 
 SOURCE_LIVE = "DEIS MINSAL (descarga actualizada)"
+SOURCE_MIRROR = "DEIS MINSAL, copia semanal del repositorio"
 SOURCE_SNAPSHOT = "snapshot DEIS incluido en el paquete"
 
 
@@ -103,30 +104,60 @@ def load_deis(
     offline: bool = False,
     fallback_to_snapshot: bool = False,
     cache_dir: Path | str = DEFAULT_CACHE_DIR,
+    source: str = "repo",
 ) -> pd.DataFrame:
     """DEIS rows for ``codes`` (any DEIS spelling), COVID years excluded.
 
     - ``offline=True`` reads the snapshot bundled with the package (demo
       hospitals only).
-    - Otherwise downloads from DEIS into ``cache_dir`` (the current year is
-      refreshed weekly). With ``fallback_to_snapshot=True``, falls back to the snapshot
-      when DEIS is unreachable or returns nothing.
+    - ``source="repo"`` (default) reads the weekly mirror of daily totals that
+      the project publishes on its ``datos`` branch, so users do not download
+      the full DEIS files (see :mod:`urgencias_core.data.mirror`).
+    - ``source="deis"`` downloads the yearly files from DEIS into ``cache_dir``
+      (the current year is refreshed weekly); needed for causes or age groups.
+
+    With ``fallback_to_snapshot=True``, falls back to the snapshot when the
+    source is unreachable or returns nothing.
 
     The data source used is recorded in ``df.attrs["source"]``.
     """
     wanted = set().union(*(facility_code_variants(c) for c in codes))
-    source = SOURCE_SNAPSHOT
+    if source not in ("repo", "deis"):
+        raise ValueError(f"fuente desconocida: {source!r} (usa 'repo' o 'deis')")
+    label = SOURCE_SNAPSHOT
     if offline:
         df = _read_snapshot(wanted)
+    elif source == "repo":
+        from urgencias_core.data.mirror import MirrorUnavailable, mirror_meta, mirror_rows
+
+        try:
+            df = mirror_rows(wanted, cache_dir=cache_dir)
+            df = df[df["year"].astype(int) >= start_year]
+            label = f"{SOURCE_MIRROR} (al {mirror_meta(cache_dir=cache_dir)['ultima_fecha']})"
+        except MirrorUnavailable as exc:
+            if not fallback_to_snapshot:
+                raise NoDataError(
+                    f"No se pudo leer la copia de datos del repositorio ({exc}). "
+                    "Revisa tu conexión o usa --fuente deis."
+                ) from exc
+            logger.warning("La copia del repositorio no responde; se usa el snapshot incluido.")
+            df = pd.DataFrame()
+        if df.empty and fallback_to_snapshot:
+            df, label = _read_snapshot(wanted), SOURCE_SNAPSHOT
+        elif df.empty:
+            raise NoDataError(
+                f"No hay datos para {', '.join(codes)} desde {start_year}. "
+                "Revisa el código con 'urg-forecast buscar'."
+            )
     elif fallback_to_snapshot and not deis_reachable():
         logger.warning("DEIS no responde; se usa el snapshot incluido.")
         df = _read_snapshot(wanted)
     else:
         df = fetch(start_year=start_year, cache_dir=cache_dir, facility_filter=wanted)
-        source = SOURCE_LIVE
+        label = SOURCE_LIVE
         if df.empty and fallback_to_snapshot:
             logger.warning("DEIS no entregó datos; se usa el snapshot incluido.")
-            df, source = _read_snapshot(wanted), SOURCE_SNAPSHOT
+            df, label = _read_snapshot(wanted), SOURCE_SNAPSHOT
         elif df.empty:
             raise NoDataError(
                 f"No hay datos DEIS para {', '.join(codes)} desde {start_year}. "
@@ -134,7 +165,7 @@ def load_deis(
             )
     df = df[~df["year"].astype(int).isin(COVID_EXCLUDE_YEARS)].copy()
     df["date"] = pd.to_datetime(df["date"])
-    df.attrs["source"] = source
+    df.attrs["source"] = label
     return df
 
 

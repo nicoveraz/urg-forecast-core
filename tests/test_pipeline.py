@@ -119,7 +119,7 @@ def test_fallback_to_snapshot_when_deis_unreachable(monkeypatch) -> None:
     import urgencias_core.pipeline as pl
 
     monkeypatch.setattr(pl, "deis_reachable", lambda: False)
-    df = pl.load_deis(["24-105"], fallback_to_snapshot=True)
+    df = pl.load_deis(["24-105"], fallback_to_snapshot=True, source="deis")
     assert len(df) > 0
     assert df.attrs["source"] == pl.SOURCE_SNAPSHOT
 
@@ -129,10 +129,10 @@ def test_fallback_when_live_fetch_is_empty(monkeypatch) -> None:
 
     monkeypatch.setattr(pl, "deis_reachable", lambda: True)
     monkeypatch.setattr(pl, "fetch", lambda **kw: pd.DataFrame())
-    df = pl.load_deis(["24-105"], fallback_to_snapshot=True)
+    df = pl.load_deis(["24-105"], fallback_to_snapshot=True, source="deis")
     assert df.attrs["source"] == pl.SOURCE_SNAPSHOT
     with pytest.raises(pl.NoDataError, match="No hay datos DEIS"):
-        pl.load_deis(["24-105"])
+        pl.load_deis(["24-105"], source="deis")
 
 
 def test_facility_name_uses_most_recent_name() -> None:

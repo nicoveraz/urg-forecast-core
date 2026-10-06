@@ -62,8 +62,9 @@ ejemplos:
 SEARCH_EPILOG = """\
 ejemplos:
   urg-forecast buscar "puerto montt"
+  urg-forecast buscar sapu                # por tipo: Hospital, SAPU, SAR, SUR
+  urg-forecast buscar "los lagos"         # por región, comuna o servicio de salud
   urg-forecast buscar 24-1                # también filtra por código
-  urg-forecast buscar --anio 2025 osorno  # si el archivo del año actual aún no existe
   urg-forecast buscar                     # sin texto: lista todos
 
 El código que aparece en la primera columna es el que recibe "pronosticar".
@@ -150,11 +151,19 @@ def build_parser() -> argparse.ArgumentParser:
 
     def add_cache_option(p: argparse.ArgumentParser) -> None:
         p.add_argument(
+            "--fuente",
+            choices=["repo", "deis"],
+            default="repo",
+            help="de dónde leer los datos: 'repo' (por defecto), una copia semanal de los "
+            "totales diarios publicada en el repositorio del proyecto; 'deis', los archivos "
+            "anuales completos directo del DEIS (cientos de MB por año)",
+        )
+        p.add_argument(
             "--cache",
             type=Path,
             default=None,
             metavar="CARPETA",
-            help=f"dónde guardar los ZIP anuales del DEIS (por defecto: ${CACHE_ENV} "
+            help=f"dónde guardar las descargas (por defecto: ${CACHE_ENV} "
             "o ./data/external/deis_cache, relativo a la carpeta actual)",
         )
 
@@ -217,8 +226,8 @@ def build_parser() -> argparse.ArgumentParser:
             formatter_class=argparse.RawDescriptionHelpFormatter,
             help="busca el código DEIS de un establecimiento",
             description=(
-                "Lista establecimientos del DEIS filtrando por nombre o código.\n"
-                "La primera vez descarga el archivo anual (cientos de MB) y lo guarda en caché."
+                "Lista establecimientos públicos del DEIS filtrando por nombre, código, tipo,\n"
+                "comuna, región o servicio de salud. Lee el listado del repositorio del proyecto."
             ),
             epilog=SEARCH_EPILOG,
         )
@@ -231,7 +240,7 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=datetime.now().year,
         metavar="AÑO",
-        help="año del archivo DEIS donde buscar (por defecto: el actual)",
+        help="con --fuente deis: año del archivo DEIS donde buscar (por defecto: el actual)",
     )
     add_cache_option(p_search)
 
@@ -296,6 +305,7 @@ def _forecast(
     cache_dir: Path | None = None,
     model_names: list[str] | None = None,
     calibrate: bool = True,
+    source: str = "repo",
 ) -> int:
     from urgencias_core.pipeline import (
         NoDataError,
@@ -315,7 +325,8 @@ def _forecast(
         print(f"error: {exc}", file=sys.stderr)
         return 2
 
-    log.info("Cargando datos DEIS%s...", " (snapshot offline)" if offline else "")
+    where = " (snapshot offline)" if offline else (" desde el DEIS" if source == "deis" else "")
+    log.info("Cargando datos%s...", where)
     try:
         df = load_deis(
             codes,
@@ -323,6 +334,7 @@ def _forecast(
             offline=offline,
             fallback_to_snapshot=fallback,
             cache_dir=cache_dir or _default_cache(),
+            source=source,
         )
     except NoDataError as exc:
         print(f"error: {exc}", file=sys.stderr)
@@ -356,26 +368,38 @@ def _forecast(
     return 1 if failures == len(codes) else 0
 
 
-def _search(text: str, year: int, cache_dir: Path | None = None) -> int:
-    from urgencias_core.data.deis import list_facilities
-
-    log.info("Leyendo establecimientos DEIS %s (la primera vez descarga el archivo)...", year)
-    try:
-        fac = list_facilities(year, cache_dir=cache_dir or _default_cache())
-    except RuntimeError as exc:
-        print(f"error: {exc}. Prueba con --anio {year - 1}.", file=sys.stderr)
-        return 1
-    if text:
-        mask = fac["facility_name"].str.contains(text, case=False, na=False, regex=False) | fac[
-            "facility_code"
-        ].str.contains(text, case=False, na=False, regex=False)
-        fac = fac[mask]
-    if fac.empty:
-        print(f"Sin coincidencias para {text!r} en DEIS {year}.")
-        return 1
+def _search(text: str, year: int, cache_dir: Path | None = None, source: str = "repo") -> int:
     from tabulate import tabulate
 
-    print(tabulate(fac.values.tolist(), headers=["Código", "Establecimiento"], tablefmt="psql"))
+    cache = cache_dir or _default_cache()
+    if source == "repo":
+        from urgencias_core.data.mirror import MirrorUnavailable, mirror_facilities
+
+        try:
+            fac = mirror_facilities(cache_dir=cache)
+        except MirrorUnavailable as exc:
+            print(f"error: {exc}. Revisa tu conexión o usa --fuente deis.", file=sys.stderr)
+            return 1
+        cols = ["codigo", "nombre", "tipo", "comuna", "region"]
+        fac = fac[[c for c in cols if c in fac.columns]]
+        headers = ["Código", "Establecimiento", "Tipo", "Comuna", "Región"][: len(fac.columns)]
+    else:
+        from urgencias_core.data.deis import list_facilities
+
+        log.info("Leyendo establecimientos DEIS %s (la primera vez descarga el archivo)...", year)
+        try:
+            fac = list_facilities(year, cache_dir=cache)
+        except RuntimeError as exc:
+            print(f"error: {exc}. Prueba con --anio {year - 1}.", file=sys.stderr)
+            return 1
+        headers = ["Código", "Establecimiento"]
+    if text:
+        haystack = fac.astype(str).agg(" ".join, axis=1)
+        fac = fac[haystack.str.contains(text, case=False, na=False, regex=False)]
+    if fac.empty:
+        print(f"Sin coincidencias para {text!r}.")
+        return 1
+    print(tabulate(fac.values.tolist(), headers=headers, tablefmt="psql"))
     print(f"{len(fac)} establecimiento(s). Siguiente paso: urg-forecast pronosticar <código>")
     return 0
 
@@ -418,11 +442,12 @@ def main(argv: list[str] | None = None) -> int:
             cache_dir=args.cache,
             model_names=args.modelo,
             calibrate=not args.sin_calibrar,
+            source=args.fuente,
         )
     if args.command == "modelos":
         return _list_models()
     if args.command == "buscar":
-        return _search(args.texto, args.anio, cache_dir=args.cache)
+        return _search(args.texto, args.anio, cache_dir=args.cache, source=args.fuente)
     return _forecast(
         args.codigos,
         args.horizonte,
@@ -432,6 +457,7 @@ def main(argv: list[str] | None = None) -> int:
         cache_dir=args.cache,
         model_names=args.modelo,
         calibrate=not args.sin_calibrar,
+        source=args.fuente,
     )
 
 

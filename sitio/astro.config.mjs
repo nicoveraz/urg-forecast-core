@@ -21,6 +21,7 @@ export default defineConfig({
       pagination: true,
       sidebar: [
         { label: "Inicio", link: "/" },
+        { label: "Demo", link: "/demo/", badge: { text: "nuevo", variant: "tip" } },
         { label: "Uso", slug: "uso" },
         {
           label: "Modelos",
