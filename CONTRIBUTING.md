@@ -70,8 +70,13 @@ Las versiones se publican en PyPI con
 [Trusted Publishing](https://docs.pypi.org/trusted-publishers/) (OIDC) desde
 `.github/workflows/publish.yml`, sin tokens guardados como secretos.
 
-Configuración única: en PyPI, agrega este repositorio y el entorno `pypi` como
-publicador de confianza del proyecto `urg-forecast-core`.
+Configuración única:
+
+- En PyPI, agrega este repositorio, el workflow `publish.yml` y el entorno
+  `pypi` como publicador de confianza del proyecto `urg-forecast-core`. Deja el
+  publicador restringido a ese entorno.
+- En GitHub (Settings → Environments → `pypi`), limita los despliegues a tags
+  `v*` y agrega al mantenedor como revisor obligatorio.
 
 En cada versión:
 
@@ -86,11 +91,13 @@ En cada versión:
    ```
 
 El workflow `publish` corre los tests, verifica que el tag coincida con la
-versión del paquete, construye, publica en PyPI y crea el release en GitHub con
-la sección del changelog como notas. No crees el release a mano (con
-`gh release create` o desde la web): el workflow lo hace, y Zenodo archiva cada
-release en cuanto se publica, así que borrarlo y recrearlo puede generar un DOI
-duplicado.
+versión del paquete y construye. Luego el job `pypi-publish` queda en pausa
+hasta que un revisor lo apruebe: abre la ejecución en la pestaña Actions y usa
+"Review deployments" → Approve. Tras la aprobación publica en PyPI y crea el
+release en GitHub con la sección del changelog como notas. No crees el release
+a mano (con `gh release create` o desde la web): el workflow lo hace, y Zenodo
+archiva cada release en cuanto se publica, así que borrarlo y recrearlo puede
+generar un DOI duplicado.
 
 ## Archivo en Zenodo (DOI para citar)
 
