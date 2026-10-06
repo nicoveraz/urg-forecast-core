@@ -7,7 +7,7 @@ API puede cambiar entre versiones menores).
 
 ## [Sin publicar]
 
-## [0.3.0] - sin publicar
+## [0.3.0] - 2026-10-06
 
 ### Agregado
 
