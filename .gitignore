@@ -41,3 +41,4 @@ build/
 
 # JOSS paper PDF (build artifact; regenerated with openjournals/inara)
 paper/*.pdf
+urg-forecast-salida/

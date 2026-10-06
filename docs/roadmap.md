@@ -1,57 +1,29 @@
-# Roadmap
+# Roadmap / Hoja de ruta
 
-> **In English:** deliberately deferred items (not bugs) — things intentionally
-> left out of the v1 bootstrap on a cost/value basis or pending external
-> dependencies: xlsx/mdb support for DEIS 2017–2019, neuralforecast models, and
-> EMR integration to separate workup from boarding time. Written in Spanish.
+Known gaps, deliberately left out of the base. Each one is a good first
+contribution. / Brechas conocidas que quedaron fuera de la base a propósito.
+Cada una sirve como primera contribución.
 
-Items diferidos conscientemente durante el bootstrap v1. No son bugs;
-son decisiones de no implementar algo ahora por costo/valor o por
-dependencias externas no resueltas.
+## Datos
 
-## Soporte para archivos DEIS 2017–2019 (xlsx + mdb)
+- **Archivos DEIS 2017–2019.** Vienen como `.xlsx` + `.mdb` dentro del ZIP
+  anual; el lector actual solo parsea CSV y los salta con una advertencia.
+- **Archivo DEIS 2020.** Tiene una cabecera corrupta en la fuente. Está excluido
+  por defecto (COVID), así que el valor es bajo.
+- **Series por causa o edad.** `data.deis.fetch()` ya entrega conteos por causa
+  y grupo de edad, pero el pronóstico usa solo el total. Modelar por separado
+  las causas respiratorias o la urgencia pediátrica es el paso natural.
 
-El fetcher DEIS actual (`urgencias_core.data.deis`) solo parsea CSV.
-Las publicaciones DEIS 2017–2019 vinieron como archivos `.xlsx` +
-`.mdb` dentro del ZIP anual. El parser los salta con una advertencia.
+## Modelos
 
-Agregar soporte extendería la cobertura del snapshot demo hacia atrás
-a 2017, pero dado que la política COVID ya excluye 2020–2021, el valor
-incremental es limitado a menos que un usuario quiera entrenar sobre
-el período pre-pandémico explícitamente.
+- **Backtest rolling.** Hoy el backtest es un único holdout al final de la
+  serie. Varias ventanas darían una estimación del error más estable.
+- **Variables exógenas.** El calendario chileno (`features.calendar`) está
+  disponible pero no entra a los modelos por defecto; tampoco el clima.
+- **Granularidad diaria.** El pipeline es semanal. Pasar a diario exige revisar
+  el rezago de reporte del DEIS.
 
-- `.xlsx`: `openpyxl` (ya disponible si se agrega a deps), una sheet
-  por facility o una sheet única tipo flat; revisar al implementar.
-- `.mdb`: `mdbtools` (dep de sistema macOS/Linux), o `pandas-access`
-  (wrapper de mdbtools). Complica el bootstrap en macOS.
+## Operación
 
-## Parser del archivo DEIS 2020
-
-El CSV de 2020 tiene una fila de cabecera corrupta en la fuente (mezcla
-nombres de columna con valores de datos). El parser actual levanta
-`SchemaDriftError` y salta el año. Si alguien necesita 2020
-explícitamente, se puede escribir un parser específico que ignore la
-primera fila y use un mapeo de columnas fijo para ese año. Valor bajo
-porque 2020 está excluido por la política COVID por defecto.
-
-## Backtesting rolling en lugar de holdout simple
-
-El harness actual hace un holdout simple (las últimas N observaciones
-son test, todo lo anterior es train). Un backtest rolling (sliding
-window, refit cada K pasos) da métricas estadísticamente más robustas y
-detecta model drift en el tiempo. No es crítico para v1.
-
-## Integración EMR para separar workup de boarding
-
-Ver `docs/decisions.md` sección "LOS, boarding, y qué nos dicen (y no
-nos dicen) los datos". Ingerir el timestamp de decisión de admisión
-desde EMR permitiría distinguir tiempo clínico activo del tiempo
-de espera por cama. Requiere o una nueva columna en el export del EMR o
-un proxy por timestamps de entrada de órdenes. Sprint 3 candidato en
-el plan de `eunosia-forecast`.
-
-> **Nota (v0.1.0):** los ítems previos de esta hoja de ruta sobre *console
-> scripts / entry points* y *logging unificado* ya fueron implementados
-> (ver `CHANGELOG.md`): `pyproject.toml` define los console scripts
-> `urgencias-demo-synthetic`, `urgencias-demo-deis` y `urgencias-server`, y
-> `urgencias_core._logging.setup_logging` unifica la salida por consola.
+- **Actualización del snapshot.** Un workflow programado que regenere el
+  snapshot y las figuras del README y abra un PR para revisión.

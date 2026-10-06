@@ -1,213 +1,165 @@
 # urg-forecast-core
 
-Código de referencia para análisis, simulación y forecasting de servicios de
-urgencia en Chile. Fundación abierta de **Eunosia**.
+[![ci](https://github.com/nicoveraz/urg-forecast-core/actions/workflows/ci.yml/badge.svg)](https://github.com/nicoveraz/urg-forecast-core/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/urg-forecast-core.svg)](https://pypi.org/project/urg-forecast-core/)
+[![Python](https://img.shields.io/pypi/pyversions/urg-forecast-core.svg)](https://pypi.org/project/urg-forecast-core/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/nicoveraz/urg-forecast-core/blob/main/LICENSE)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21449610.svg)](https://doi.org/10.5281/zenodo.21449610)
 
-*Read this in [English](README.md).*
+**Una base abierta y gratuita para pronosticar la demanda de los servicios de
+urgencia en Chile con datos públicos del DEIS MINSAL.** Con un solo comando
+obtienes un backtest y un pronóstico semanal para cualquier establecimiento que
+reporte al DEIS. Es un punto de partida para construir encima, no un producto
+terminado.
 
-Convierte datos visit-level de urgencia en series horarias de ocupación, agrega
-características de calendario chileno, pronostica llegadas/ocupación con bandas
-cuantiles y corre un simulador Monte Carlo de censo — además de un lector del
-dataset público DEIS MINSAL y un dashboard web mínimo.
+*Read this in [English](https://github.com/nicoveraz/urg-forecast-core/blob/main/README.md).*
 
-## Instalación
-
-```bash
-pip install urg-forecast-core            # librería core (datos, series, features, simulación)
-pip install "urg-forecast-core[all]"     # todo: modelos, visualización, servidor y fetchers
-```
-
-La instalación core es deliberadamente liviana
-(pandas/numpy/pyarrow/holidays/pydantic). Las capacidades más pesadas viven
-detrás de extras — un módulo que necesita uno lanza un error claro indicando
-qué instalar:
-
-| Extra | Incluye | Habilita |
-|---|---|---|
-| `models` | lightgbm, statsforecast, scikit-learn | forecasters LightGBM/statsforecast |
-| `viz` | matplotlib, tabulate | gráficos y tablas markdown (demos, servidor) |
-| `server` | fastapi, uvicorn, jinja2 (+ `viz`) | el servidor dashboard de referencia |
-| `fetch` | httpx | clientes de red DEIS MINSAL y Open-Meteo |
-| `all` | todo lo anterior | los demos y la suite completa de tests |
-
-## Quickstart
-
-Tras `pip install "urg-forecast-core[all]"` quedan disponibles tres comandos de
-consola. Corren sobre datos incluidos en el paquete y escriben en `./outputs`:
+## Inicio rápido
 
 ```bash
-urgencias-demo-synthetic          # pipeline completo incl. simulación → 3 PNG
-urgencias-demo-deis --offline     # forecasting sobre datos reales de DEIS
-urgencias-server                  # dashboard de referencia en http://127.0.0.1:8000
+pip install urg-forecast-core          # Python 3.11 o 3.12
+
+urg-forecast demo                      # hospitales de Puerto Montt y Frutillar
+urg-forecast buscar "osorno"           # busca el código DEIS de tu establecimiento
+urg-forecast pronosticar 24-105        # backtest + pronóstico a 26 semanas
+urg-forecast pronosticar 24-105 -H 6m  # elige el horizonte: 12, 12s (semanas) o 6m (meses)
 ```
 
-Desde un clon del repositorio con [uv](https://docs.astral.sh/uv/):
+Cada ejecución imprime un resumen con tablas ASCII y guarda CSV y figuras en
+`./urg-forecast-salida/<código>_<nombre>/` (cámbialo con `-o`):
 
-```bash
-git clone https://github.com/nicoveraz/urg-forecast-core
-cd urg-forecast-core
-uv sync --all-extras
-
-uv run urgencias-demo-synthetic
-uv run urgencias-demo-deis --offline
-uv run urgencias-server
-```
-
-El demo sintético se ejecuta en segundos contra una fixture sintética compacta
-de un año (~13 000 atenciones) incluida en el paquete. El demo DEIS descarga
-datos reales (o cae al snapshot offline incluido) y escribe tablas de
-backtesting + pronósticos a 6 meses.
-
-## Qué produce el pipeline
-
-Las figuras a continuación son el resultado directo de correr los dos demos
-contra los datos incluidos.
-
-### 1. De atenciones a serie horaria de ocupación
-
-El loader `urgencias_core.data.timeseries` convierte el parquet visit-level
-(una fila por atención, con timestamps de ingreso y egreso) a una serie horaria
-de censo usando el truco de cumsum de eventos (+1 al ingreso, –1 al egreso,
-cumsum reindexado a la grilla horaria). La figura muestra la última semana de la
-fixture sintética: un ciclo diurno claro con valles nocturnos y picos
-vespertinos, consistentes con el patrón esperado de una urgencia chilena de
-tamaño medio.
-
-![Ocupación horaria sintética](docs/img/demo_synthetic_occupancy.png)
-
-### 2. Capa de forecasting — pronóstico horario 48 h
-
-Sobre esa misma serie, el baseline `SeasonalNaiveBaseline` produce un pronóstico
-horario a 48 horas con intervalos cuantiles P50–P80 y P80–P95. Los modelos más
-fuertes (`AutoARIMA`, `AutoETS`, `LGBQuantile`) se comparan en el harness de
-evaluación y viven bajo la misma interfaz `Forecaster`.
-
-![Pronóstico horario 48h sintético](docs/img/demo_synthetic_forecast.png)
-
-### 3. Motor de simulación Monte Carlo
-
-El motor `urgencias_core.simulation.engine` toma llegadas futuras (muestreadas
-desde el pronóstico) y para cada llegada samplea un LOS empírico condicional en
-(agudeza, hora de llegada). Iterando M réplicas produce bandas de incertidumbre
-del censo 24 horas hacia adelante — la base para decisiones de surge y tablas de
-turnos.
-
-![Simulación Monte Carlo 24h](docs/img/demo_synthetic_simulation.png)
-
-### 4. Datos reales — backtest semanal sobre DEIS
-
-El demo DEIS corre la misma capa de forecasting contra atenciones de urgencia
-reales del Hospital de Puerto Montt. El harness deja como test las últimas 12
-semanas completas (se recortan las semanas parciales de los bordes, porque los
-datos casi-en-tiempo-real de DEIS pueden subcontar la última semana) y entrena
-sobre la historia previa; `AutoARIMA` es seleccionado por pinball loss P80 y
-sigue el alza de otoño — evidencia de que el pipeline sintético no está
-sobreajustado al régimen de la fixture.
-
-![Holdout 12 semanas Puerto Montt](docs/img/deis_holdout_hospital_base_puerto_montt.png)
-
-### 5. Pronóstico operacional a 6 meses
-
-Con el modelo validado, el demo reentrena sobre toda la historia y emite un
-pronóstico semanal a 26 semanas — el horizonte útil para planificación de
-turnos, presupuesto e insumos. La banda P80–P95 se ensancha con el horizonte,
-como es de esperar.
-
-![Forecast 6 meses Puerto Montt](docs/img/deis_forecast_hospital_base_puerto_montt.png)
-
-### 6. Dashboard de referencia
-
-El servidor FastAPI (`urgencias-server`) expone 4 rutas con los mismos gráficos
-del pipeline pero vivos en el navegador. Es deliberadamente minimal — Jinja2 +
-matplotlib embebido como base64, sin JavaScript. Pensado como punto de partida
-para que un hospital lo clone y adapte.
-
-<p align="center">
-<img src="docs/img/dashboard_index.png" width="48%" alt="Dashboard - inicio"/>
-<img src="docs/img/dashboard_baseline.png" width="48%" alt="Dashboard - análisis descriptivo"/>
-</p>
-<p align="center">
-<img src="docs/img/dashboard_forecast.png" width="48%" alt="Dashboard - pronóstico"/>
-<img src="docs/img/dashboard_simulation.png" width="48%" alt="Dashboard - simulación"/>
-</p>
-
-## Qué hay adentro
-
-| Módulo | Para qué sirve |
+| Archivo | Contenido |
 |---|---|
-| `urgencias_core.data.loader` | Lee un parquet visit-level y valida el esquema. |
-| `urgencias_core.data.timeseries` | Convierte atenciones a serie horaria (llegadas, altas, ocupación por agudeza, LOS medio) con el truco de cumsum de eventos. |
-| `urgencias_core.data.deis` | Cliente del DEIS MINSAL (fetch + caché + filtro a hospitales demo) con fallback offline al snapshot. |
-| `urgencias_core.features.calendar` | Festivos `holidays.CL`, días puente, calendario escolar, eventos regionales configurables (Semana Musical de Frutillar por defecto). |
-| `urgencias_core.features.weather` | Cliente de Open-Meteo con caché en disco, Puerto Montt por defecto. |
-| `urgencias_core.models.protocol` | Protocolo `Forecaster` y `HorizonSpec` (agnóstico del grano: horario, diario, semanal, mensual). |
-| `urgencias_core.models.lgb_quantile` | LightGBM quantile regression, un modelo por cuantil, features de calendario. |
-| `urgencias_core.eval.baselines` | `SeasonalNaiveBaseline` + envoltorios de `statsforecast` (AutoARIMA, AutoETS, AutoTheta, MSTL). |
-| `urgencias_core.eval.harness` | Evaluación side-by-side con regla de advertencia ≥5% (un modelo que no supera a los baselines no debería producir). |
-| `urgencias_core.simulation.los_empirical` | Muestreador empírico de LOS condicional en (agudeza, hora de llegada). |
-| `urgencias_core.simulation.engine` | Simulación Monte Carlo de censo forward 24 horas. |
-| `urgencias_core.server` | Servidor FastAPI mínimo (4 rutas, Jinja2, matplotlib base64, sin JS). |
+| `resumen.txt` | el resumen impreso |
+| `pronostico.csv` | pronóstico semanal: `q50`, `q80`, `q90`, `q95` |
+| `backtest.csv` | error de cada modelo en la ventana de backtest |
+| `historia_semanal.csv` | la serie semanal que se modeló |
+| `pronostico.png`, `backtest.png` | figuras |
+
+Ejemplo de salida con el snapshot incluido (`urg-forecast demo --offline`):
+
+```text
+Hospital de Puerto Montt (24-105)
+=================================
+
+Datos      snapshot DEIS incluido en el paquete; atenciones totales por semana
+Historia   2022-01-10 a 2026-03-30 (221 semanas completas; 2020–2021 excluidos)
+Horizonte  26 semanas
+Atención   los datos terminan hace 27 semanas; el pronóstico parte desde esa fecha, no desde hoy.
+
+Backtest: últimas 26 semanas (el mejor modelo se marca con *)
++---------------+-------+----------+---------------+
+| Modelo        |   MAE |   MAPE % |   Pérdida P80 |
+|---------------+-------+----------+---------------|
+| AutoARIMA *   |   124 |      7.5 |          46.1 |
+| AutoETS       |   201 |     13.1 |          76.5 |
+| SeasonalNaive |   161 |      9.0 |          94.3 |
++---------------+-------+----------+---------------+
+El valor real quedó bajo el P80 en 21 de 26 semanas.
+
+Pronóstico con AutoARIMA: atenciones semanales
++--------------------+-------+-------+-------+
+| Semana (termina)   |   P50 |   P80 |   P95 |
+|--------------------+-------+-------+-------|
+| 2026-04-06         |  2127 |  2212 |  2293 |
+| ...                |       |       |       |
+```
+
+![26-week forecast, Hospital de Puerto Montt](https://raw.githubusercontent.com/nicoveraz/urg-forecast-core/main/docs/img/pronostico_puerto_montt.png)
+
+## Cómo funciona
+
+1. Descarga los archivos anuales *Atenciones de Urgencia* del DEIS y los guarda
+   en caché en `data/external/deis_cache/`. El año en curso se vuelve a
+   descargar si la copia tiene más de 7 días, y el año anterior también hasta
+   marzo, mientras el DEIS lo sigue corrigiendo. Siempre modelas los últimos
+   datos publicados.
+2. Suma el total de atenciones por semana completa (las semanas incompletas de
+   los extremos se descartan, porque el DEIS reporta con rezago). Se excluyen
+   2020–2021 por la pandemia.
+3. Compara tres modelos (seasonal naive, AutoARIMA y AutoETS) en un backtest
+   sobre las últimas semanas, tantas como el horizonte (máximo 26), y elige el
+   de menor pérdida por cuantil P80.
+4. Reajusta ese modelo con toda la historia y pronostica el horizonte pedido.
+
+`urg-forecast demo` intenta primero con el DEIS y, si no hay conexión, usa un
+snapshot incluido en el paquete; el resumen indica cuál se usó. `--offline`
+fuerza el snapshot.
+
+## Qué no es
+
+- Los modelos son **baselines estadísticos** sin ajuste para tu
+  establecimiento, sin clima y sin eventos locales.
+- Pronostica **solo el total semanal de atenciones**, sin desglose por causa,
+  edad ni categorización.
+- No ha sido validado como herramienta de decisión clínica ni operacional.
+
+El valor está en lo que le agregues. Para eso es la siguiente sección.
+
+## Cómo construir encima
+
+Todo lo que hace el comando son unas pocas funciones sobre DataFrames:
+
+```python
+from urgencias_core import load_deis, weekly_series, run_forecast
+
+df = load_deis(["24-105"], start_year=2019)
+semanal = weekly_series(df, "24-105")             # timestamp, count
+resultado = run_forecast(semanal, horizon_weeks=12)
+resultado.backtest                                 # MAE, MAPE y pérdidas por cuantil por modelo
+resultado.forecast                                 # timestamp, q50, q80, q90, q95
+```
+
+**Tu propio modelo.** Cualquier clase con `fit(history, target_col)` y
+`predict(horizon)` que devuelva `timestamp, q50, q80, q90, q95` cumple el
+protocolo `Forecaster`. Agrégala junto a los baselines y compite en el mismo
+backtest:
+
+```python
+from urgencias_core.pipeline import default_models
+
+modelos = default_models() | {"Mio": MiForecaster}
+resultado = run_forecast(semanal, 12, models=modelos)
+```
+
+**Otras series.** `load_deis` entrega conteos diarios por causa y grupo de
+edad, así que puedes modelar las causas respiratorias o la urgencia pediátrica
+en vez del total.
+
+**Calendario chileno.** `urgencias_core.features.calendar_features` construye
+variables de feriados, interferiados, calendario escolar y eventos regionales,
+listas para usar como covariables.
+
+Revisa [`docs/roadmap.md`](https://github.com/nicoveraz/urg-forecast-core/blob/main/docs/roadmap.md)
+para ver brechas conocidas que sirven como primeras contribuciones.
 
 ## Datos públicos: DEIS MINSAL
 
-El demo DEIS usa datos abiertos del Departamento de Estadísticas e Información de
-Salud del Ministerio de Salud ([deis.minsal.cl](https://deis.minsal.cl/#datosabiertos))
-para dos hospitales del Servicio de Salud Reloncaví:
+Los datos provienen del dataset abierto *Atenciones de Urgencia* del
+Departamento de Estadísticas e Información de Salud
+([deis.minsal.cl](https://deis.minsal.cl/#datosabiertos)), publicado desde 2008
+y actualizado semanalmente durante la campaña de invierno (marzo a septiembre).
+Si usas este código o sus resultados, mantén la atribución al DEIS.
 
-- **Hospital de Puerto Montt** (código DEIS 24-105, alta complejidad). Conocido
-  localmente como Hospital Base de Puerto Montt.
-- **Hospital de Frutillar** (código DEIS 24-115, baja complejidad).
+El demo usa el Hospital de Puerto Montt (24-105) y el Hospital de Frutillar
+(24-115), elegidos por criterio geográfico. Es una ilustración metodológica, no
+una evaluación operacional ni de calidad de esos hospitales.
 
-DEIS publica esta serie desde 2008 hasta el presente. El archivo del año en
-curso se actualiza semanalmente durante la campaña de invierno respiratoria
-(marzo–septiembre) y aproximadamente mensualmente fuera de ella. El demo usa
-automáticamente el último año disponible al momento de ejecutarse y produce un
-pronóstico a 6 meses.
+## Estado, contribuciones y cita
 
-**Por qué estos dos hospitales.** Son centros de referencia regional en Los
-Lagos con datos de acceso público. La elección es pragmática y geográfica, no
-evaluativa.
+Versión 0.x, mantenida en la medida de lo posible por Nicolás Vera Z.; la API
+puede cambiar entre versiones menores. Los issues y pull requests son
+bienvenidos; revisa [`CONTRIBUTING.md`](https://github.com/nicoveraz/urg-forecast-core/blob/main/CONTRIBUTING.md).
+Los tests se corren con `uv run pytest -q`.
 
-**Enmarcamiento estrictamente metodológico.** Esta demostración usa datos
-públicos de DEIS MINSAL para mostrar el funcionamiento de las herramientas de
-forecasting sobre datos reales de hospitales chilenos. No constituye una
-evaluación operacional, clínica ni de calidad de los hospitales mencionados.
+La versión 0.2 acotó el alcance al pronóstico con datos DEIS. La versión 0.1.0,
+que incluía además análisis por atención, simulación Monte Carlo y un
+dashboard, sigue disponible en PyPI y Zenodo.
 
-**Atribución y licencia.** Los datos son publicados por DEIS MINSAL bajo el
-marco chileno de datos abiertos. Si usa este código o sus derivados para
-investigación, mantenga la atribución a DEIS y, cuando sea relevante, a
-`urg-forecast-core`. El snapshot offline incluido en el paquete es un extracto
-filtrado del dataset público para reproducibilidad; no exime al usuario de
-fetchar directamente desde la fuente en usos operacionales.
-
-## Estado del proyecto
-
-`urg-forecast-core` es una fundación abierta, desarrollada y mantenida por Nicolás
-Vera Z. como base de **Eunosia**, una plataforma de IA clínica para medicina de
-urgencia. Se publica en PyPI y se mantiene con esfuerzo razonable: mientras esté
-en 0.x la API puede cambiar entre versiones menores, y los issues y pull
-requests son bienvenidos pero sin garantía de respuesta rápida. Si necesitas
-soporte comercial o trabajo a medida sobre esta base, contacta al autor.
-
-Ver [`CONTRIBUTING.md`](CONTRIBUTING.md) para desarrollo y proceso de release,
-[`docs/decisions.md`](docs/decisions.md) para decisiones arquitectónicas, y
-[`docs/roadmap.md`](docs/roadmap.md) para items diferidos (soporte mdb/xlsx
-pre-2020 de DEIS, neuralforecast, integración EMR para separar workup de
-boarding).
-
-## Cómo citar
-
-Si usas `urg-forecast-core` en investigación, por favor cítalo. Los metadatos
-legibles por máquina están en [`CITATION.cff`](CITATION.cff) (GitHub muestra un
-botón "Cite this repository"). Cada release etiquetado se archiva en
-[Zenodo](https://zenodo.org/):
-
-- **Concept DOI** (siempre la última versión): [10.5281/zenodo.21449610](https://doi.org/10.5281/zenodo.21449610)
-- **Esta versión (v0.1.0):** [10.5281/zenodo.21449611](https://doi.org/10.5281/zenodo.21449611)
-
-Hay un paper de software (formato JOSS) y un preprint de métodos más completo en
-[`paper/`](paper). Por favor menciona además a Eunosia y enlaza al repositorio.
+Si lo usas en investigación, cítalo usando
+[`CITATION.cff`](https://github.com/nicoveraz/urg-forecast-core/blob/main/CITATION.cff)
+(DOI concepto [10.5281/zenodo.21449610](https://doi.org/10.5281/zenodo.21449610)).
 
 ## Licencia
 
-MIT. Ver [LICENSE](LICENSE).
+MIT. Ver [LICENSE](https://github.com/nicoveraz/urg-forecast-core/blob/main/LICENSE).

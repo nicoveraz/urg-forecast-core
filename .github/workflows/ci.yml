@@ -36,8 +36,8 @@ jobs:
           version: "0.10.11"
       - name: Set up Python ${{ matrix.python-version }}
         run: uv python install ${{ matrix.python-version }}
-      - name: Sync dependencies (all extras + dev)
-        run: uv sync --all-extras --dev --python ${{ matrix.python-version }}
+      - name: Sync dependencies (dev)
+        run: uv sync --dev --python ${{ matrix.python-version }}
       - name: Run tests
         run: uv run --python ${{ matrix.python-version }} pytest -q
 
@@ -59,11 +59,9 @@ jobs:
           name: dist
           path: dist/*
 
-  core-install:
-    # The wheel must be usable with no extras: core modules import, the bundled
-    # fixture resolves, and gated modules raise an actionable "install the extra"
-    # error rather than a bare ImportError. Regression guard for the packaging
-    # path bug where the default fixture escaped site-packages.
+  wheel-install:
+    # The built wheel must work from a clean environment: the CLI runs, the
+    # bundled DEIS snapshot resolves, and the offline demo produces its files.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -75,47 +73,12 @@ jobs:
         run: uv python install 3.12
       - name: Build wheel
         run: uv build --wheel
-      - name: Install the wheel core-only in a clean environment
+      - name: Install the wheel in a clean environment
         run: |
-          uv venv /tmp/coreenv --python 3.12
-          uv pip install --python /tmp/coreenv dist/*.whl
-      - name: Core modules import and the bundled fixture resolves
+          uv venv /tmp/env --python 3.12
+          uv pip install --python /tmp/env dist/*.whl
+      - name: CLI runs from the installed wheel
         run: |
-          /tmp/coreenv/bin/python - <<'PY'
-          # The curated top-level API must import (and expose __version__) with
-          # no extras — i.e. it must not re-export any gated module.
-          import urgencias_core
-          from urgencias_core import (
-              load_visits, hourly_timeseries, calendar_features,
-              HorizonSpec, SeasonalNaiveBaseline, run_harness, simulate,
-          )
-          assert urgencias_core.__version__, "no __version__"
-          import urgencias_core.data.loader
-          import urgencias_core.data.timeseries
-          import urgencias_core.features.calendar
-          import urgencias_core.simulation.engine
-          import urgencias_core.eval.harness
-          import urgencias_core.eval.baselines  # statsforecast is lazy
-          from urgencias_core.server.config import default_fixture_path
-          assert default_fixture_path().exists(), "packaged fixture missing"
-          print("core import surface OK, version", urgencias_core.__version__)
-          PY
-      - name: Gated modules raise actionable errors without their extra
-        run: |
-          /tmp/coreenv/bin/python - <<'PY'
-          cases = [
-              ("urgencias_core.models.lgb_quantile", "models"),
-              ("urgencias_core.server.app", "server"),
-              ("urgencias_core.server.charts", "viz"),
-              ("urgencias_core.data.deis", "fetch"),
-              ("urgencias_core.features.weather", "fetch"),
-          ]
-          for module, extra in cases:
-              try:
-                  __import__(module)
-              except ImportError as exc:
-                  assert extra in str(exc), f"{module}: message missing {extra!r}: {exc}"
-              else:
-                  raise SystemExit(f"{module} imported without the {extra} extra installed")
-          print("optional-extra guards OK")
-          PY
+          /tmp/env/bin/urg-forecast --version
+          cd /tmp && /tmp/env/bin/urg-forecast demo --offline -H 4 -o /tmp/out
+          test -f /tmp/out/24-105_hospital-de-puerto-montt/pronostico.png

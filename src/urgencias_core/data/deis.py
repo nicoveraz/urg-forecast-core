@@ -27,20 +27,15 @@ If you use this code against real DEIS data, credit DEIS MINSAL
 from __future__ import annotations
 
 import logging
+import re
 import time
 import zipfile
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
+import httpx
 import pandas as pd
-
-from urgencias_core._optional import missing_extra_error
-
-try:
-    import httpx
-except ImportError as exc:  # pragma: no cover - exercised via the core-only install
-    raise missing_extra_error("fetch", "The DEIS MINSAL fetcher") from exc
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +44,7 @@ DEIS_ZIP_PATTERN = "AtencionesUrgencia{year}.zip"
 DEIS_DATA_START_YEAR = 2008
 DEFAULT_CACHE_DIR = Path("data/external/deis_cache")
 CURRENT_YEAR_MAX_CACHE_DAYS = 7
+PREVIOUS_YEAR_REVISION_UNTIL_MONTH = 3  # re-check last year's file through March
 
 # Demo facility codes. Verified against the DEIS MINSAL establecimientos
 # xlsx (2019-04-01 snapshot from ssmaule.gob.cl) and cross-checked via the
@@ -83,6 +79,15 @@ class YearFetchResult:
     path: Path | None
     status: str  # "downloaded", "cached", "not_available", "error"
     detail: str = ""
+
+
+def deis_reachable(timeout: float = 5.0) -> bool:
+    """Quick check that the DEIS repository answers (used before a live fetch)."""
+    try:
+        resp = httpx.head(year_url(datetime.now().year - 1), timeout=timeout, follow_redirects=True)
+    except httpx.HTTPError:
+        return False
+    return resp.status_code == 200
 
 
 def year_url(year: int) -> str:
@@ -125,12 +130,21 @@ def _retry_get_stream(
     return 0, "exhausted"
 
 
-def _cache_is_fresh(path: Path, year: int, current_year: int) -> bool:
+def _cache_is_fresh(path: Path, year: int, current_year: int, now: datetime | None = None) -> bool:
+    """Whether a cached yearly ZIP can be reused without re-downloading.
+
+    Older years are immutable. The current year is refreshed weekly, and so is
+    the previous year until the end of ``PREVIOUS_YEAR_REVISION_UNTIL_MONTH``,
+    because DEIS keeps correcting the just-closed year early in the next one.
+    """
     if not path.exists():
         return False
-    if year < current_year:
+    now = now or datetime.now()
+    if year < current_year - 1:
         return True
-    age_days = (datetime.now().timestamp() - path.stat().st_mtime) / 86400.0
+    if year == current_year - 1 and now.month > PREVIOUS_YEAR_REVISION_UNTIL_MONTH:
+        return True
+    age_days = (now.timestamp() - path.stat().st_mtime) / 86400.0
     return age_days <= CURRENT_YEAR_MAX_CACHE_DAYS
 
 
@@ -465,6 +479,66 @@ def fetch_demo_hospitals(
     return df.reset_index(drop=True)
 
 
+_OLD_CODE_RE = re.compile(r"^(\d{2})-(\d{3})$")
+_NEW_CODE_RE = re.compile(r"^1(\d{2})(\d{3})$")
+
+
+def facility_code_variants(code: str) -> set[str]:
+    """Return every spelling of a DEIS facility code worth matching against.
+
+    DEIS files have published the same establishment as ``"24-105"`` (código
+    antiguo, ``SS-NNN``) and as ``"124105"`` (código nuevo). Given either form,
+    this returns both, plus any explicit alias in :data:`HOSPITAL_CODE_ALIASES`.
+    The ``SS-NNN`` ↔ ``1SSNNN`` mapping is a heuristic that holds for the demo
+    hospitals; check ``urgencias-demo-deis --list-facilities`` when in doubt.
+    """
+    code = str(code).strip()
+    out = {code}
+    if m := _OLD_CODE_RE.match(code):
+        out.add(f"1{m.group(1)}{m.group(2)}")
+    if m := _NEW_CODE_RE.match(code):
+        out.add(f"{m.group(1)}-{m.group(2)}")
+    for c in list(out):
+        out.update(a for a in HOSPITAL_CODE_ALIASES.get(c, []) if "-" in a)
+    return out
+
+
+def facilities_in_file(path: Path | str, year: int) -> pd.DataFrame:
+    """List the distinct ``(facility_code, facility_name)`` pairs in one DEIS zip.
+
+    Streams the CSV in chunks, so memory stays low even for multi-GB years.
+    """
+    seen: list[pd.DataFrame] = []
+    for _, chunk in _read_csv_chunks(Path(path)):
+        canon = _canonicalize(chunk, year)
+        seen.append(canon[["facility_code", "facility_name"]].drop_duplicates())
+    if not seen:
+        return pd.DataFrame(columns=["facility_code", "facility_name"])
+    return (
+        pd.concat(seen, ignore_index=True)
+        .drop_duplicates()
+        .sort_values(["facility_name", "facility_code"])
+        .reset_index(drop=True)
+    )
+
+
+def list_facilities(
+    year: int,
+    cache_dir: Path | str = DEFAULT_CACHE_DIR,
+    client: httpx.Client | None = None,
+) -> pd.DataFrame:
+    """Download (or reuse from cache) one DEIS year and list its establishments.
+
+    Use this to find the code of *your* hospital, SAPU or SAR before running
+    the forecasting demo on it. Raises ``RuntimeError`` if the year is not
+    available.
+    """
+    result = download_year(year, cache_dir=cache_dir, client=client)
+    if result.path is None:
+        raise RuntimeError(f"DEIS year {year} not available ({result.status}: {result.detail})")
+    return facilities_in_file(result.path, year)
+
+
 __all__ = [
     "DEIS_BASE_URL",
     "DEIS_DATA_START_YEAR",
@@ -474,8 +548,12 @@ __all__ = [
     "SchemaDriftError",
     "YearFetchResult",
     "download_year",
+    "deis_reachable",
+    "facilities_in_file",
+    "facility_code_variants",
     "fetch",
     "fetch_demo_hospitals",
+    "list_facilities",
     "load_year",
     "year_url",
 ]

@@ -5,7 +5,6 @@ import pandas as pd
 
 from urgencias_core.eval.baselines import SeasonalNaiveBaseline
 from urgencias_core.eval.harness import quantile_loss, run_harness
-from urgencias_core.models.lgb_quantile import LGBQuantileForecaster
 from urgencias_core.models.protocol import HorizonSpec
 
 
@@ -74,18 +73,3 @@ def test_harness_flags_weak_candidate() -> None:
     )
     assert report.warning_triggered is True
     assert "Constant" in report.warning_message
-
-
-def test_lgb_candidate_runs(visits_to_hourly: pd.DataFrame) -> None:
-    # Minimal end-to-end check with real fixture + LGB.
-    sample = visits_to_hourly.iloc[-24 * 60 :].reset_index(drop=True)
-    report = run_harness(
-        series=sample,
-        target_col="arrivals",
-        horizon=HorizonSpec(grain="h", length=24),
-        holdout_length=24,
-        baselines={"SeasonalNaive": SeasonalNaiveBaseline()},
-        candidates={"LGBQuantile": LGBQuantileForecaster(n_estimators=80)},
-        verbose=False,
-    )
-    assert {"SeasonalNaive", "LGBQuantile"}.issubset(report.table.index)

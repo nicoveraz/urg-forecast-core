@@ -26,6 +26,5 @@ within a couple of weeks. Fixes are released as a new PyPI version and noted in
 
 This project is reference code for data analysis and forecasting; it does not
 handle authentication or process untrusted network input by default. The DEIS
-and Open-Meteo clients fetch from fixed public endpoints. If you deploy the
-reference server, treat it as an internal tool and place it behind your own
-authentication and network controls.
+client fetches from a fixed public endpoint. The package never sends data
+anywhere.

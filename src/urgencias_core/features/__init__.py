@@ -1,8 +1,4 @@
-"""Feature builders.
-
-The Open-Meteo weather client lives in :mod:`urgencias_core.features.weather`
-and needs the ``fetch`` extra, so it is not re-exported here.
-"""
+"""Chilean calendar features (holidays, bridge days, school calendar, regional events)."""
 
 from urgencias_core.features.calendar import CalendarConfig, calendar_features
 

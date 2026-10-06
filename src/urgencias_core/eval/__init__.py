@@ -1,7 +1,6 @@
 """Baselines, statsforecast wrappers, and the backtest harness.
 
-``StatsForecastWrapper`` and the ``auto_*`` factories are import-safe; they only
-need the ``models`` extra when a model is actually fitted.
+statsforecast is imported lazily, so importing this module stays fast.
 """
 
 from urgencias_core.eval.baselines import (

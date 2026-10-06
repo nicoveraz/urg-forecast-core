@@ -16,5 +16,5 @@ What are you trying to do that the library doesn't support yet?
 
 
 **Scope**
-Is this in scope for a reference ED analytics / simulation / forecasting
-library? See `docs/roadmap.md` for already-deferred items.
+Is this in scope for a DEIS-based forecasting base? See `docs/roadmap.md` for
+known gaps and ideas.

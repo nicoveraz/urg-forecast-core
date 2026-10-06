@@ -1,9 +1,4 @@
-"""Forecasting protocol + horizon helpers.
-
-The LightGBM quantile forecaster lives in
-:mod:`urgencias_core.models.lgb_quantile` (needs the ``models`` extra) and is
-not re-exported here.
-"""
+"""The ``Forecaster`` protocol and horizon helpers. Implement it to add your own model."""
 
 from urgencias_core.models.protocol import (
     Forecaster,

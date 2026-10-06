@@ -1,5 +1,8 @@
 # deis_demo_snapshot.parquet
 
+Used by `urg-forecast demo --offline`, as a fallback when DEIS is unreachable,
+and by the tests. Live commands always download the latest DEIS data.
+
 Frozen offline snapshot of DEIS MINSAL *Atenciones de Urgencia* open data,
 filtered to the two demo hospitals in the Los Lagos region:
 

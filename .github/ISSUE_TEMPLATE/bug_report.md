@@ -23,7 +23,7 @@ Minimal steps or a code snippet:
 - urg-forecast-core version: `python -c "import urgencias_core; print(urgencias_core.__version__)"`
 - Python version:
 - OS:
-- Installed extras: core / models / viz / server / fetch / all
+- Command run (e.g. `urg-forecast pronosticar 24-105 -H 12`):
 
 **Additional context**
 Tracebacks, logs, or schema notes. Please do NOT paste patient-level data.

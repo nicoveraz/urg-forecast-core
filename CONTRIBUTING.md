@@ -23,23 +23,23 @@ All participation is governed by our [Code of Conduct](CODE_OF_CONDUCT.md).
 
 Fork the repository, create a topic branch, and open a pull request against
 `main`. Before pushing, make sure the checks below pass locally; CI runs the same
-lint, format, test (Python 3.11 and 3.12), build, and core-only-install jobs on
+lint, format, test (Python 3.11 and 3.12), build and wheel-install jobs on
 every pull request.
 
 ## Development
 
 ```bash
-uv sync --all-extras --dev   # full toolchain + all optional deps
+uv sync --dev                # package + dev toolchain
 uv run pytest -q             # tests
 uv run ruff check .          # lint
 uv run ruff format .         # format (ruff is the single formatter)
 pre-commit install           # optional: run lint/format on commit
 ```
 
-The package uses a src layout. Heavy dependencies live behind extras
-(`models`, `viz`, `server`, `fetch`, `all`); modules that need them guard the
-import and raise an actionable error. Keep that pattern when adding code that
-depends on an optional library.
+The package uses a src layout and a single install (no extras). Keep it small:
+the scope is DEIS-based weekly forecasting plus the pieces needed to extend it
+(see "Build on it" in the README). Visit-level analytics and simulation are out
+of scope for this repository.
 
 ## Cutting a release
 
@@ -84,9 +84,7 @@ One-time setup:
 After the first release:
 
 3. Add the concept DOI to `CITATION.cff` (`doi:` field), the README "Citing"
-   section (DOI badge), and `paper/paper.md` if submitting to JOSS.
+   section (DOI badge).
 
-For submitting the software paper (JOSS), the archived Zenodo DOI is required at
-submission; draft papers are under `paper/`. Author ORCID and affiliation are
-set in `paper/paper.md`, `CITATION.cff`, and `.zenodo.json`; keep them in sync
-if authorship changes.
+Author ORCID and affiliation are set in `CITATION.cff` and `.zenodo.json`; keep
+them in sync if authorship changes.

@@ -17,7 +17,6 @@ from collections.abc import Callable
 import numpy as np
 import pandas as pd
 
-from urgencias_core._optional import missing_extra_error
 from urgencias_core.models.protocol import HorizonSpec, future_index
 
 
@@ -96,10 +95,7 @@ class StatsForecastWrapper:
         self._alias: str | None = None
 
     def fit(self, history: pd.DataFrame, target_col: str) -> None:
-        try:
-            from statsforecast import StatsForecast
-        except ImportError as exc:
-            raise missing_extra_error("models", "statsforecast forecasters") from exc
+        from statsforecast import StatsForecast
 
         ts = pd.to_datetime(history["timestamp"])
         freq = pd.infer_freq(ts) or "h"
@@ -138,14 +134,8 @@ def auto_arima(
     quantiles: tuple[float, ...] = (0.5, 0.8, 0.9, 0.95),
     **kwargs,
 ) -> StatsForecastWrapper:
-    """AutoARIMA forecaster (statsforecast) wrapped to the Forecaster protocol.
-
-    Requires the ``models`` extra; raises an actionable error if it is missing.
-    """
-    try:
-        from statsforecast.models import AutoARIMA
-    except ImportError as exc:
-        raise missing_extra_error("models", "AutoARIMA") from exc
+    """AutoARIMA forecaster (statsforecast) wrapped to the Forecaster protocol."""
+    from statsforecast.models import AutoARIMA
 
     model = AutoARIMA(season_length=season_length, **kwargs)
     return StatsForecastWrapper(model, quantiles=quantiles, name="AutoARIMA")
@@ -156,14 +146,8 @@ def auto_ets(
     quantiles: tuple[float, ...] = (0.5, 0.8, 0.9, 0.95),
     **kwargs,
 ) -> StatsForecastWrapper:
-    """AutoETS forecaster (statsforecast) wrapped to the Forecaster protocol.
-
-    Requires the ``models`` extra; raises an actionable error if it is missing.
-    """
-    try:
-        from statsforecast.models import AutoETS
-    except ImportError as exc:
-        raise missing_extra_error("models", "AutoETS") from exc
+    """AutoETS forecaster (statsforecast) wrapped to the Forecaster protocol."""
+    from statsforecast.models import AutoETS
 
     model = AutoETS(season_length=season_length, **kwargs)
     return StatsForecastWrapper(model, quantiles=quantiles, name="AutoETS")
@@ -174,14 +158,8 @@ def auto_theta(
     quantiles: tuple[float, ...] = (0.5, 0.8, 0.9, 0.95),
     **kwargs,
 ) -> StatsForecastWrapper:
-    """AutoTheta forecaster (statsforecast) wrapped to the Forecaster protocol.
-
-    Requires the ``models`` extra; raises an actionable error if it is missing.
-    """
-    try:
-        from statsforecast.models import AutoTheta
-    except ImportError as exc:
-        raise missing_extra_error("models", "AutoTheta") from exc
+    """AutoTheta forecaster (statsforecast) wrapped to the Forecaster protocol."""
+    from statsforecast.models import AutoTheta
 
     model = AutoTheta(season_length=season_length, **kwargs)
     return StatsForecastWrapper(model, quantiles=quantiles, name="AutoTheta")
@@ -194,13 +172,9 @@ def mstl(
 ) -> StatsForecastWrapper:
     """MSTL (multi-seasonal decomposition) forecaster wrapped to the protocol.
 
-    Defaults to daily+weekly seasonality with an AutoARIMA trend. Requires the
-    ``models`` extra; raises an actionable error if it is missing.
+    Defaults to daily+weekly seasonality with an AutoARIMA trend.
     """
-    try:
-        from statsforecast.models import MSTL, AutoARIMA
-    except ImportError as exc:
-        raise missing_extra_error("models", "MSTL") from exc
+    from statsforecast.models import MSTL, AutoARIMA
 
     trend_fc = kwargs.pop("trend_forecaster", None) or AutoARIMA()
     model = MSTL(season_length=list(season_length), trend_forecaster=trend_fc, **kwargs)
