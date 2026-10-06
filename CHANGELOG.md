@@ -7,7 +7,7 @@ API puede cambiar entre versiones menores).
 
 ## [Sin publicar]
 
-## [0.2.0] - sin publicar
+## [0.2.0] - 2026-10-06
 
 El alcance se acota a una sola tarea: pronóstico semanal de atenciones de
 urgencia con datos públicos del DEIS MINSAL, como base para construir encima.
@@ -48,6 +48,12 @@ módulos eliminados.
 - `data.deis.facility_code_variants`, `facilities_in_file`, `list_facilities` y
   `deis_reachable`. Los códigos se aceptan como `24-105` o `124105`.
 - `HarnessReport.predictions`: predicciones de cada modelo en el holdout.
+- `--cache CARPETA` en todos los subcomandos y la variable de entorno
+  `URG_FORECAST_CACHE` para elegir dónde se guardan los ZIP del DEIS (por
+  defecto sigue siendo `./data/external/deis_cache`, relativo a la carpeta
+  actual); `load_deis` suma el argumento `cache_dir`.
+- `--help` por subcomando con ejemplos, un "flujo típico" y los códigos de
+  salida en la ayuda general, y una nota de alcance en cada pantalla de ayuda.
 
 ### Cambiado
 
@@ -62,6 +68,11 @@ módulos eliminados.
   ajuste con estacionalidad de 52 semanas).
 - Se muestra el nombre más reciente del establecimiento; los años DEIS omitidos
   generan mensajes breves en español.
+- `--version` usa la acción estándar de argparse; las pantallas de ayuda están
+  completamente en español (títulos de sección y `-h`).
+- Los README incluyen una referencia de comandos (opciones, caché, códigos de
+  salida) y la sección "Una base, no un producto" con lo que conviene revisar
+  antes de usar un pronóstico.
 - Estado en PyPI: `3 - Alpha`.
 
 ### Eliminado

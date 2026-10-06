@@ -12,6 +12,11 @@ forecast for any establishment that reports to DEIS. It is a first
 approximation: tuning it to your setting is up to you, and the code is built
 for that.
 
+> **A base, not a decision tool.** The models are simple and statistical,
+> untuned, on public aggregated data. Use the results to explore and to
+> benchmark your own work, not to staff a shift or plan a budget without local
+> validation. See [A base, not a product](#a-base-not-a-product).
+
 *Documentación principal en [español](https://github.com/nicoveraz/urg-forecast-core/blob/main/README.md). This is an English translation.*
 
 ## Quickstart
@@ -39,6 +44,9 @@ Each run prints a summary with ASCII tables and writes CSVs and figures to
 | `backtest.csv` | error of each model on the backtest window |
 | `historia_semanal.csv` | the weekly series that was modeled |
 | `pronostico.png`, `backtest.png` | figures |
+
+Run `urg-forecast -h`, or `urg-forecast <command> -h`, for every option with
+examples. Details in the [command reference](#command-reference).
 
 Example output of `urg-forecast demo` with live DEIS data on 2026-10-05 (interface in Spanish):
 
@@ -73,10 +81,41 @@ Pronóstico con Armónico: atenciones semanales
 
 ![26-week forecast, Hospital de Puerto Montt](https://raw.githubusercontent.com/nicoveraz/urg-forecast-core/main/docs/img/pronostico_puerto_montt.png)
 
+## Command reference
+
+| Command | What it does |
+|---|---|
+| `urg-forecast demo` | Forecast for Hospital de Puerto Montt (24-105) and Hospital de Frutillar (24-115). Tries DEIS and falls back to the bundled snapshot offline. |
+| `urg-forecast buscar [TEXT]` | Lists DEIS establishments whose name or code contains `TEXT` (all if empty). The first column is the code `pronosticar` takes. |
+| `urg-forecast pronosticar CODE [CODE ...]` | Backtest + forecast for one or more establishments. Codes like `24-105` or `124105`. |
+| `urg-forecast modelos` | Lists the available models and which are compared by default. |
+
+| Option | Commands | Meaning |
+|---|---|---|
+| `-H`, `--horizonte` | demo, pronosticar | Horizon: weeks (`12`, `12s`) or months (`6m`). Default 26 weeks. |
+| `-o`, `--salida` | demo, pronosticar | Output folder (default `./urg-forecast-salida`); one subfolder per establishment. |
+| `-m`, `--modelo` | demo, pronosticar | Model to use, repeatable. A name from `urg-forecast modelos` or `file:Class` for your own. See [Models](#models). |
+| `--sin-calibrar` | demo, pronosticar | Do not widen intervals by backtest error. |
+| `--desde YEAR` | pronosticar | First DEIS year to use (default 2022). 2020–2021 are always excluded. |
+| `--offline` | demo, pronosticar | Bundled snapshot only, no network. It contains only the two demo hospitals. |
+| `--anio YEAR` | buscar | DEIS year to search (default current; in early January use the previous one). |
+| `--cache DIR` | demo, buscar, pronosticar | Where to store the yearly DEIS ZIPs (see below). |
+| `--version` | — | Show the version. |
+
+**Download cache.** DEIS yearly files are large (hundreds of MB). By default
+they go to `./data/external/deis_cache/`, **relative to the folder you run the
+command from**. To share one cache across folders, set
+`URG_FORECAST_CACHE=/path/to/cache` or pass `--cache`.
+
+**Exit codes.** `0` if at least one establishment was forecast, `1` if there
+was no data (unknown code, too little history, no connection) or no search
+match, `2` for invalid arguments or model. A forecast needs at least
+`backtest + 104` complete weeks: 130 weeks with the default 26-week horizon.
+
 ## How it works
 
 1. Downloads the yearly DEIS *Atenciones de Urgencia* files and caches them in
-   `data/external/deis_cache/`. The current year is re-downloaded when the
+   the cache (see above). The current year is re-downloaded when the
    cached copy is older than 7 days, and so is the previous year until March,
    while DEIS is still correcting it. You always model the latest published
    data.
@@ -98,14 +137,31 @@ Pronóstico con Armónico: atenciones semanales
 the package when there is no connection; the summary says which one was used.
 `--offline` forces the snapshot.
 
-## What this is not
+## A base, not a product
 
-- The models are **statistical baselines** with no tuning for your
-  establishment, no weather and no local events.
-- It forecasts **total weekly attendances only**, not by cause, age or acuity.
-- Intervals are approximate. Step 5 widens them by past error, which does not
-  anticipate an unusual season. The summary reports backtest coverage; check it.
-- It has not been validated as a clinical or operational decision tool.
+You get a working, tested pipeline from public data to a forecast with an
+honest backtest. You do not get:
+
+- **Tuned models.** They are statistical models with no tuning for your
+  establishment, no weather and no local events (except holidays in
+  `ArmónicoFeriados`).
+- **Detail.** It forecasts **total weekly attendances only**, not by cause, age
+  or acuity, and not daily or hourly.
+- **Exact intervals.** Step 5 widens them by past error, which does not
+  anticipate an unusual season.
+- **Validation.** It has not been validated as a clinical or operational
+  decision tool, and DEIS data are aggregated and published with a lag.
+
+Before relying on a forecast for real decisions, at least:
+
+1. Check the backtest table and the P80 coverage line for *your*
+   establishment; short history or a structural change (new service, a change
+   in catchment population) makes them unreliable.
+2. Compare it with what your team already uses (same week last year, a
+   spreadsheet): the model has to beat it to be worth anything.
+3. Add what you know locally: covariates, your own models, your own data.
+4. Re-run it often; the summary warns when the data are more than four weeks
+   old.
 
 The value is in what you add. That is the point of the next two sections.
 

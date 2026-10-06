@@ -17,8 +17,57 @@ def test_help_lists_subcommands(capsys) -> None:
     with pytest.raises(SystemExit):
         cli.main(["--help"])
     out = capsys.readouterr().out
-    for word in ("demo", "buscar", "pronosticar", "--horizonte 6m"):
+    for word in (
+        "demo",
+        "buscar",
+        "pronosticar",
+        "modelos",
+        "flujo típico",
+        "aproximación inicial",
+    ):
         assert word in out
+
+
+@pytest.mark.parametrize("command", ["demo", "buscar", "pronosticar", "modelos"])
+def test_each_subcommand_help_has_examples(command, capsys) -> None:
+    with pytest.raises(SystemExit):
+        cli.main([command, "--help"])
+    out = capsys.readouterr().out
+    assert "ejemplos:" in out
+    assert f"urg-forecast {command}" in out
+
+
+def test_version_flag(capsys) -> None:
+    with pytest.raises(SystemExit) as exc:
+        cli.main(["--version"])
+    assert exc.value.code == 0
+    assert capsys.readouterr().out.startswith("urg-forecast ")
+
+
+def _capture_load_deis(monkeypatch) -> dict:
+    from urgencias_core import pipeline
+
+    seen: dict = {}
+
+    def fake_load_deis(codes, **kwargs):
+        seen.update(kwargs)
+        raise pipeline.NoDataError("stop")
+
+    monkeypatch.setattr(pipeline, "load_deis", fake_load_deis)
+    return seen
+
+
+def test_cache_option_reaches_load_deis(tmp_path, monkeypatch) -> None:
+    seen = _capture_load_deis(monkeypatch)
+    assert cli.main(["pronosticar", "24-105", "--cache", str(tmp_path / "c")]) == 1
+    assert seen["cache_dir"] == tmp_path / "c"
+
+
+def test_cache_defaults_to_env_var(tmp_path, monkeypatch) -> None:
+    seen = _capture_load_deis(monkeypatch)
+    monkeypatch.setenv(cli.CACHE_ENV, str(tmp_path / "env"))
+    assert cli.main(["pronosticar", "24-105"]) == 1
+    assert seen["cache_dir"] == tmp_path / "env"
 
 
 def test_no_command_prints_help(capsys) -> None:

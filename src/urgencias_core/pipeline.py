@@ -20,11 +20,17 @@ import logging
 import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
-from urgencias_core.data.deis import deis_reachable, facility_code_variants, fetch
+from urgencias_core.data.deis import (
+    DEFAULT_CACHE_DIR,
+    deis_reachable,
+    facility_code_variants,
+    fetch,
+)
 from urgencias_core.data.fixtures import deis_snapshot_path
 from urgencias_core.eval.baselines import (
     SeasonalNaiveBaseline,
@@ -96,13 +102,14 @@ def load_deis(
     start_year: int = 2022,
     offline: bool = False,
     fallback_to_snapshot: bool = False,
+    cache_dir: Path | str = DEFAULT_CACHE_DIR,
 ) -> pd.DataFrame:
     """DEIS rows for ``codes`` (any DEIS spelling), COVID years excluded.
 
     - ``offline=True`` reads the snapshot bundled with the package (demo
       hospitals only).
-    - Otherwise downloads from DEIS (cached; the current year is refreshed
-      weekly). With ``fallback_to_snapshot=True``, falls back to the snapshot
+    - Otherwise downloads from DEIS into ``cache_dir`` (the current year is
+      refreshed weekly). With ``fallback_to_snapshot=True``, falls back to the snapshot
       when DEIS is unreachable or returns nothing.
 
     The data source used is recorded in ``df.attrs["source"]``.
@@ -115,7 +122,7 @@ def load_deis(
         logger.warning("DEIS no responde; se usa el snapshot incluido.")
         df = _read_snapshot(wanted)
     else:
-        df = fetch(start_year=start_year, facility_filter=wanted)
+        df = fetch(start_year=start_year, cache_dir=cache_dir, facility_filter=wanted)
         source = SOURCE_LIVE
         if df.empty and fallback_to_snapshot:
             logger.warning("DEIS no entregó datos; se usa el snapshot incluido.")
