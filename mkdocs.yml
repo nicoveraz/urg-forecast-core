@@ -1,0 +1,73 @@
+site_name: urg-forecast
+site_description: >-
+  Base abierta para pronosticar la demanda semanal de urgencias en Chile con
+  datos públicos del DEIS MINSAL.
+site_url: https://nicoveraz.github.io/urg-forecast-core/
+site_author: Nicolás Vera Z.
+repo_url: https://github.com/nicoveraz/urg-forecast-core
+repo_name: nicoveraz/urg-forecast-core
+edit_uri: edit/main/docs/
+copyright: MIT · Datos del DEIS MINSAL, Ministerio de Salud de Chile
+
+theme:
+  name: material
+  language: es
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: blue grey
+      accent: deep orange
+      toggle:
+        icon: material/weather-night
+        name: Modo oscuro
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: blue grey
+      accent: deep orange
+      toggle:
+        icon: material/weather-sunny
+        name: Modo claro
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - content.code.copy
+    - search.highlight
+  icon:
+    repo: fontawesome/brands/github
+
+nav:
+  - Inicio: index.md
+  - Uso: uso.md
+  - Modelos:
+      - Los modelos: modelos.md
+      - Por qué estos por defecto: seleccion-de-modelos.md
+  - Construir encima: extender.md
+  - Hoja de ruta: roadmap.md
+  - Cambios: cambios.md
+  - Acerca: acerca.md
+  - English (README): https://github.com/nicoveraz/urg-forecast-core/blob/main/README.en.md
+
+plugins:
+  - search:
+      lang: es
+  - include-markdown
+
+hooks:
+  - docs/hooks/links.py
+
+markdown_extensions:
+  - admonition
+  - tables
+  - attr_list
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - pymdownx.inlinehilite
+
+exclude_docs: |
+  hooks/
+
+not_in_nav: |
+  /img/*

@@ -6,6 +6,10 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/nicoveraz/urg-forecast-core/blob/main/LICENSE)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21449610.svg)](https://doi.org/10.5281/zenodo.21449610)
 
+*[Documentación](https://nicoveraz.github.io/urg-forecast-core/) ·
+[English](https://github.com/nicoveraz/urg-forecast-core/blob/main/README.en.md)*
+
+<!-- sitio:inicio -->
 **Una base abierta y gratuita para pronosticar la demanda de los servicios de
 urgencia en Chile con datos públicos del DEIS MINSAL.** Con un solo comando
 obtienes un backtest y un pronóstico semanal para cualquier establecimiento que
@@ -18,18 +22,17 @@ trabajo tuyo, y el código está hecho para eso.
 > turno ni planificar un presupuesto sin validación local. Ver
 > [Una base, no un producto](#una-base-no-un-producto).
 
-*Read this in [English](https://github.com/nicoveraz/urg-forecast-core/blob/main/README.en.md).*
 
 ## Inicio rápido
 
 ```bash
-pip install urg-forecast-core          # Python 3.11 o 3.12
+pip install urg-forecast-core                          # Python 3.11 o 3.12
 
-urg-forecast demo                      # hospitales de Puerto Montt y Frutillar
-urg-forecast buscar "osorno"           # busca el código DEIS de tu establecimiento
-urg-forecast pronosticar 24-105        # backtest + pronóstico a 26 semanas
-urg-forecast pronosticar 24-105 -H 6m  # elige el horizonte: 12, 12s (semanas) o 6m (meses)
-urg-forecast modelos                   # lista los modelos disponibles
+urg-forecast demo                                      # hospitales de Puerto Montt y Frutillar
+urg-forecast buscar "osorno"                           # busca el código DEIS de tu establecimiento
+urg-forecast pronosticar 24-105                        # backtest + pronóstico a 26 semanas
+urg-forecast pronosticar 24-105 -H 6m                  # elige el horizonte: 12, 12s (semanas) o 6m (meses)
+urg-forecast modelos                                   # lista los modelos disponibles
 urg-forecast pronosticar 24-105 -m AutoARIMA           # usa un modelo en vez de comparar
 urg-forecast pronosticar 24-105 -m Ensamble -m TBATS   # prueba modelos extra
 urg-forecast pronosticar 24-105 -m mi_modulo:MiModelo  # o un modelo propio
@@ -83,6 +86,7 @@ Pronóstico con Armónico: atenciones semanales
 
 ![Pronóstico a 26 semanas, Hospital de Puerto Montt](https://raw.githubusercontent.com/nicoveraz/urg-forecast-core/main/docs/img/pronostico_puerto_montt.png)
 
+<!-- sitio:uso -->
 ## Referencia de comandos
 
 | Comando | Qué hace |
@@ -169,6 +173,7 @@ Antes de apoyarte en un pronóstico para decisiones reales, como mínimo:
 
 El valor está en lo que le agregues. Para eso son las dos secciones que siguen.
 
+<!-- sitio:modelos -->
 ## Modelos
 
 Por defecto se comparan cuatro y se usa el mejor. Hay otros cuatro para
@@ -191,6 +196,7 @@ Qué hace cada uno, cuándo conviene y cómo agregar el tuyo está en
 Por qué esos cuatro van por defecto, en
 [`docs/seleccion-de-modelos.md`](https://github.com/nicoveraz/urg-forecast-core/blob/main/docs/seleccion-de-modelos.md).
 
+<!-- sitio:extender -->
 ## Cómo construir encima
 
 Todo lo que hace el comando son unas pocas funciones sobre DataFrames:
@@ -231,6 +237,7 @@ listas para usar como covariables.
 Revisa [`docs/roadmap.md`](https://github.com/nicoveraz/urg-forecast-core/blob/main/docs/roadmap.md)
 para ver brechas conocidas que sirven como primeras contribuciones.
 
+<!-- sitio:acerca -->
 ## Datos públicos: DEIS MINSAL
 
 Los datos provienen del dataset abierto *Atenciones de Urgencia* del
@@ -261,3 +268,4 @@ Si lo usas en investigación, cítalo usando
 ## Licencia
 
 MIT. Ver [LICENSE](https://github.com/nicoveraz/urg-forecast-core/blob/main/LICENSE).
+<!-- sitio:fin -->

@@ -7,6 +7,14 @@ API puede cambiar entre versiones menores).
 
 ## [Sin publicar]
 
+### Agregado
+
+- Sitio de documentación en español en
+  <https://nicoveraz.github.io/urg-forecast-core/> (MkDocs Material, publicado
+  desde `main` con `.github/workflows/docs.yml`). Toma sus páginas del README y
+  de `docs/`, así que no hay contenido duplicado.
+- Enlace `Documentation` en los metadatos de PyPI.
+
 ## [0.2.0] - 2026-10-06
 
 El alcance se acota a una sola tarea: pronóstico semanal de atenciones de

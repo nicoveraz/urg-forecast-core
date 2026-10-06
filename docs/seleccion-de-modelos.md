@@ -3,7 +3,7 @@
 El comando compara cuatro modelos y pronostica con el que tenga menor pérdida
 por cuantil P80 en un backtest con varias ventanas. Esta nota resume por qué
 son esos cuatro. El experimento completo está en
-[`experiments/model_comparison.py`](../experiments/model_comparison.py).
+[`experiments/model_comparison.py`](https://github.com/nicoveraz/urg-forecast-core/blob/main/experiments/model_comparison.py).
 
 ## Datos y método
 
