@@ -323,8 +323,11 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
       (li.lastChild as HTMLElement).textContent = e.ok
         ? `${e.t} · ${e.k || e.c}`
         : `sin pronóstico: ${e.motivo ?? ""}`;
-      li.addEventListener("mousedown", (ev) => {
-        ev.preventDefault();
+      // pointerdown keeps focus in the input (so blur doesn't close the list first);
+      // click does the selection, which also works for touch and assistive tech.
+      li.addEventListener("pointerdown", (ev) => ev.preventDefault());
+      li.addEventListener("mousedown", (ev) => ev.preventDefault());
+      li.addEventListener("click", () => {
         if (e.ok) select(e);
       });
       list.append(li);
@@ -342,9 +345,19 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
   async function select(e: Entry) {
     closeList();
     q.value = e.n;
-    history.replaceState(null, "", "#" + e.c);
-    const r = await fetch(BASE + e.c + ".json");
-    current = (await r.json()) as Detail;
+    try {
+      history.replaceState(null, "", "#" + e.c);
+    } catch {
+      /* some embedded viewers forbid URL changes; the link just won't update */
+    }
+    try {
+      const r = await fetch(BASE + e.c + ".json");
+      if (!r.ok) throw new Error(String(r.status));
+      current = (await r.json()) as Detail;
+    } catch (err) {
+      estado.textContent = `No se pudo cargar ${e.n} (${err}). Intenta de nuevo.`;
+      return;
+    }
     ficha.hidden = false;
     render();
   }
@@ -500,7 +513,7 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
 
   q.addEventListener("input", renderList);
   q.addEventListener("focus", () => { q.select(); renderList(); });
-  q.addEventListener("blur", () => setTimeout(closeList, 120));
+  q.addEventListener("blur", () => setTimeout(closeList, 200));
   q.addEventListener("keydown", (ev) => {
     if (list.hidden) return;
     if (ev.key === "ArrowDown" || ev.key === "ArrowUp") {
