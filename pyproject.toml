@@ -45,6 +45,7 @@ dependencies = [
 Homepage = "https://github.com/nicoveraz/urg-forecast-core"
 Repository = "https://github.com/nicoveraz/urg-forecast-core"
 Issues = "https://github.com/nicoveraz/urg-forecast-core/issues"
+Documentation = "https://nicoveraz.github.io/urg-forecast-core/"
 Changelog = "https://github.com/nicoveraz/urg-forecast-core/blob/main/CHANGELOG.md"
 
 [project.scripts]
@@ -82,6 +83,7 @@ exclude = [
     "/experiments",
     "/outputs",
     "/urg-forecast-salida",
+    "/sitio",
     "/uv.lock",
 ]
 

@@ -7,6 +7,15 @@ API puede cambiar entre versiones menores).
 
 ## [Sin publicar]
 
+### Agregado
+
+- Sitio de documentación en español en
+  <https://nicoveraz.github.io/urg-forecast-core/> (Astro Starlight en
+  `sitio/`, publicado desde `main` con `.github/workflows/docs.yml`). Sus
+  páginas se generan del README, de `docs/` y de este registro, así que no hay
+  contenido duplicado.
+- Enlace `Documentation` en los metadatos de PyPI.
+
 ## [0.2.0] - 2026-10-06
 
 El alcance se acota a una sola tarea: pronóstico semanal de atenciones de

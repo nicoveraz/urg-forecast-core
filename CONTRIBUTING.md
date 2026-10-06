@@ -31,6 +31,16 @@ La documentación se escribe primero en español (`README.md`, `docs/`). La
 traducción al inglés (`README.en.md`) se actualiza cuando corresponde. Los
 docstrings y comentarios del código van en inglés.
 
+El sitio (<https://nicoveraz.github.io/urg-forecast-core/>) se arma con Astro
+Starlight en `sitio/`. Sus páginas se generan del README, de `docs/` y del
+CHANGELOG (`sitio/scripts/sync.mjs`): Inicio, Uso, Extender y Acerca son
+secciones del README marcadas con comentarios `<!-- sitio:... -->`, así que se
+editan en el README. Para verlo localmente (Node 22):
+
+```bash
+cd sitio && npm ci && npm run dev
+```
+
 ## Desarrollo
 
 ```bash

@@ -752,17 +752,17 @@ resolution-markers = [
     "python_full_version < '3.12' and sys_platform == 'win32'",
 ]
 dependencies = [
-    { name = "cloudpickle", marker = "python_full_version < '3.12' and sys_platform == 'win32'" },
-    { name = "coreforecast", marker = "python_full_version < '3.12' and sys_platform == 'win32'" },
-    { name = "fugue", marker = "python_full_version < '3.12' and sys_platform == 'win32'" },
-    { name = "numba", marker = "python_full_version < '3.12' and sys_platform == 'win32'" },
-    { name = "numpy", marker = "python_full_version < '3.12' and sys_platform == 'win32'" },
-    { name = "pandas", marker = "python_full_version < '3.12' and sys_platform == 'win32'" },
-    { name = "scipy", marker = "python_full_version < '3.12' and sys_platform == 'win32'" },
-    { name = "statsmodels", marker = "python_full_version < '3.12' and sys_platform == 'win32'" },
-    { name = "threadpoolctl", marker = "python_full_version < '3.12' and sys_platform == 'win32'" },
-    { name = "tqdm", marker = "python_full_version < '3.12' and sys_platform == 'win32'" },
-    { name = "utilsforecast", marker = "python_full_version < '3.12' and sys_platform == 'win32'" },
+    { name = "cloudpickle" },
+    { name = "coreforecast" },
+    { name = "fugue" },
+    { name = "numba" },
+    { name = "numpy" },
+    { name = "pandas" },
+    { name = "scipy" },
+    { name = "statsmodels" },
+    { name = "threadpoolctl" },
+    { name = "tqdm" },
+    { name = "utilsforecast" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/d3/57/af316e1f44f48d823ecbdf66ad7ead09bfc59e58bbbe8b8640533f94fd8c/statsforecast-2.0.2.tar.gz", hash = "sha256:fd790fd4fe98f6e5571ee9f3a3d77bdffa7d57702b68a7657675be3864b77d46", size = 2880086, upload-time = "2025-07-05T11:02:45.313Z" }
 wheels = [
@@ -780,17 +780,17 @@ resolution-markers = [
     "sys_platform != 'emscripten' and sys_platform != 'win32'",
 ]
 dependencies = [
-    { name = "cloudpickle", marker = "python_full_version >= '3.12' or sys_platform != 'win32'" },
-    { name = "coreforecast", marker = "python_full_version >= '3.12' or sys_platform != 'win32'" },
-    { name = "fugue", marker = "python_full_version >= '3.12' or sys_platform != 'win32'" },
-    { name = "numba", marker = "python_full_version >= '3.12' or sys_platform != 'win32'" },
-    { name = "numpy", marker = "python_full_version >= '3.12' or sys_platform != 'win32'" },
-    { name = "pandas", marker = "python_full_version >= '3.12' or sys_platform != 'win32'" },
-    { name = "scipy", marker = "python_full_version >= '3.12' or sys_platform != 'win32'" },
-    { name = "statsmodels", marker = "python_full_version >= '3.12' or sys_platform != 'win32'" },
-    { name = "threadpoolctl", marker = "python_full_version >= '3.12' or sys_platform != 'win32'" },
-    { name = "tqdm", marker = "python_full_version >= '3.12' or sys_platform != 'win32'" },
-    { name = "utilsforecast", marker = "python_full_version >= '3.12' or sys_platform != 'win32'" },
+    { name = "cloudpickle" },
+    { name = "coreforecast" },
+    { name = "fugue" },
+    { name = "numba" },
+    { name = "numpy" },
+    { name = "pandas" },
+    { name = "scipy" },
+    { name = "statsmodels" },
+    { name = "threadpoolctl" },
+    { name = "tqdm" },
+    { name = "utilsforecast" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/34/93/20f7d735fad49510cad3e4e8ab540a2d62e7c268bc14c89d75b969b1c841/statsforecast-2.0.3.tar.gz", hash = "sha256:0b548adf385e2a29cd88441929ad0e7caf2d0adc531a1603f95e796664316ab9", size = 2871276, upload-time = "2025-10-29T17:55:43.601Z" }
 wheels = [

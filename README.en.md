@@ -19,16 +19,19 @@ for that.
 
 *Documentación principal en [español](https://github.com/nicoveraz/urg-forecast-core/blob/main/README.md). This is an English translation.*
 
+Full documentation (in Spanish) at
+[nicoveraz.github.io/urg-forecast-core](https://nicoveraz.github.io/urg-forecast-core/).
+
 ## Quickstart
 
 ```bash
-pip install urg-forecast-core          # Python 3.11 or 3.12
+pip install urg-forecast-core                          # Python 3.11 or 3.12
 
-urg-forecast demo                      # Puerto Montt and Frutillar hospitals
-urg-forecast buscar "osorno"           # find your establishment's DEIS code
-urg-forecast pronosticar 24-105        # backtest + 26-week forecast
-urg-forecast pronosticar 24-105 -H 6m  # choose the horizon: 12, 12s (weeks) or 6m (months)
-urg-forecast modelos                   # list available models
+urg-forecast demo                                      # Puerto Montt and Frutillar hospitals
+urg-forecast buscar "osorno"                           # find your establishment's DEIS code
+urg-forecast pronosticar 24-105                        # backtest + 26-week forecast
+urg-forecast pronosticar 24-105 -H 6m                  # choose the horizon: 12, 12s (weeks) or 6m (months)
+urg-forecast modelos                                   # list available models
 urg-forecast pronosticar 24-105 -m AutoARIMA           # use one model instead of comparing
 urg-forecast pronosticar 24-105 -m Ensamble -m TBATS   # try extra models
 urg-forecast pronosticar 24-105 -m my_module:MyModel   # or your own model
@@ -187,7 +190,7 @@ one helps and how to add your own (in Spanish):
 Why the default four:
 [`docs/seleccion-de-modelos.md`](https://github.com/nicoveraz/urg-forecast-core/blob/main/docs/seleccion-de-modelos.md).
 
-## Build on it
+## Extending it
 
 Everything the command does is a few plain functions over DataFrames:
 

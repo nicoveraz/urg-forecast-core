@@ -1,0 +1,29 @@
+/* Accent: a calm clinical teal, with an amber note for links on hover. */
+:root {
+  --sl-color-accent-low: #0b2e2c;
+  --sl-color-accent: #14917f;
+  --sl-color-accent-high: #a7e3d8;
+  --sl-content-width: 48rem;
+}
+:root[data-theme="light"] {
+  --sl-color-accent-low: #d3f1ec;
+  --sl-color-accent: #0f7a6b;
+  --sl-color-accent-high: #0b3d36;
+}
+/* ASCII output tables must not wrap. */
+.sl-markdown-content pre { font-size: 0.82rem; }
+.hero .tagline { max-width: 40rem; }
+/* Keep flags like --horizonte on one line inside tables. */
+.sl-markdown-content td code { white-space: nowrap; }
+/* The hero figure is a chart: show it whole, on a light card so it reads in dark mode. */
+.hero-figura {
+  display: block;
+  width: 100%;
+  max-width: 34rem;
+  height: auto;
+  margin-inline: auto;
+  background: #fff;
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  box-shadow: var(--sl-shadow-md);
+}

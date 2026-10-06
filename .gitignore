@@ -42,3 +42,8 @@ build/
 # JOSS paper PDF (build artifact; regenerated with openjournals/inara)
 paper/*.pdf
 urg-forecast-salida/
+sitio/node_modules/
+sitio/dist/
+sitio/.astro/
+sitio/src/content/docs/
+sitio/public/pronostico.png
