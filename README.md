@@ -197,7 +197,7 @@ Por qué esos cuatro van por defecto, en
 [`docs/seleccion-de-modelos.md`](https://github.com/nicoveraz/urg-forecast-core/blob/main/docs/seleccion-de-modelos.md).
 
 <!-- sitio:extender -->
-## Cómo construir encima
+## Extender
 
 Todo lo que hace el comando son unas pocas funciones sobre DataFrames:
 

@@ -190,7 +190,7 @@ one helps and how to add your own (in Spanish):
 Why the default four:
 [`docs/seleccion-de-modelos.md`](https://github.com/nicoveraz/urg-forecast-core/blob/main/docs/seleccion-de-modelos.md).
 
-## Build on it
+## Extending it
 
 Everything the command does is a few plain functions over DataFrames:
 

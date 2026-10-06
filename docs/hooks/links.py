@@ -16,7 +16,7 @@ ANCHORS = {
     "#una-base-no-un-producto": "uso.md#una-base-no-un-producto",
     "#referencia-de-comandos": "uso.md#referencia-de-comandos",
     "#modelos": "modelos.md",
-    "#cómo-construir-encima": "extender.md",
+    "#extender": "extender.md",
 }
 
 

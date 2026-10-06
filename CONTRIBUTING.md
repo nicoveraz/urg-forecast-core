@@ -32,7 +32,7 @@ traducción al inglés (`README.en.md`) se actualiza cuando corresponde. Los
 docstrings y comentarios del código van en inglés.
 
 El sitio (<https://nicoveraz.github.io/urg-forecast-core/>) se arma con MkDocs a
-partir del README y de `docs/`: las páginas Inicio, Uso, Construir encima y
+partir del README y de `docs/`: las páginas Inicio, Uso, Extender y
 Acerca incluyen secciones del README marcadas con comentarios
 `<!-- sitio:... -->`, así que se editan en el README. Para verlo localmente:
 

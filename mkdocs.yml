@@ -42,7 +42,7 @@ nav:
   - Modelos:
       - Los modelos: modelos.md
       - Por qué estos por defecto: seleccion-de-modelos.md
-  - Construir encima: extender.md
+  - Extender: extender.md
   - Hoja de ruta: roadmap.md
   - Cambios: cambios.md
   - Acerca: acerca.md
