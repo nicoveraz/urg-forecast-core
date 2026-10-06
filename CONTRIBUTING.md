@@ -35,7 +35,9 @@ El sitio (<https://nicoveraz.github.io/urg-forecast-core/>) se arma con Astro
 Starlight en `sitio/`. Sus páginas se generan del README, de `docs/` y del
 CHANGELOG (`sitio/scripts/sync.mjs`): Inicio, Uso, Extender y Acerca de son
 secciones del README marcadas con comentarios `<!-- sitio:... -->`, así que se
-editan en el README. Para verlo localmente (Node 22):
+editan en el README. La página Demo lee los pronósticos que el workflow semanal `datos.yml` publica
+en la rama `datos`; para probarla localmente, copia la carpeta `demo/` de esa
+rama a `sitio/public/datos/`. Para verlo localmente (Node 22):
 
 ```bash
 cd sitio && npm ci && npm run dev

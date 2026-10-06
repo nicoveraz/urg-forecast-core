@@ -8,9 +8,12 @@
 
 **A free, open base for forecasting emergency department demand in Chile from
 public DEIS MINSAL data.** One command gives you a backtest and a weekly
-forecast for any establishment that reports to DEIS. It is a first
-approximation: tuning it to your setting is up to you, and the code is built
-for that.
+forecast for any public-network establishment that reports to DEIS. It is a
+first approximation: tuning it to your setting is up to you, and the code is
+built for that.
+
+**[Try the demo](https://nicoveraz.github.io/urg-forecast-core/demo/)**: pick an
+establishment in the browser and see its forecast, nothing to install.
 
 > **A base, not a decision tool.** The models are simple and statistical,
 > untuned, on public aggregated data. Use the results to explore and to
@@ -88,8 +91,8 @@ Pronóstico con Armónico: atenciones semanales
 
 | Command | What it does |
 |---|---|
-| `urg-forecast demo` | Forecast for Hospital de Puerto Montt (24-105) and Hospital de Frutillar (24-115). Tries DEIS and falls back to the bundled snapshot offline. |
-| `urg-forecast buscar [TEXT]` | Lists DEIS establishments whose name or code contains `TEXT` (all if empty). The first column is the code `pronosticar` takes. |
+| `urg-forecast demo` | Forecast for Hospital de Puerto Montt (24-105) and Hospital de Frutillar (24-115). Falls back to the bundled snapshot offline. |
+| `urg-forecast buscar [TEXT]` | Lists establishments whose name, code, type (Hospital, SAPU, SAR, SUR), commune, region or health service contains `TEXT` (all if empty). The first column is the code `pronosticar` takes. |
 | `urg-forecast pronosticar CODE [CODE ...]` | Backtest + forecast for one or more establishments. Codes like `24-105` or `124105`. |
 | `urg-forecast modelos` | Lists the available models and which are compared by default. |
 
@@ -101,13 +104,21 @@ Pronóstico con Armónico: atenciones semanales
 | `--sin-calibrar` | demo, pronosticar | Do not widen intervals by backtest error. |
 | `--desde YEAR` | pronosticar | First DEIS year to use (default 2022). 2020–2021 are always excluded. |
 | `--offline` | demo, pronosticar | Bundled snapshot only, no network. It contains only the two demo hospitals. |
-| `--anio YEAR` | buscar | DEIS year to search (default current; in early January use the previous one). |
-| `--cache DIR` | demo, buscar, pronosticar | Where to store the yearly DEIS ZIPs (see below). |
+| `--fuente repo\|deis` | demo, buscar, pronosticar | Where to read data from (see below). Default `repo`. |
+| `--anio YEAR` | buscar | With `--fuente deis`: DEIS year to search (default current). |
+| `--cache DIR` | demo, buscar, pronosticar | Where to store downloads (see below). |
 | `--version` | — | Show the version. |
 
-**Download cache.** DEIS yearly files are large (hundreds of MB). By default
-they go to `./data/external/deis_cache/`, **relative to the folder you run the
-command from**. To share one cache across folders, set
+**Where the data come from.** By default (`--fuente repo`) the command reads a
+weekly copy of daily totals for every establishment, published by the project
+on the repository's
+[`datos`](https://github.com/nicoveraz/urg-forecast-core/tree/datos) branch. It
+is a few MB and is built once a week with a single DEIS download, so users do
+not load the DEIS server. `--fuente deis` downloads the full yearly DEIS files
+(hundreds of MB each), which also break down by cause and age group.
+
+**Download cache.** Downloads go to `./data/external/deis_cache/`, **relative to
+the folder you run the command from**. To share one cache across folders, set
 `URG_FORECAST_CACHE=/path/to/cache` or pass `--cache`.
 
 **Exit codes.** `0` if at least one establishment was forecast, `1` if there
@@ -117,11 +128,10 @@ match, `2` for invalid arguments or model. A forecast needs at least
 
 ## How it works
 
-1. Downloads the yearly DEIS *Atenciones de Urgencia* files and caches them in
-   the cache (see above). The current year is re-downloaded when the
-   cached copy is older than 7 days, and so is the previous year until March,
-   while DEIS is still correcting it. You always model the latest published
-   data.
+1. Reads the establishment's daily totals from the repository's weekly copy (or,
+   with `--fuente deis`, from the DEIS files). Every Tuesday a repository
+   workflow downloads DEIS, refreshes that copy and recomputes the
+   [demo](https://nicoveraz.github.io/urg-forecast-core/demo/) forecasts.
 2. Sums total attendances per complete week (partial weeks at the edges are
    dropped, since DEIS reports with a lag). 2020–2021 are excluded (COVID),
    and the 2017–2019 files (xlsx/mdb) are not read yet, so in practice the
@@ -136,8 +146,8 @@ match, `2` for invalid arguments or model. A forecast needs at least
 5. Widens the forecast intervals by the backtest error when they were too
    narrow there (never narrows them). `--sin-calibrar` turns this off.
 
-`urg-forecast demo` tries DEIS first and falls back to a snapshot bundled with
-the package when there is no connection; the summary says which one was used.
+`urg-forecast demo` falls back to a snapshot bundled with the package when there
+is no connection; the summary says which source was used.
 `--offline` forces the snapshot.
 
 ## A base, not a product
@@ -258,8 +268,10 @@ for known gaps that make good first contributions.
 
 Data come from the open *Atenciones de Urgencia* dataset of Chile's Ministry of
 Health ([deis.minsal.cl](https://deis.minsal.cl/#datosabiertos)), published
-since 2008 and updated weekly during the winter campaign (March–September). If
-you use this code or its outputs, keep the DEIS attribution.
+since 2008 and updated weekly during the winter campaign (March–September). It
+covers public-network emergency units: hospitals, SAPU, SAR and SUR. The
+repository copy holds only daily totals. If you use this code, the copy or its
+outputs, keep the DEIS attribution.
 
 The demo uses Hospital de Puerto Montt (24-105) and Hospital de Frutillar
 (24-115), chosen on geographic grounds. It is a methodological illustration,

@@ -26,8 +26,9 @@ anotan en `CHANGELOG.md`.
 ## Alcance
 
 Es código de referencia para análisis y pronóstico; no maneja autenticación ni
-procesa entradas de red no confiables. El cliente DEIS descarga desde una
-dirección pública fija y el paquete nunca envía datos a ninguna parte.
+procesa entradas de red no confiables. Descarga datos solo desde dos
+direcciones públicas fijas (la rama `datos` de este repositorio y el
+repositorio del DEIS) y nunca envía datos a ninguna parte.
 
 `-m modulo:Clase` importa y ejecuta código Python desde la carpeta actual: usa
 solo módulos que conozcas.

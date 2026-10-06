@@ -25,5 +25,8 @@ primera contribución. Para ideas de modelos, revisa también la sección final 
 
 ## Operación
 
-- **Actualización del snapshot.** Un workflow programado que regenere el
-  snapshot y las figuras del README y abra un PR para revisión.
+- **Snapshot incluido.** El snapshot offline del paquete (dos hospitales) se
+  actualiza a mano; podría regenerarse desde la copia semanal en cada versión.
+- **Más series en la copia semanal.** Hoy la rama `datos` guarda solo el total
+  diario; agregar causas respiratorias o grupos de edad permitiría modelarlos
+  sin descargar el DEIS completo.

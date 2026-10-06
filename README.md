@@ -12,9 +12,12 @@
 <!-- sitio:inicio -->
 **Una base abierta y gratuita para pronosticar la demanda de los servicios de
 urgencia en Chile con datos públicos del DEIS MINSAL.** Con un solo comando
-obtienes un backtest y un pronóstico semanal para cualquier establecimiento que
-reporte al DEIS. Es una aproximación inicial: ajustarla a tu realidad es
-trabajo tuyo, y el código está hecho para eso.
+obtienes un backtest y un pronóstico semanal para cualquier establecimiento de
+la red pública que reporte al DEIS. Es una aproximación inicial: ajustarla a tu
+realidad es trabajo tuyo, y el código está hecho para eso.
+
+**[Prueba la demo](https://nicoveraz.github.io/urg-forecast-core/demo/)**: elige
+un establecimiento en el navegador y mira su pronóstico, sin instalar nada.
 
 > **Es una base, no una herramienta de decisión.** Los modelos son estadísticos
 > y simples, sin ajuste local, sobre datos públicos y agregados. Usa los
@@ -29,7 +32,7 @@ trabajo tuyo, y el código está hecho para eso.
 pip install urg-forecast-core                          # Python 3.11 o 3.12
 
 urg-forecast demo                                      # hospitales de Puerto Montt y Frutillar
-urg-forecast buscar "osorno"                           # busca el código DEIS de tu establecimiento
+urg-forecast buscar "osorno"                           # busca por nombre, comuna, región o tipo
 urg-forecast pronosticar 24-105                        # backtest + pronóstico a 26 semanas
 urg-forecast pronosticar 24-105 -H 6m                  # elige el horizonte: 12, 12s (semanas) o 6m (meses)
 urg-forecast modelos                                   # lista los modelos disponibles
@@ -91,8 +94,8 @@ Pronóstico con Armónico: atenciones semanales
 
 | Comando | Qué hace |
 |---|---|
-| `urg-forecast demo` | Pronóstico para el Hospital de Puerto Montt (24-105) y el Hospital de Frutillar (24-115). Intenta con el DEIS y, si no hay red, usa el snapshot incluido. |
-| `urg-forecast buscar [TEXTO]` | Lista los establecimientos DEIS cuyo nombre o código contiene `TEXTO` (todos si va vacío). La primera columna es el código que recibe `pronosticar`. |
+| `urg-forecast demo` | Pronóstico para el Hospital de Puerto Montt (24-105) y el Hospital de Frutillar (24-115). Si no hay red, usa el snapshot incluido. |
+| `urg-forecast buscar [TEXTO]` | Lista los establecimientos cuyo nombre, código, tipo (Hospital, SAPU, SAR, SUR), comuna, región o servicio de salud contiene `TEXTO` (todos si va vacío). La primera columna es el código que recibe `pronosticar`. |
 | `urg-forecast pronosticar CODIGO [CODIGO ...]` | Backtest + pronóstico para uno o más establecimientos. Códigos como `24-105` o `124105`. |
 | `urg-forecast modelos` | Lista los modelos disponibles y cuáles se comparan por defecto. |
 
@@ -104,14 +107,25 @@ Pronóstico con Armónico: atenciones semanales
 | `--sin-calibrar` | demo, pronosticar | No ensanchar los intervalos según el error del backtest. |
 | `--desde AÑO` | pronosticar | Primer año DEIS a usar (por defecto 2022). 2020–2021 siempre se excluyen. |
 | `--offline` | demo, pronosticar | Solo el snapshot incluido, sin red. El snapshot trae únicamente los dos hospitales del demo. |
-| `--anio AÑO` | buscar | Año del archivo DEIS donde buscar (por defecto el actual; a comienzos de enero usa el anterior). |
-| `--cache CARPETA` | demo, buscar, pronosticar | Dónde guardar los ZIP anuales del DEIS (ver abajo). |
+| `--fuente repo\|deis` | demo, buscar, pronosticar | De dónde leer los datos (ver abajo). Por defecto `repo`. |
+| `--anio AÑO` | buscar | Con `--fuente deis`: año del archivo DEIS donde buscar (por defecto el actual). |
+| `--cache CARPETA` | demo, buscar, pronosticar | Dónde guardar las descargas (ver abajo). |
 | `--version` | — | Muestra la versión. |
 
-**Caché de descargas.** Los archivos anuales del DEIS son grandes (cientos de
-MB). Por defecto se guardan en `./data/external/deis_cache/`, **relativo a la
-carpeta desde donde corres el comando**. Para compartir una sola caché entre
-carpetas, define `URG_FORECAST_CACHE=/ruta/a/cache` o usa `--cache`.
+**De dónde salen los datos.** Por defecto (`--fuente repo`) el comando lee una
+copia semanal de los totales diarios de todos los establecimientos, que el
+proyecto publica en la rama
+[`datos`](https://github.com/nicoveraz/urg-forecast-core/tree/datos) del
+repositorio. Pesa unos pocos MB y se genera una vez por semana con una sola
+descarga desde el DEIS, para no sobrecargar su servidor con descargas de cada
+usuario. Con `--fuente deis` el comando descarga directamente los archivos
+anuales completos del DEIS (cientos de MB por año), que traen además el detalle
+por causa y grupo de edad.
+
+**Caché de descargas.** Las descargas se guardan en
+`./data/external/deis_cache/`, **relativo a la carpeta desde donde corres el
+comando**. Para compartir una sola caché entre carpetas, define
+`URG_FORECAST_CACHE=/ruta/a/cache` o usa `--cache`.
 
 **Códigos de salida.** `0` si se pronosticó al menos un establecimiento, `1` si
 no hubo datos (código desconocido, historia insuficiente, sin conexión) o no
@@ -121,11 +135,10 @@ inválidos. El pronóstico necesita al menos `backtest + 104` semanas completas:
 
 ## Cómo funciona
 
-1. Descarga los archivos anuales *Atenciones de Urgencia* del DEIS y los guarda
-   en caché (ver arriba). El año en curso se vuelve a
-   descargar si la copia tiene más de 7 días, y el año anterior también hasta
-   marzo, mientras el DEIS lo sigue corrigiendo. Siempre modelas los últimos
-   datos publicados.
+1. Lee los totales diarios del establecimiento desde la copia semanal del
+   repositorio (o, con `--fuente deis`, desde los archivos del DEIS). Cada martes
+   un workflow del repositorio descarga el DEIS, actualiza esa copia y recalcula
+   los pronósticos de la [demo](https://nicoveraz.github.io/urg-forecast-core/demo/).
 2. Suma el total de atenciones por semana completa (las semanas incompletas de
    los extremos se descartan, porque el DEIS reporta con rezago). Se excluyen
    2020–2021 por la pandemia, y los archivos 2017–2019 (xlsx/mdb) todavía no se
@@ -140,9 +153,8 @@ inválidos. El pronóstico necesita al menos `backtest + 104` semanas completas:
 5. Ensancha los intervalos del pronóstico según el error del backtest cuando
    ahí resultaron estrechos (nunca los angosta). `--sin-calibrar` lo desactiva.
 
-`urg-forecast demo` intenta primero con el DEIS y, si no hay conexión, usa un
-snapshot incluido en el paquete; el resumen indica cuál se usó. `--offline`
-fuerza el snapshot.
+`urg-forecast demo` usa el snapshot incluido en el paquete si no hay conexión;
+el resumen indica qué fuente se usó. `--offline` fuerza el snapshot.
 
 ## Una base, no un producto
 
@@ -355,7 +367,9 @@ Los datos provienen del dataset abierto *Atenciones de Urgencia* del
 Departamento de Estadísticas e Información de Salud
 ([deis.minsal.cl](https://deis.minsal.cl/#datosabiertos)), publicado desde 2008
 y actualizado semanalmente durante la campaña de invierno (marzo a septiembre).
-Si usas este código o sus resultados, mantén la atribución al DEIS.
+Cubre los establecimientos de urgencia de la red pública: hospitales, SAPU, SAR
+y SUR. La copia del repositorio contiene solo los totales diarios. Si usas este
+código, la copia o sus resultados, mantén la atribución al DEIS.
 
 El demo usa el Hospital de Puerto Montt (24-105) y el Hospital de Frutillar
 (24-115), elegidos por criterio geográfico. Es una ilustración metodológica, no
