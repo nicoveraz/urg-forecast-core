@@ -62,6 +62,9 @@ simulación quedan fuera de este repositorio.
 
 ## Publicar una versión
 
+Esta sección es para quien mantiene el repositorio; para contribuir basta con
+abrir un pull request.
+
 Las versiones se publican en PyPI con
 [Trusted Publishing](https://docs.pypi.org/trusted-publishers/) (OIDC) desde
 `.github/workflows/publish.yml`, sin tokens guardados como secretos.
@@ -83,7 +86,10 @@ En cada versión:
 
 El workflow `publish` corre los tests, verifica que el tag coincida con la
 versión del paquete, construye, publica en PyPI y crea el release en GitHub con
-la sección del changelog como notas.
+la sección del changelog como notas. No crees el release a mano (con
+`gh release create` o desde la web): el workflow lo hace, y Zenodo archiva cada
+release en cuanto se publica, así que borrarlo y recrearlo puede generar un DOI
+duplicado.
 
 ## Archivo en Zenodo (DOI para citar)
 
