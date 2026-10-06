@@ -1,90 +1,86 @@
-# Contributing
+# Cómo contribuir
 
-`urg-forecast-core` is an open foundation maintained on a best-effort basis. Fork
-freely, adapt it to your hospital, ship it inside your own product. Pull requests
-and issues are welcome; while on 0.x the API may change between minor versions.
-If you need commercial support or bespoke work on top of this foundation, contact
-the author.
+`urg-forecast-core` es una base abierta, mantenida en la medida de lo posible.
+Haz un fork, adáptalo a tu establecimiento o úsalo dentro de tu propio producto.
+Los issues y pull requests son bienvenidos; mientras esté en 0.x, la API puede
+cambiar entre versiones menores. Si necesitas soporte comercial o un desarrollo
+a medida sobre esta base, contacta al autor.
 
-All participation is governed by our [Code of Conduct](CODE_OF_CONDUCT.md).
+Toda participación se rige por el [Código de Conducta](CODE_OF_CONDUCT.md).
 
-## Reporting issues and getting support
+## Reportar problemas y pedir ayuda
 
-- **Bugs and feature requests:** open an issue at
-  <https://github.com/nicoveraz/urg-forecast-core/issues>. For a bug, include the
-  package version (`pip show urg-forecast-core`), Python version, OS, a minimal
-  example, and the full traceback.
-- **Questions and usage help:** open an issue with the *question* label, or start
-  a discussion if the repository has Discussions enabled.
-- **Security reports:** see [SECURITY.md](SECURITY.md) — please do not open a
-  public issue for a suspected vulnerability.
+- **Errores y propuestas:** abre un issue en
+  <https://github.com/nicoveraz/urg-forecast-core/issues>. Si es un error,
+  incluye la versión (`urg-forecast --version`), la versión de Python, el
+  sistema operativo, el comando que corriste y el mensaje de error completo.
+- **Preguntas de uso:** abre un issue con la etiqueta *question*.
+- **Seguridad:** revisa [SECURITY.md](SECURITY.md); no abras un issue público
+  por una posible vulnerabilidad.
 
-## Contributing changes
+No pegues datos de pacientes en issues ni pull requests.
 
-Fork the repository, create a topic branch, and open a pull request against
-`main`. Before pushing, make sure the checks below pass locally; CI runs the same
-lint, format, test (Python 3.11 and 3.12), build and wheel-install jobs on
-every pull request.
+## Proponer cambios
 
-## Development
+Haz un fork, crea una rama y abre un pull request contra `main`. Antes de
+subirlo, revisa que pasen las verificaciones de abajo; el CI corre lo mismo
+(lint, formato, tests en Python 3.11 y 3.12, build e instalación del wheel) en
+cada pull request.
+
+La documentación se escribe primero en español (`README.md`, `docs/`). La
+traducción al inglés (`README.en.md`) se actualiza cuando corresponde. Los
+docstrings y comentarios del código van en inglés.
+
+## Desarrollo
 
 ```bash
-uv sync --dev                # package + dev toolchain
+uv sync --dev                # paquete + herramientas de desarrollo
 uv run pytest -q             # tests
 uv run ruff check .          # lint
-uv run ruff format .         # format (ruff is the single formatter)
-pre-commit install           # optional: run lint/format on commit
+uv run ruff format .         # formato (ruff es el único formateador)
+pre-commit install           # opcional: lint y formato al hacer commit
 ```
 
-The package uses a src layout and a single install (no extras). Keep it small:
-the scope is DEIS-based weekly forecasting plus the pieces needed to extend it
-(see "Build on it" in the README). Visit-level analytics and simulation are out
-of scope for this repository.
+El paquete usa estructura `src/` y una sola instalación, sin extras. La idea es
+que siga siendo chico: el alcance es el pronóstico semanal con datos DEIS más lo
+necesario para extenderlo. Los modelos nuevos van en
+`src/urgencias_core/models/` y se registran en `pipeline.extra_models()` y
+`MODEL_INFO`, con su sección en `docs/modelos.md`. El análisis por atención y la
+simulación quedan fuera de este repositorio.
 
-## Cutting a release
+## Publicar una versión
 
-Releases publish to PyPI via [Trusted Publishing](https://docs.pypi.org/trusted-publishers/)
-(OIDC) from `.github/workflows/publish.yml` — no API tokens as secrets.
+Las versiones se publican en PyPI con
+[Trusted Publishing](https://docs.pypi.org/trusted-publishers/) (OIDC) desde
+`.github/workflows/publish.yml`, sin tokens guardados como secretos.
 
-One-time setup: on PyPI, add this repository and the `pypi` environment as a
-trusted publisher for the `urg-forecast-core` project. Optionally validate metadata
-first by publishing a pre-release (e.g. `0.1.0rc1`) to TestPyPI.
+Configuración única: en PyPI, agrega este repositorio y el entorno `pypi` como
+publicador de confianza del proyecto `urg-forecast-core`.
 
-Per release:
+En cada versión:
 
-1. Bump `version` in `pyproject.toml` (semver).
-2. Move the `## [Unreleased]` notes in `CHANGELOG.md` under a new
-   `## [X.Y.Z] - YYYY-MM-DD` heading and update the compare links.
-3. Commit, then tag and push:
+1. Sube `version` en `pyproject.toml` (semver) y en `CITATION.cff`.
+2. Mueve las notas de `## [Sin publicar]` en `CHANGELOG.md` a un nuevo
+   encabezado `## [X.Y.Z] - AAAA-MM-DD` y actualiza los enlaces de comparación.
+3. Haz commit, crea el tag y súbelo:
 
    ```bash
    git tag vX.Y.Z
    git push origin main --tags
    ```
 
-The `publish` workflow then runs tests, verifies the tag matches the package
-version, builds, publishes to PyPI, and creates a GitHub Release with the
-changelog section as its notes.
+El workflow `publish` corre los tests, verifica que el tag coincida con la
+versión del paquete, construye, publica en PyPI y crea el release en GitHub con
+la sección del changelog como notas.
 
-## Archiving on Zenodo (citable DOI)
+## Archivo en Zenodo (DOI para citar)
 
-Releases are archived on [Zenodo](https://zenodo.org/) for a citable DOI.
-Metadata for the archive comes from `.zenodo.json`; `CITATION.cff` provides the
-citation shown on GitHub.
+Cada release se archiva en [Zenodo](https://zenodo.org/). Los metadatos del
+archivo salen de `.zenodo.json`; `CITATION.cff` define la cita que muestra
+GitHub. La integración ya está activa: Zenodo detecta el release de GitHub y
+genera un DOI de versión, además del DOI concepto
+([10.5281/zenodo.21449610](https://doi.org/10.5281/zenodo.21449610)), que
+siempre apunta a la última versión.
 
-One-time setup:
-
-1. Sign in to Zenodo with GitHub and, under *GitHub* settings, flip the switch
-   **on** for the `urg-forecast-core` repository.
-2. Cut a release (the tag flow above creates a GitHub Release). Zenodo detects
-   the published GitHub Release, archives the source, and mints two DOIs: a
-   **concept DOI** (always resolves to the latest version) and a
-   **version DOI** (this specific release).
-
-After the first release:
-
-3. Add the concept DOI to `CITATION.cff` (`doi:` field), the README "Citing"
-   section (DOI badge).
-
-Author ORCID and affiliation are set in `CITATION.cff` and `.zenodo.json`; keep
-them in sync if authorship changes.
+El ORCID y la afiliación del autor están en `CITATION.cff` y `.zenodo.json`;
+mantenlos sincronizados si cambia la autoría.

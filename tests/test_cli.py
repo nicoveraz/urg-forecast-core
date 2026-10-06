@@ -90,3 +90,10 @@ def test_single_model_option(tmp_path, capsys) -> None:
 def test_unknown_model_fails_cleanly(tmp_path, capsys) -> None:
     assert cli.main(["demo", "--offline", "-m", "nada", "-o", str(tmp_path)]) == 2
     assert "modelo desconocido" in capsys.readouterr().err
+
+
+def test_modelos_lists_defaults_and_extras(capsys) -> None:
+    assert cli.main(["modelos"]) == 0
+    out = capsys.readouterr().out
+    for name in ("AutoARIMA", "MSTL", "TBATS", "Ensamble", "ArmónicoFeriados"):
+        assert name in out

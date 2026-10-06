@@ -225,3 +225,64 @@ def test_resolve_models_builtin_custom_and_errors() -> None:
     with pytest.raises(ValueError, match="importar"):
         resolve_models(["no_existe:Clase"])
     assert len(resolve_models(None)) == 4
+
+
+def test_holidays_per_week_counts_weekday_holidays() -> None:
+    from urgencias_core.models.harmonic import holidays_per_week
+
+    # W-MON week Tue 2024-12-24 .. Mon 2024-12-30 contains Christmas (Wed)
+    # W-MON week Tue 2024-11-12 .. Mon 2024-11-18 has no holiday
+    counts = holidays_per_week(pd.to_datetime(["2024-12-30", "2024-11-18"]))
+    assert counts.tolist() == [1, 0]
+
+
+def test_median_ensemble_takes_quantile_median() -> None:
+    from urgencias_core.models.ensemble import MedianEnsemble
+    from urgencias_core.models.protocol import HorizonSpec
+
+    class Const:
+        def __init__(self, v):
+            self.v = v
+
+        def fit(self, history, target_col):
+            self.end = history["timestamp"].iloc[-1]
+
+        def predict(self, horizon):
+            from urgencias_core.models.protocol import future_index
+
+            idx = future_index(self.end, horizon)
+            return pd.DataFrame({"timestamp": idx} | {c: self.v for c in horizon.quantile_columns})
+
+    class Broken:
+        def fit(self, history, target_col):
+            raise ValueError
+
+    hist = pd.DataFrame(
+        {"timestamp": pd.date_range("2024-01-01", periods=10, freq="W-MON"), "y": 1}
+    )
+    ens = MedianEnsemble(
+        {"a": lambda: Const(1), "b": lambda: Const(5), "c": lambda: Const(9), "x": Broken}
+    )
+    ens.fit(hist, "y")
+    pred = ens.predict(HorizonSpec(grain="W-MON", length=3))
+    assert (pred["q50"] == 5).all() and (pred["q95"] == 5).all()
+
+
+def test_extra_models_resolve_by_folded_name() -> None:
+    from urgencias_core.pipeline import MODEL_INFO, available_models, resolve_models
+
+    assert list(resolve_models(["armonicoferiados", "ENSAMBLE"])) == [
+        "ArmónicoFeriados",
+        "Ensamble",
+    ]
+    assert set(available_models()) == set(MODEL_INFO)
+
+
+def test_extra_models_run_on_snapshot() -> None:
+    from urgencias_core.pipeline import resolve_models
+
+    df = load_deis(["24-115"], offline=True)
+    models = resolve_models(["Ensamble", "ArmonicoFeriados", "Theta"])
+    result = run_forecast(weekly_series(df, "24-115"), 4, models=models, origins=1)
+    assert set(result.backtest.index) == {"Ensamble", "ArmónicoFeriados", "Theta"}
+    assert not result.skipped

@@ -1,114 +1,123 @@
-# Changelog
+# Registro de cambios
 
-All notable changes to this project are documented here. The format is based on
-[Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
-adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) (API may
-change between minor versions while on 0.x).
+Los cambios relevantes del proyecto se documentan aquí. El formato sigue
+[Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa
+[Versionado Semántico](https://semver.org/lang/es/) (mientras esté en 0.x, la
+API puede cambiar entre versiones menores).
 
-## [Unreleased]
+## [Sin publicar]
 
-## [0.2.0] - unreleased
+## [0.2.0] - sin publicar
 
-Scope narrowed to one job: weekly ED attendance forecasting from public DEIS
-MINSAL data, as a base to build on. **Breaking:** pin `urg-forecast-core<0.2`
-if you depend on the removed modules.
+El alcance se acota a una sola tarea: pronóstico semanal de atenciones de
+urgencia con datos públicos del DEIS MINSAL, como base para construir encima.
+**Rompe compatibilidad:** fija `urg-forecast-core<0.2` si dependes de los
+módulos eliminados.
 
-### Added
+### Agregado
 
-- `urg-forecast` command with three subcommands: `demo`, `buscar` (find an
-  establishment's DEIS code) and `pronosticar` (backtest + forecast for any
-  establishment). Prints a summary with ASCII tables and writes CSVs and PNGs
-  to a folder per establishment.
-- Configurable horizon: `-H 12`, `12s` (weeks) or `6m` (months).
-- `-m/--modelo` (repeatable) picks built-in models or a custom
-  `module:Class` importable from the current directory
-  (`pipeline.resolve_models`).
-- Interval calibration: forward bands are widened by the chosen model's
-  backtest error when they were too narrow (`pipeline.calibration_factors`,
-  `apply_calibration`); `--sin-calibrar` disables it.
-- Rolling backtest: three windows as long as the horizon (max. 26 weeks), 8
-  weeks apart; the model with the lowest mean P80 quantile loss is used.
-  Models that fail to fit are skipped and reported.
-- Model set: SeasonalNaive (reference), AutoARIMA, `HarmonicRegression`
-  (trend + annual Fourier terms + AutoARIMA residuals, new in
-  `urgencias_core.models.harmonic`) and MSTL. Chosen from a comparison on live
-  DEIS data for seven hospitals (`docs/model-selection.md`,
-  `experiments/model_comparison.py`). AutoETS was dropped: with a 52-week
-  period statsforecast discards its seasonality and the forecast is flat.
-- `urg-forecast demo` downloads the latest DEIS data and falls back to the
-  bundled snapshot when offline; the summary states which source was used and
-  warns when the data are more than four weeks old.
+- Comando `urg-forecast` con `demo`, `buscar` (código DEIS de un
+  establecimiento), `pronosticar` (backtest y pronóstico para cualquier
+  establecimiento) y `modelos` (lista de modelos). Imprime un resumen con tablas
+  ASCII y guarda CSV y figuras en una carpeta por establecimiento.
+- Horizonte configurable: `-H 12`, `12s` (semanas) o `6m` (meses).
+- Backtest con varias ventanas: tres, tan largas como el horizonte (máximo 26
+  semanas) y separadas por 8 semanas; se usa el modelo con menor pérdida por
+  cuantil P80 promedio. Los modelos que fallan se omiten y se informan.
+- Modelos por defecto: SeasonalNaive (referencia), AutoARIMA, Armónico
+  (`HarmonicRegression`: tendencia + términos de Fourier anuales + ARIMA en los
+  residuos) y MSTL, elegidos a partir de una comparación con datos DEIS en vivo
+  de siete hospitales (`docs/seleccion-de-modelos.md`,
+  `experiments/model_comparison.py`).
+- Modelos extra para experimentar, con `-m`: TBATS, Theta, Ensamble
+  (`MedianEnsemble`, mediana por cuantil) y ArmónicoFeriados (feriados chilenos
+  en día hábil como covariable, `holidays_per_week`). Documentados en
+  `docs/modelos.md`.
+- `-m/--modelo` (repetible): modelos incluidos o uno propio como `modulo:Clase`
+  importable desde la carpeta actual (`pipeline.resolve_models`). Los nombres
+  no distinguen mayúsculas ni tildes.
+- Calibración de intervalos: las bandas del pronóstico se ensanchan según el
+  error del backtest del modelo elegido cuando ahí resultaron estrechas
+  (`pipeline.calibration_factors`, `apply_calibration`); `--sin-calibrar` lo
+  desactiva.
+- `urg-forecast demo` descarga los datos DEIS más recientes y usa el snapshot
+  incluido si no hay conexión; el resumen indica la fuente y avisa si los datos
+  tienen más de cuatro semanas.
 - `urgencias_core.pipeline` (`load_deis`, `weekly_series`, `run_forecast`,
-  `parse_horizon`) and `urgencias_core.report`.
-- `data.deis.facility_code_variants`, `facilities_in_file`, `list_facilities`
-  and `deis_reachable`. Codes are accepted as `24-105` or `124105`.
-- `HarnessReport.predictions`: holdout predictions per forecaster.
-- The most recent DEIS facility name is shown; skipped DEIS years get short
-  Spanish messages.
+  `parse_horizon`) y `urgencias_core.report`.
+- `data.deis.facility_code_variants`, `facilities_in_file`, `list_facilities` y
+  `deis_reachable`. Los códigos se aceptan como `24-105` o `124105`.
+- `HarnessReport.predictions`: predicciones de cada modelo en el holdout.
 
-### Changed
+### Cambiado
 
-- Single install, no extras: statsforecast, httpx, matplotlib and tabulate are
-  now core dependencies; pydantic is no longer needed.
-- The previous year's DEIS file is re-downloaded weekly until March, since DEIS
-  keeps correcting the just-closed year.
-- Default AutoARIMA uses an approximate, bounded search (~1 s instead of ~20 s
-  per fit with a 52-week season).
-- READMEs rewritten around the command and the extension points.
-- PyPI status `3 - Alpha`.
+- Documentación primero en español: `README.md` en español y `README.en.md`
+  como traducción; `CONTRIBUTING.md`, `SECURITY.md`, este registro y las
+  plantillas de issues en español.
+- Una sola instalación, sin extras: statsforecast, httpx, matplotlib y tabulate
+  pasan a ser dependencias base; pydantic ya no se necesita.
+- El archivo DEIS del año anterior se vuelve a descargar semanalmente hasta
+  marzo, porque el DEIS lo sigue corrigiendo.
+- AutoARIMA usa por defecto una búsqueda acotada (~1 s en vez de ~20 s por
+  ajuste con estacionalidad de 52 semanas).
+- Se muestra el nombre más reciente del establecimiento; los años DEIS omitidos
+  generan mensajes breves en español.
+- Estado en PyPI: `3 - Alpha`.
 
-### Removed
+### Eliminado
 
-Moved out of this repository:
+Salen de este repositorio:
 
-- Visit-level loader and hourly occupancy series (`data.loader`,
-  `data.timeseries`) and the synthetic fixture.
-- Monte Carlo census simulation (`simulation`).
-- Reference dashboard (`server`) and its config file.
-- LightGBM quantile forecaster (`models.lgb_quantile`) and Open-Meteo client
+- AutoETS de la comparación por defecto: con periodo de 52 semanas statsforecast
+  descarta su estacionalidad y el pronóstico queda plano.
+- Carga de datos por atención y serie horaria de ocupación (`data.loader`,
+  `data.timeseries`) y el fixture sintético.
+- Simulación Monte Carlo de censo (`simulation`).
+- Dashboard de referencia (`server`) y su archivo de configuración.
+- Modelo LightGBM por cuantiles (`models.lgb_quantile`) y cliente Open-Meteo
   (`features.weather`).
-- Commands `urgencias-demo-synthetic`, `urgencias-demo-deis`,
-  `urgencias-server`, the `demos` package and the `scripts/` folder.
-- Optional extras (`models`, `viz`, `server`, `fetch`, `all`).
-- Draft papers under `paper/` and `docs/decisions.md`.
+- Comandos `urgencias-demo-synthetic`, `urgencias-demo-deis` y
+  `urgencias-server`, el paquete `demos` y la carpeta `scripts/`.
+- Extras opcionales (`models`, `viz`, `server`, `fetch`, `all`).
+- Borradores de artículos en `paper/` y `docs/decisions.md`.
 
 ## [0.1.0] - 2026-07-20
 
-First public release — the reference pipeline packaged for `pip install`.
+Primera versión pública: el pipeline de referencia empaquetado para `pip install`.
 
-### Added
+### Agregado
 
-- Core library: visit-level → hourly occupancy time series (event-cumsum),
-  Chilean calendar features, empirical LOS sampler, Monte Carlo occupancy
-  simulation, `Forecaster` protocol, seasonal-naive / statsforecast / LightGBM
-  quantile forecasters, and an evaluation harness.
-- DEIS MINSAL *Atenciones de Urgencia* fetcher with an offline snapshot
-  fallback, bundled inside the package.
-- Minimal FastAPI reference server with server-rendered charts.
-- Console entry points: `urgencias-demo-synthetic`, `urgencias-demo-deis`,
+- Librería base: de atenciones a serie horaria de ocupación (suma acumulada de
+  eventos), variables de calendario chileno, muestreo empírico de estadía,
+  simulación Monte Carlo de ocupación, protocolo `Forecaster`, modelos
+  seasonal-naive / statsforecast / LightGBM por cuantiles y arnés de evaluación.
+- Cliente DEIS MINSAL *Atenciones de Urgencia* con snapshot offline incluido en
+  el paquete.
+- Servidor de referencia mínimo en FastAPI con gráficos generados en el servidor.
+- Comandos de consola: `urgencias-demo-synthetic`, `urgencias-demo-deis`,
   `urgencias-server`.
-- Optional-dependency extras: `models`, `viz`, `server`, `fetch`, `all`. The
-  core install ships only pandas/numpy/pyarrow/holidays/pydantic; gated modules
-  raise an actionable error naming the extra to install.
-- `py.typed` marker, PyPI classifiers/keywords/URLs, and packaged demo
-  datasets so the server and demos run out of the box from an installed wheel.
-- CI: lint gate, Python 3.11/3.12 test matrix, build + `twine check`, and a
-  core-only install job.
+- Extras opcionales: `models`, `viz`, `server`, `fetch`, `all`. La instalación
+  base incluye solo pandas/numpy/pyarrow/holidays/pydantic; los módulos que
+  necesitan un extra dan un error que indica cuál instalar.
+- Marcador `py.typed`, metadatos de PyPI y datos de demostración incluidos, para
+  que el servidor y los demos funcionen desde el wheel instalado.
+- CI: lint, tests en Python 3.11/3.12, build + `twine check` y prueba de
+  instalación base.
 
-### Fixed
+### Corregido
 
-- Default server fixture resolved a repo-relative path (`parents[3]`) that
-  escaped `site-packages` in an installed wheel; it now resolves the bundled
-  fixture via `importlib.resources`.
-- DEIS weekly aggregation (`demos.deis._to_weekly`) now trims partial weeks at
-  both series edges, not only a fully-empty trailing week. A most-recent week
-  with a missing day (near-real-time reporting lag) was kept and appeared as a
-  spurious end-of-series drop that contaminated the backtest.
+- El fixture por defecto del servidor se resolvía con una ruta relativa al
+  repositorio (`parents[3]`) que salía de `site-packages` en un wheel
+  instalado; ahora se resuelve con `importlib.resources`.
+- La agregación semanal DEIS (`demos.deis._to_weekly`) ahora descarta semanas
+  incompletas en ambos extremos de la serie. Una última semana con un día
+  faltante (rezago de reporte) se conservaba y aparecía como una caída falsa al
+  final que contaminaba el backtest.
 
-### Changed
+### Cambiado
 
-- Unified formatting on `ruff format` (dropped black).
+- Formato unificado con `ruff format` (se dejó black).
 
-[Unreleased]: https://github.com/nicoveraz/urg-forecast-core/compare/v0.2.0...HEAD
+[Sin publicar]: https://github.com/nicoveraz/urg-forecast-core/compare/v0.2.0...HEAD
 [0.2.0]: https://github.com/nicoveraz/urg-forecast-core/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/nicoveraz/urg-forecast-core/releases/tag/v0.1.0

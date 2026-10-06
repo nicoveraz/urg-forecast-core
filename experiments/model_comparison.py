@@ -1,6 +1,6 @@
 """Rolling-origin comparison of weekly forecasters on live DEIS data.
 
-The evidence behind the default model set (see docs/model-selection.md). Not
+The evidence behind the default model set (see docs/seleccion-de-modelos.md). Not
 part of the installed package. Usage:
 
     python experiments/model_comparison.py --offline            # snapshot, quick

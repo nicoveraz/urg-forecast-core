@@ -1,30 +1,33 @@
-# Security Policy
+# Política de seguridad
 
-## Supported versions
+## Versiones con soporte
 
-`urg-forecast-core` is on a 0.x release series; only the latest published
-version on PyPI receives fixes.
+`urg-forecast-core` está en la serie 0.x; solo la última versión publicada en
+PyPI recibe correcciones.
 
-| Version | Supported |
+| Versión | Soporte |
 |---|---|
-| 0.1.x | ✅ |
-| < 0.1 | ❌ |
+| 0.2.x | ✅ |
+| < 0.2 | ❌ |
 
-## Reporting a vulnerability
+## Reportar una vulnerabilidad
 
-Please **do not open a public issue** for a suspected security vulnerability.
+Por favor **no abras un issue público** por una posible vulnerabilidad.
 
-Report it privately via GitHub's ["Report a vulnerability"](https://github.com/nicoveraz/urg-forecast-core/security/advisories/new)
-(Security → Advisories), or by email to **nicovera@quetru.cl**.
+Repórtala de forma privada con
+["Report a vulnerability"](https://github.com/nicoveraz/urg-forecast-core/security/advisories/new)
+de GitHub (Security → Advisories) o por correo a **nicovera@quetru.cl**.
 
-Include a description, steps to reproduce, and the affected version. This is a
-best-effort, single-maintainer project: you can expect an initial acknowledgment
-within a couple of weeks. Fixes are released as a new PyPI version and noted in
-`CHANGELOG.md`.
+Incluye una descripción, los pasos para reproducirla y la versión afectada. Es
+un proyecto con un solo mantenedor: el primer acuse de recibo puede tardar un par
+de semanas. Las correcciones se publican como una nueva versión en PyPI y se
+anotan en `CHANGELOG.md`.
 
-## Scope
+## Alcance
 
-This project is reference code for data analysis and forecasting; it does not
-handle authentication or process untrusted network input by default. The DEIS
-client fetches from a fixed public endpoint. The package never sends data
-anywhere.
+Es código de referencia para análisis y pronóstico; no maneja autenticación ni
+procesa entradas de red no confiables. El cliente DEIS descarga desde una
+dirección pública fija y el paquete nunca envía datos a ninguna parte.
+
+`-m modulo:Clase` importa y ejecuta código Python desde la carpeta actual: usa
+solo módulos que conozcas.

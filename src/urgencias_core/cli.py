@@ -32,7 +32,9 @@ ejemplos:
   urg-forecast pronosticar 24-105
   urg-forecast pronosticar 24-105 --horizonte 12
   urg-forecast pronosticar 24-105 24-115 --horizonte 6m --salida resultados/
+  urg-forecast modelos
   urg-forecast pronosticar 24-105 --modelo AutoARIMA
+  urg-forecast pronosticar 24-105 -m Ensamble -m TBATS -m MSTL
   urg-forecast pronosticar 24-105 --modelo mi_modulo:MiModelo --modelo MSTL
 
 Horizonte: semanas (12 o 12s) o meses (6m). El backtest usa tres ventanas tan
@@ -89,8 +91,8 @@ def build_parser() -> argparse.ArgumentParser:
             "--modelo",
             action="append",
             metavar="NOMBRE",
-            help="modelo a usar (repetible): SeasonalNaive, AutoARIMA, Armonico, MSTL, "
-            "o 'modulo:Clase' para uno propio. Por defecto compara los cuatro y usa el mejor.",
+            help="modelo a usar (repetible): uno de 'urg-forecast modelos' o 'modulo:Clase' "
+            "para uno propio. Por defecto compara SeasonalNaive, AutoARIMA, Armonico y MSTL.",
         )
         p.add_argument(
             "--sin-calibrar",
@@ -121,6 +123,13 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=datetime.now().year,
         help="año del archivo DEIS donde buscar (por defecto: el actual)",
+    )
+
+    sub.add_parser(
+        "modelos",
+        help="lista los modelos disponibles",
+        description="Modelos incluidos. Los cuatro primeros se comparan por defecto; "
+        "el resto se activa con -m NOMBRE.",
     )
 
     p_fc = sub.add_parser(
@@ -240,6 +249,19 @@ def _search(text: str, year: int) -> int:
     return 0
 
 
+def _list_models() -> int:
+    from tabulate import tabulate
+
+    from urgencias_core.pipeline import MODEL_INFO, default_models, extra_models
+
+    rows = [[n, "sí", MODEL_INFO.get(n, "")] for n in default_models()]
+    rows += [[n, "", MODEL_INFO.get(n, "")] for n in extra_models()]
+    print(tabulate(rows, headers=["Modelo", "Por defecto", "Descripción"], tablefmt="psql"))
+    print("Uso: urg-forecast pronosticar <código> -m NOMBRE [-m NOMBRE ...]")
+    print("Modelo propio: -m archivo:Clase (ver docs/modelos.md)")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     setup_logging()
     # statsforecast's optimizer warnings mean nothing to a CLI user; the backtest
@@ -270,6 +292,8 @@ def main(argv: list[str] | None = None) -> int:
             model_names=args.modelo,
             calibrate=not args.sin_calibrar,
         )
+    if args.command == "modelos":
+        return _list_models()
     if args.command == "buscar":
         return _search(args.texto, args.anio)
     return _forecast(

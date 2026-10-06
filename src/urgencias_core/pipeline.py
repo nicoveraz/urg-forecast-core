@@ -32,6 +32,7 @@ from urgencias_core.eval.baselines import (
     auto_arima,
 )
 from urgencias_core.eval.harness import quantile_loss
+from urgencias_core.models.ensemble import MedianEnsemble
 from urgencias_core.models.harmonic import HarmonicRegression
 from urgencias_core.models.protocol import Forecaster, HorizonSpec
 
@@ -207,7 +208,7 @@ def _mstl() -> Forecaster:
 
 
 def default_models() -> dict[str, Callable[[], Forecaster]]:
-    """Factories for the model battery (fresh instance per fit).
+    """Factories for the model battery compared by default (fresh instance per fit).
 
     SeasonalNaive is the reference. The other three all capture the annual
     cycle in different ways; on live DEIS data none of them won everywhere, so
@@ -221,6 +222,58 @@ def default_models() -> dict[str, Callable[[], Forecaster]]:
     }
 
 
+def _tbats() -> Forecaster:
+    from statsforecast.models import AutoTBATS
+
+    return StatsForecastWrapper(AutoTBATS(season_length=[SEASON_WEEKS]), name="TBATS")
+
+
+def _theta() -> Forecaster:
+    from statsforecast.models import AutoTheta
+
+    return StatsForecastWrapper(AutoTheta(season_length=SEASON_WEEKS), name="Theta")
+
+
+def _ensemble() -> Forecaster:
+    core = default_models()
+    return MedianEnsemble({k: core[k] for k in ("AutoARIMA", "Armónico", "MSTL")})
+
+
+def extra_models() -> dict[str, Callable[[], Forecaster]]:
+    """Opt-in models for experimenting (``-m NAME``); not compared by default."""
+    return {
+        "TBATS": _tbats,
+        "Theta": _theta,
+        "Ensamble": _ensemble,
+        "ArmónicoFeriados": lambda: HarmonicRegression(holidays=True),
+    }
+
+
+# One-line descriptions shown by ``urg-forecast modelos``.
+MODEL_INFO = {
+    "SeasonalNaive": "referencia: misma semana de años anteriores (cuantiles empíricos)",
+    "AutoARIMA": "ARIMA estacional (52 semanas) con búsqueda acotada",
+    "Armónico": "tendencia + ciclo anual con términos de Fourier, ARIMA en los residuos",
+    "MSTL": "descomposición estacional + tendencia ETS",
+    "TBATS": "estacionalidad trigonométrica con Box-Cox y errores ARMA; lento (~15 s)",
+    "Theta": "solo tendencia (no detecta el ciclo anual); sirve de contraste",
+    "Ensamble": "mediana, cuantil a cuantil, de AutoARIMA, Armónico y MSTL",
+    "ArmónicoFeriados": "Armónico + feriados chilenos en día hábil de cada semana",
+}
+
+
+def available_models() -> dict[str, Callable[[], Forecaster]]:
+    """All built-in models: the default battery plus the opt-in extras."""
+    return default_models() | extra_models()
+
+
+def _fold(name: str) -> str:
+    """Case- and accent-insensitive key, so 'armonico' matches 'Armónico'."""
+    import unicodedata
+
+    return unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode().lower()
+
+
 def resolve_models(names: list[str] | None) -> dict[str, Callable[[], Forecaster]]:
     """Model factories for ``names``: built-in names or ``"module.path:Class"``.
 
@@ -229,10 +282,10 @@ def resolve_models(names: list[str] | None) -> dict[str, Callable[[], Forecaster
     and satisfy the :class:`~urgencias_core.models.protocol.Forecaster`
     protocol. Raises ``ValueError`` for unknown names or bad imports.
     """
-    builtin = default_models()
     if not names:
-        return builtin
-    lookup = {k.lower(): k for k in builtin} | {"armonico": "Armónico"}
+        return default_models()
+    builtin = available_models()
+    lookup = {_fold(k): k for k in builtin}
     out: dict[str, Callable[[], Forecaster]] = {}
     for name in names:
         if ":" in name:
@@ -245,13 +298,13 @@ def resolve_models(names: list[str] | None) -> dict[str, Callable[[], Forecaster
             if not (hasattr(cls, "fit") and hasattr(cls, "predict")):
                 raise ValueError(f"{name!r} no tiene métodos fit y predict")
             out[attr] = cls
-        elif name.lower() in lookup:
-            key = lookup[name.lower()]
+        elif _fold(name) in lookup:
+            key = lookup[_fold(name)]
             out[key] = builtin[key]
         else:
             raise ValueError(
                 f"modelo desconocido: {name!r}. Opciones: {', '.join(builtin)} "
-                "o 'modulo:Clase' para un modelo propio."
+                "o 'modulo:Clase' para un modelo propio ('urg-forecast modelos' los describe)."
             )
     return out
 
@@ -452,6 +505,9 @@ __all__ = [
     "min_weeks_needed",
     "parse_horizon",
     "resolve_models",
+    "available_models",
+    "extra_models",
+    "MODEL_INFO",
     "calibration_factors",
     "apply_calibration",
     "run_forecast",

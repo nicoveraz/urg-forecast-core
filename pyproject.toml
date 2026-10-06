@@ -1,7 +1,7 @@
 [project]
 name = "urg-forecast-core"
 version = "0.2.0"
-description = "Open base for forecasting Chilean emergency department demand from public DEIS MINSAL data: a starting point to build on, not a finished product."
+description = "Base abierta para pronosticar la demanda de urgencias en Chile con datos públicos del DEIS MINSAL: una aproximación inicial para ajustar y extender."
 readme = "README.md"
 license = { file = "LICENSE" }
 # Upper bound tracks statsforecast/numba, which do not yet publish wheels for 3.13.

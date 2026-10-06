@@ -72,3 +72,10 @@ son esos cuatro. El experimento completo está en
 5. **Cobertura.** Armónico y MSTL cubren algo menos de lo nominal a 26 semanas
    (70–79%); AutoARIMA queda más cerca de 80%. Los intervalos son una
    referencia, no una garantía.
+
+## Modelos extra
+
+TBATS, Theta, Ensamble y ArmónicoFeriados se agregaron después para
+experimentar y no forman parte de esta comparación. Se describen en
+[`modelos.md`](modelos.md). Si en tu establecimiento alguno gana de forma
+consistente, úsalo con `-m`.

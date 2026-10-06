@@ -1,8 +1,8 @@
-# Roadmap / Hoja de ruta
+# Hoja de ruta
 
-Known gaps, deliberately left out of the base. Each one is a good first
-contribution. / Brechas conocidas que quedaron fuera de la base a propósito.
-Cada una sirve como primera contribución.
+Brechas conocidas que quedaron fuera de la base a propósito. Cada una sirve como
+primera contribución. Para ideas de modelos, revisa también la sección final de
+[`modelos.md`](modelos.md).
 
 ## Datos
 
@@ -18,8 +18,8 @@ Cada una sirve como primera contribución.
 
 - **Backtest rolling.** Hoy el backtest es un único holdout al final de la
   serie. Varias ventanas darían una estimación del error más estable.
-- **Variables exógenas.** El calendario chileno (`features.calendar`) está
-  disponible pero no entra a los modelos por defecto; tampoco el clima.
+- **Variables exógenas.** `ArmónicoFeriados` incorpora feriados; el resto del
+  calendario chileno (`features.calendar`) y el clima no entran a ningún modelo.
 - **Granularidad diaria.** El pipeline es semanal. Pasar a diario exige revisar
   el rezago de reporte del DEIS.
 
