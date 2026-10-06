@@ -1,0 +1,564 @@
+---
+import StarlightPage from "@astrojs/starlight/components/StarlightPage.astro";
+
+const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
+---
+
+<StarlightPage
+  frontmatter={{
+    title: "Demo",
+    description:
+      "Pronóstico semanal de atenciones de urgencia para cualquier establecimiento público, con datos del DEIS MINSAL.",
+    tableOfContents: false,
+  }}
+>
+  <p class="intro" style="max-width:46rem">
+    Elige un establecimiento de la red pública y mira su pronóstico semanal. Son los mismos
+    resultados que entrega <code>urg-forecast pronosticar</code>, calculados cada semana con los
+    datos más recientes del DEIS.
+  </p>
+
+  <div id="demo" class="not-content" data-base={base}>
+    <div class="controles">
+      <div class="buscador">
+        <label for="q">Establecimiento</label>
+        <input
+          id="q"
+          type="search"
+          autocomplete="off"
+          placeholder="Nombre, comuna o código (ej. Puerto Montt, SAPU, 24-105)"
+          role="combobox"
+          aria-expanded="false"
+          aria-controls="resultados"
+        />
+        <ul id="resultados" role="listbox" hidden></ul>
+      </div>
+      <div class="filtro">
+        <label for="tipo">Tipo</label>
+        <select id="tipo"><option value="">Todos</option></select>
+      </div>
+      <div class="filtro">
+        <label for="region">Región</label>
+        <select id="region"><option value="">Todas</option></select>
+      </div>
+    </div>
+
+    <p id="estado" class="estado">Cargando establecimientos…</p>
+
+    <section id="ficha" hidden>
+      <header class="ficha-cab">
+        <div>
+          <h2 id="nombre"></h2>
+          <p id="detalle" class="detalle"></p>
+        </div>
+        <div class="horizonte" role="group" aria-label="Horizonte">
+          <button type="button" data-h="12">12 semanas</button>
+          <button type="button" data-h="26" aria-pressed="true">26 semanas</button>
+        </div>
+      </header>
+
+      <div class="cifras" id="cifras"></div>
+
+      <figure class="grafico">
+        <svg id="svg" role="img" aria-labelledby="svg-titulo"><title id="svg-titulo"></title></svg>
+        <div id="tooltip" class="tooltip" hidden></div>
+        <figcaption>
+          <span class="ley historia"></span> Historia semanal
+          <span class="ley p50"></span> Pronóstico (valor central)
+          <span class="ley banda80"></span> Hasta P80
+          <span class="ley banda95"></span> Hasta P95
+        </figcaption>
+      </figure>
+
+      <h3>Backtest</h3>
+      <p id="bt-texto" class="detalle"></p>
+      <div class="tabla"><table id="bt"></table></div>
+
+      <h3>Reprodúcelo en tu computador</h3>
+      <div class="comando">
+        <code id="cmd"></code>
+        <button type="button" id="copiar">Copiar</button>
+      </div>
+      <p class="nota">
+        Modelos estadísticos simples, sin ajuste local. Es una ilustración del método, no una
+        evaluación del establecimiento ni una herramienta validada para decidir dotación.
+      </p>
+    </section>
+  </div>
+</StarlightPage>
+
+<style is:global>
+
+  #demo .controles {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+    align-items: end;
+  }
+  @media (max-width: 40rem) {
+    #demo .controles { grid-template-columns: 1fr 1fr; }
+    #demo .buscador { grid-column: 1 / -1; }
+  }
+  #demo .controles label {
+    display: block;
+    font-size: var(--sl-text-xs);
+    color: var(--sl-color-gray-3);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.25rem;
+  }
+  #demo .controles input,
+  #demo .controles select {
+    width: 100%;
+    padding: 0.55rem 0.7rem;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.4rem;
+    background: var(--sl-color-bg);
+    color: var(--sl-color-white);
+    font: inherit;
+  }
+  #demo .controles input:focus-visible,
+  #demo .controles select:focus-visible,
+  #demo button:focus-visible {
+    outline: 2px solid var(--sl-color-accent);
+    outline-offset: 1px;
+  }
+  #demo .buscador { position: relative; }
+  #demo #resultados {
+    position: absolute;
+    z-index: 10;
+    inset-inline: 0;
+    top: 100%;
+    margin: 0.25rem 0 0;
+    padding: 0.25rem;
+    list-style: none;
+    background: var(--sl-color-bg-nav);
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.4rem;
+    max-height: 20rem;
+    overflow-y: auto;
+    box-shadow: var(--sl-shadow-md);
+  }
+  #demo #resultados li {
+    margin: 0;
+    padding: 0.45rem 0.6rem;
+    border-radius: 0.3rem;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+  #resultados li[aria-selected="true"],
+  #demo #resultados li:hover { background: var(--sl-color-gray-6); }
+  #demo #resultados li.sin { opacity: 0.55; }
+  #demo #resultados .meta { color: var(--sl-color-gray-3); font-size: var(--sl-text-sm); white-space: nowrap; }
+  #demo .estado { color: var(--sl-color-gray-3); margin-top: 0.75rem; font-size: var(--sl-text-sm); }
+  #demo .ficha-cab {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: space-between;
+    align-items: end;
+    margin-top: 1.5rem;
+  }
+  #demo .ficha-cab h2 { margin: 0; font-size: var(--sl-text-2xl); }
+  #demo .detalle { color: var(--sl-color-gray-3); margin: 0.25rem 0 0; }
+  #demo .horizonte { display: flex; gap: 0.25rem; }
+  #demo .horizonte button {
+    padding: 0.35rem 0.75rem;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--sl-color-gray-2);
+    font: inherit;
+    font-size: var(--sl-text-sm);
+    cursor: pointer;
+  }
+  #demo .horizonte button[aria-pressed="true"] {
+    background: var(--sl-color-accent);
+    border-color: var(--sl-color-accent);
+    color: var(--sl-color-black);
+  }
+  #demo .cifras {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+    gap: 0.75rem;
+    margin-top: 1.25rem;
+  }
+  #demo .cifra { border: 1px solid var(--sl-color-hairline); border-radius: 0.5rem; padding: 0.75rem 0.9rem; }
+  #demo .cifra .v { font-size: var(--sl-text-2xl); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--sl-color-white); }
+  #demo .cifra .l { font-size: var(--sl-text-sm); color: var(--sl-color-gray-3); }
+  #demo .grafico { position: relative; margin: 1.25rem 0 0; }
+  #demo #svg { width: 100%; height: auto; display: block; overflow: visible; }
+  #demo #svg text { fill: var(--sl-color-gray-3); font-size: 11px; font-family: var(--sl-font); }
+  #demo .grafico figcaption {
+    display: flex; flex-wrap: wrap; gap: 0.35rem 1rem; align-items: center;
+    font-size: var(--sl-text-sm); color: var(--sl-color-gray-3); margin-top: 0.5rem;
+  }
+  #demo .ley { display: inline-block; width: 1.1rem; height: 0.6rem; border-radius: 2px; margin-right: -0.6rem; }
+  #demo .ley.historia { height: 2px; background: var(--sl-color-gray-3); }
+  #demo .ley.p50 { height: 3px; background: var(--sl-color-accent); }
+  #demo .ley.banda80 { background: color-mix(in srgb, var(--sl-color-accent) 40%, transparent); }
+  #demo .ley.banda95 { background: color-mix(in srgb, var(--sl-color-accent) 18%, transparent); }
+  #demo .tooltip {
+    position: absolute; pointer-events: none; z-index: 5;
+    background: var(--sl-color-bg-nav); border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.4rem; padding: 0.4rem 0.6rem; font-size: var(--sl-text-sm);
+    box-shadow: var(--sl-shadow-md); white-space: nowrap; font-variant-numeric: tabular-nums;
+  }
+  #demo .tabla { overflow-x: auto; }
+  #demo #bt { font-variant-numeric: tabular-nums; }
+  #demo #bt td:not(:first-child), #demo #bt th:not(:first-child) { text-align: right; }
+  #demo #bt tr.mejor td { font-weight: 600; color: var(--sl-color-white); }
+  #demo .comando {
+    display: flex; gap: 0.5rem; align-items: center;
+    border: 1px solid var(--sl-color-hairline); border-radius: 0.5rem; padding: 0.5rem 0.5rem 0.5rem 0.9rem;
+    background: var(--sl-color-gray-7, var(--sl-color-bg-nav));
+  }
+  #demo .comando code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; background: none; }
+  #demo .comando button {
+    padding: 0.35rem 0.75rem; border: 1px solid var(--sl-color-gray-5); border-radius: 0.35rem;
+    background: transparent; color: var(--sl-color-gray-2); cursor: pointer; font: inherit; font-size: var(--sl-text-sm);
+  }
+  #demo .nota { font-size: var(--sl-text-sm); color: var(--sl-color-gray-3); }
+
+  #demo h2, #demo h3 { color: var(--sl-color-white); line-height: var(--sl-line-height-headings); }
+  #demo h3 { font-size: var(--sl-text-xl); margin: 2rem 0 0.25rem; }
+  #demo p { line-height: var(--sl-line-height); }
+  #demo table { width: 100%; border-collapse: collapse; margin-top: 0.75rem; }
+  #demo th, #demo td { padding: 0.45rem 0.75rem; border-bottom: 1px solid var(--sl-color-hairline); text-align: left; }
+  #demo th { color: var(--sl-color-gray-2); font-weight: 600; font-size: var(--sl-text-sm); }
+  #demo code { font-family: var(--sl-font-mono); font-size: var(--sl-text-sm); }
+  #demo .nota { margin-top: 1rem; }
+</style>
+
+<script>
+  type Entry = { c: string; n: string; t: string; r: string; k: string; s: string; ok: boolean; motivo?: string; m?: string; u?: string };
+  type Detail = Entry & {
+    historia: [string, number][];
+    pronostico: [string, number, number, number][];
+    backtest: { modelo: string; mae: number; mape: number; p80: number }[];
+    mejor: string;
+    cobertura: [number, number];
+    ventanas: number;
+    semanas_backtest: number;
+  };
+
+  const root = document.getElementById("demo")!;
+  const BASE = root.dataset.base + "datos/demo/";
+  const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+  const q = $<HTMLInputElement>("q");
+  const list = $<HTMLUListElement>("resultados");
+  const selTipo = $<HTMLSelectElement>("tipo");
+  const selRegion = $<HTMLSelectElement>("region");
+  const estado = $<HTMLParagraphElement>("estado");
+  const ficha = $<HTMLElement>("ficha");
+  const svg = document.getElementById("svg") as unknown as SVGSVGElement;
+  const tooltip = $<HTMLDivElement>("tooltip");
+
+  const nf = new Intl.NumberFormat("es-CL", { maximumFractionDigits: 0 });
+  const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+  const fecha = (s: string) => {
+    const [y, m, d] = s.split("-").map(Number);
+    return `${d} ${MESES[m - 1]} ${y}`;
+  };
+  const fold = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+
+  let entries: Entry[] = [];
+  let current: Detail | null = null;
+  let horizon = 26;
+  let active = -1;
+  let shown: Entry[] = [];
+
+  async function init() {
+    let idx;
+    try {
+      const r = await fetch(BASE + "indice.json");
+      if (!r.ok) throw new Error(String(r.status));
+      idx = await r.json();
+    } catch {
+      estado.textContent =
+        "Los datos de la demo todavía no están disponibles. Se generan cada semana desde el DEIS.";
+      return;
+    }
+    entries = idx.establecimientos;
+    const ok = entries.filter((e) => e.ok).length;
+    estado.textContent = `${nf.format(ok)} establecimientos con pronóstico · datos DEIS hasta el ${fecha(idx.meta.ultima_fecha)}`;
+    for (const t of [...new Set(entries.map((e) => e.t).filter(Boolean))].sort())
+      selTipo.add(new Option(t, t));
+    for (const r of [...new Set(entries.map((e) => e.r).filter(Boolean))].sort())
+      selRegion.add(new Option(r.replace(/^De(l)? /, ""), r));
+    const wanted = decodeURIComponent(location.hash.slice(1)) || "24-105";
+    const first = entries.find((e) => e.c === wanted && e.ok) || entries.find((e) => e.ok);
+    if (first) select(first);
+  }
+
+  function filtered(): Entry[] {
+    const terms = fold(q.value).split(/\s+/).filter(Boolean);
+    return entries.filter((e) => {
+      if (selTipo.value && e.t !== selTipo.value) return false;
+      if (selRegion.value && e.r !== selRegion.value) return false;
+      const hay = fold(`${e.n} ${e.c} ${e.k} ${e.t} ${e.r} ${e.s}`);
+      return terms.every((t) => hay.includes(t));
+    });
+  }
+
+  function renderList() {
+    shown = filtered().slice(0, 60);
+    list.innerHTML = "";
+    if (!shown.length) {
+      const li = document.createElement("li");
+      li.textContent = "Sin coincidencias";
+      li.className = "sin";
+      list.append(li);
+    }
+    shown.forEach((e, i) => {
+      const li = document.createElement("li");
+      li.id = `op-${i}`;
+      li.setAttribute("role", "option");
+      li.className = e.ok ? "" : "sin";
+      li.innerHTML = `<span></span><span class="meta"></span>`;
+      (li.firstChild as HTMLElement).textContent = e.n;
+      (li.lastChild as HTMLElement).textContent = e.ok
+        ? `${e.t} · ${e.k || e.c}`
+        : `sin pronóstico: ${e.motivo ?? ""}`;
+      // pointerdown keeps focus in the input (so blur doesn't close the list first);
+      // click does the selection, which also works for touch and assistive tech.
+      li.addEventListener("pointerdown", (ev) => ev.preventDefault());
+      li.addEventListener("mousedown", (ev) => ev.preventDefault());
+      li.addEventListener("click", () => {
+        if (e.ok) select(e);
+      });
+      list.append(li);
+    });
+    active = -1;
+    list.hidden = false;
+    q.setAttribute("aria-expanded", "true");
+  }
+
+  function closeList() {
+    list.hidden = true;
+    q.setAttribute("aria-expanded", "false");
+  }
+
+  async function select(e: Entry) {
+    closeList();
+    q.value = e.n;
+    try {
+      history.replaceState(null, "", "#" + e.c);
+    } catch {
+      /* some embedded viewers forbid URL changes; the link just won't update */
+    }
+    try {
+      const r = await fetch(BASE + e.c + ".json");
+      if (!r.ok) throw new Error(String(r.status));
+      current = (await r.json()) as Detail;
+    } catch (err) {
+      estado.textContent = `No se pudo cargar ${e.n} (${err}). Intenta de nuevo.`;
+      return;
+    }
+    ficha.hidden = false;
+    render();
+  }
+
+  function render() {
+    if (!current) return;
+    const d = current;
+    $("nombre").textContent = d.n;
+    $("detalle").textContent = [d.t, d.k, d.r?.replace(/^De(l)? /, "Región de "), d.s, `código ${d.c}`]
+      .filter(Boolean)
+      .join(" · ");
+    const fc = d.pronostico.slice(0, horizon);
+    const next4 = fc.slice(0, 4);
+    const sum = (i: number) => next4.reduce((a, r) => a + (r[i] as number), 0);
+    const peak = fc.reduce((a, r) => (r[1] > a[1] ? r : a), fc[0]);
+    const lastYear = d.historia.slice(-52);
+    const avg = lastYear.reduce((a, r) => a + r[1], 0) / lastYear.length;
+    $("cifras").innerHTML = "";
+    const cifra = (v: string, l: string) => {
+      const div = document.createElement("div");
+      div.className = "cifra";
+      div.innerHTML = `<div class="v"></div><div class="l"></div>`;
+      (div.firstChild as HTMLElement).textContent = v;
+      (div.lastChild as HTMLElement).textContent = l;
+      $("cifras").append(div);
+    };
+    cifra(nf.format(sum(1)), "atenciones esperadas en las próximas 4 semanas");
+    cifra(nf.format(sum(2)), "hasta P80 en esas 4 semanas");
+    cifra(`${nf.format(peak[1])}`, `semana más alta del horizonte (${fecha(peak[0])})`);
+    cifra(nf.format(avg), "promedio semanal del último año");
+
+    const [c, n] = d.cobertura;
+    $("bt-texto").textContent =
+      `${d.ventanas} ventanas de ${d.semanas_backtest} semanas. Se usa ${d.mejor}, el de menor pérdida P80; ` +
+      `el valor real quedó bajo su P80 en ${c} de ${n} semanas.`;
+    const bt = $<HTMLTableElement>("bt");
+    bt.innerHTML = "<thead><tr><th>Modelo</th><th>MAE</th><th>MAPE %</th><th>Pérdida P80</th></tr></thead>";
+    const tb = document.createElement("tbody");
+    for (const m of d.backtest) {
+      const tr = document.createElement("tr");
+      if (m.modelo === d.mejor) tr.className = "mejor";
+      for (const v of [m.modelo + (m.modelo === d.mejor ? " ✓" : ""), nf.format(m.mae), m.mape.toFixed(1), m.p80.toFixed(1)]) {
+        const td = document.createElement("td");
+        td.textContent = v;
+        tr.append(td);
+      }
+      tb.append(tr);
+    }
+    bt.append(tb);
+    $("cmd").textContent = `urg-forecast pronosticar ${d.c} -H ${horizon}`;
+    drawChart(d, fc);
+  }
+
+  const NS = "http://www.w3.org/2000/svg";
+  function el(name: string, attrs: Record<string, string | number>, parent: Element = svg) {
+    const e = document.createElementNS(NS, name);
+    for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, String(v));
+    parent.append(e);
+    return e;
+  }
+
+  function drawChart(d: Detail, fc: Detail["pronostico"]) {
+    const W = Math.max(300, Math.round(svg.parentElement!.clientWidth || 760));
+    const narrow = W < 560;
+    const H = narrow ? 260 : 320, m = { t: 14, r: 10, b: 26, l: narrow ? 40 : 48 };
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    svg.querySelectorAll(":scope > :not(title)").forEach((n) => n.remove());
+    $("svg-titulo").textContent = `Atenciones semanales y pronóstico a ${horizon} semanas, ${d.n}`;
+    const hist = d.historia.slice(-104);
+    const pts = [...hist.map((r) => r[0]), ...fc.map((r) => r[0])].map((s) => +new Date(s));
+    const x0 = pts[0], x1 = pts[pts.length - 1];
+    const vals = [...hist.map((r) => r[1]), ...fc.map((r) => r[3])];
+    const lo = Math.min(...hist.map((r) => r[1]), ...fc.map((r) => r[1]));
+    const hi = Math.max(...vals);
+    const pad = (hi - lo) * 0.08 || 1;
+    const y0 = Math.max(0, lo - pad), y1 = hi + pad;
+    const X = (t: number) => m.l + ((t - x0) / (x1 - x0)) * (W - m.l - m.r);
+    const Y = (v: number) => H - m.b - ((v - y0) / (y1 - y0)) * (H - m.t - m.b);
+
+    // grid + y labels
+    const step = niceStep((y1 - y0) / 4);
+    for (let v = Math.ceil(y0 / step) * step; v <= y1; v += step) {
+      el("line", { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v), stroke: "var(--sl-color-hairline)" });
+      el("text", { x: m.l - 6, y: Y(v) + 4, "text-anchor": "end" }).textContent = nf.format(v);
+    }
+    // x labels: Jan and Jul
+    for (let t = new Date(x0); +t <= x1; t.setMonth(t.getMonth() + 1)) {
+      if (t.getDate() > 7 || ![0, 6].includes(t.getMonth())) continue;
+      if (narrow && t.getMonth() !== 0) continue;
+      const lab = el("text", { x: X(+t), y: H - 8, "text-anchor": "middle" });
+      lab.textContent = narrow ? String(t.getFullYear()) : `${MESES[t.getMonth()]} ${t.getFullYear()}`;
+    }
+
+    const line = (rows: [number, number][]) => rows.map(([t, v], i) => `${i ? "L" : "M"}${X(t).toFixed(1)},${Y(v).toFixed(1)}`).join("");
+    const band = (a: [number, number][], b: [number, number][]) =>
+      line(a) + b.slice().reverse().map(([t, v]) => `L${X(t).toFixed(1)},${Y(v).toFixed(1)}`).join("") + "Z";
+    const F = fc.map((r) => [+new Date(r[0]), r[1], r[2], r[3]]);
+    const lastH: [number, number] = [+new Date(hist[hist.length - 1][0]), hist[hist.length - 1][1]];
+    const p50 = [lastH, ...F.map((r) => [r[0], r[1]] as [number, number])];
+    el("path", { d: band(F.map((r) => [r[0], r[1]]), F.map((r) => [r[0], r[3]])), fill: "var(--sl-color-accent)", "fill-opacity": 0.16 });
+    el("path", { d: band(F.map((r) => [r[0], r[1]]), F.map((r) => [r[0], r[2]])), fill: "var(--sl-color-accent)", "fill-opacity": 0.32 });
+    el("path", { d: line(hist.map((r) => [+new Date(r[0]), r[1]])), fill: "none", stroke: "var(--sl-color-gray-3)", "stroke-width": 1.8, "stroke-linejoin": "round" });
+    el("path", { d: line(p50), fill: "none", stroke: "var(--sl-color-accent)", "stroke-width": 2.6, "stroke-linejoin": "round" });
+    el("line", { x1: X(lastH[0]), x2: X(lastH[0]), y1: m.t, y2: H - m.b, stroke: "var(--sl-color-gray-4)", "stroke-dasharray": "3 4" });
+    el("text", { x: X(lastH[0]) - 6, y: m.t + 10, "text-anchor": "end" }).textContent = "datos hasta acá";
+
+    // hover layer
+    const guide = el("line", { y1: m.t, y2: H - m.b, stroke: "var(--sl-color-gray-2)", "stroke-width": 1, visibility: "hidden" });
+    const dot = el("circle", { r: 4.5, fill: "var(--sl-color-accent)", stroke: "var(--sl-color-bg)", "stroke-width": 2, visibility: "hidden" });
+    const all = [
+      ...hist.map((r) => ({ t: +new Date(r[0]), s: r[0], v: r[1], f: null as null | number[] })),
+      ...fc.map((r) => ({ t: +new Date(r[0]), s: r[0], v: r[1], f: [r[1], r[2], r[3]] })),
+    ];
+    const hit = el("rect", { x: m.l, y: m.t, width: W - m.l - m.r, height: H - m.t - m.b, fill: "transparent" });
+    const move = (ev: PointerEvent) => {
+      const box = svg.getBoundingClientRect();
+      const sx = ((ev.clientX - box.left) / box.width) * W;
+      let best = all[0];
+      for (const p of all) if (Math.abs(X(p.t) - sx) < Math.abs(X(best.t) - sx)) best = p;
+      const cx = X(best.t), cy = Y(best.v);
+      guide.setAttribute("x1", String(cx)); guide.setAttribute("x2", String(cx));
+      guide.setAttribute("visibility", "visible");
+      dot.setAttribute("cx", String(cx)); dot.setAttribute("cy", String(cy));
+      dot.setAttribute("fill", best.f ? "var(--sl-color-accent)" : "var(--sl-color-gray-2)");
+      dot.setAttribute("visibility", "visible");
+      tooltip.innerHTML = "";
+      const head = document.createElement("strong");
+      head.textContent = `Semana al ${fecha(best.s)}`;
+      tooltip.append(head, document.createElement("br"));
+      tooltip.append(
+        best.f
+          ? `Pronóstico ${nf.format(best.f[0])} · P80 ${nf.format(best.f[1])} · P95 ${nf.format(best.f[2])}`
+          : `${nf.format(best.v)} atenciones`,
+      );
+      tooltip.hidden = false;
+      const px = (cx / W) * box.width;
+      tooltip.style.left = `${Math.min(Math.max(px - tooltip.offsetWidth / 2, 0), box.width - tooltip.offsetWidth)}px`;
+      tooltip.style.top = `${(cy / H) * box.height - tooltip.offsetHeight - 14}px`;
+    };
+    hit.addEventListener("pointermove", move as EventListener);
+    hit.addEventListener("pointerleave", () => {
+      guide.setAttribute("visibility", "hidden");
+      dot.setAttribute("visibility", "hidden");
+      tooltip.hidden = true;
+    });
+  }
+
+  function niceStep(raw: number) {
+    const p = Math.pow(10, Math.floor(Math.log10(raw)));
+    const f = raw / p;
+    return (f < 1.5 ? 1 : f < 3.5 ? 2 : f < 7.5 ? 5 : 10) * p;
+  }
+
+  q.addEventListener("input", renderList);
+  q.addEventListener("focus", () => { q.select(); renderList(); });
+  q.addEventListener("blur", () => setTimeout(closeList, 200));
+  q.addEventListener("keydown", (ev) => {
+    if (list.hidden) return;
+    if (ev.key === "ArrowDown" || ev.key === "ArrowUp") {
+      ev.preventDefault();
+      active = Math.max(0, Math.min(shown.length - 1, active + (ev.key === "ArrowDown" ? 1 : -1)));
+      list.querySelectorAll("li").forEach((li, i) => li.setAttribute("aria-selected", String(i === active)));
+      q.setAttribute("aria-activedescendant", `op-${active}`);
+      list.querySelector(`#op-${active}`)?.scrollIntoView({ block: "nearest" });
+    } else if (ev.key === "Enter") {
+      const e = shown[active] ?? shown.find((x) => x.ok);
+      if (e?.ok) select(e);
+    } else if (ev.key === "Escape") {
+      closeList();
+    }
+  });
+  for (const s of [selTipo, selRegion]) s.addEventListener("change", () => { q.focus(); renderList(); });
+  document.querySelectorAll<HTMLButtonElement>(".horizonte button").forEach((b) =>
+    b.addEventListener("click", () => {
+      horizon = Number(b.dataset.h);
+      document.querySelectorAll(".horizonte button").forEach((o) => o.setAttribute("aria-pressed", String(o === b)));
+      render();
+    }),
+  );
+  $("copiar").addEventListener("click", async () => {
+    const text = $("cmd").textContent ?? "";
+    try {
+      await navigator.clipboard.writeText(text);
+      $("copiar").textContent = "Copiado";
+    } catch {
+      const r = document.createRange();
+      r.selectNodeContents($("cmd"));
+      getSelection()?.removeAllRanges();
+      getSelection()?.addRange(r);
+    }
+    setTimeout(() => ($("copiar").textContent = "Copiar"), 1500);
+  });
+  let resizeTimer = 0;
+  window.addEventListener("resize", () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = window.setTimeout(() => current && render(), 150);
+  });
+  window.addEventListener("hashchange", () => {
+    const e = entries.find((x) => x.c === decodeURIComponent(location.hash.slice(1)) && x.ok);
+    if (e && e.c !== current?.c) select(e);
+  });
+
+  init();
+</script>

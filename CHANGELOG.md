@@ -7,14 +7,37 @@ API puede cambiar entre versiones menores).
 
 ## [Sin publicar]
 
+## [0.3.0] - 2026-10-06
+
 ### Agregado
 
+- **Copia semanal de los datos en el repositorio.** Un workflow (`datos.yml`)
+  descarga el DEIS una vez por semana y publica en la rama `datos` los totales
+  diarios de todos los establecimientos (`diario.parquet`), su listado con tipo,
+  región, comuna y servicio de salud (`establecimientos.csv`) y `meta.json`.
+  Módulo `urgencias_core.data.mirror`.
+- **Demo en el sitio**
+  (<https://nicoveraz.github.io/urg-forecast-core/demo/>): buscar un
+  establecimiento público por nombre, comuna, tipo o región y ver su pronóstico,
+  con gráfico interactivo, cifras clave, backtest y el comando para
+  reproducirlo. Los pronósticos se precalculan cada semana
+  (`scripts/construir_datos.py`).
+- `--fuente repo|deis` en `demo`, `buscar` y `pronosticar`.
 - Sitio de documentación en español en
   <https://nicoveraz.github.io/urg-forecast-core/> (Astro Starlight en
   `sitio/`, publicado desde `main` con `.github/workflows/docs.yml`). Sus
   páginas se generan del README, de `docs/` y de este registro, así que no hay
-  contenido duplicado.
+  contenido duplicado. Incluye un ejemplo paso a paso para agregar un modelo y
+  una instrucción lista para pedirle a una IA que extienda la herramienta.
 - Enlace `Documentation` en los metadatos de PyPI.
+
+### Cambiado
+
+- **Por defecto los datos se leen de la copia del repositorio**, no del DEIS:
+  unos pocos MB en vez de cientos por año, y sin cargar el servidor del DEIS.
+  `--fuente deis` mantiene la descarga directa.
+- `buscar` es instantáneo y filtra también por tipo, comuna, región y servicio
+  de salud.
 
 ## [0.2.0] - 2026-10-06
 
@@ -138,6 +161,7 @@ Primera versión pública: el pipeline de referencia empaquetado para `pip insta
 
 - Formato unificado con `ruff format` (se dejó black).
 
-[Sin publicar]: https://github.com/nicoveraz/urg-forecast-core/compare/v0.2.0...HEAD
+[Sin publicar]: https://github.com/nicoveraz/urg-forecast-core/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/nicoveraz/urg-forecast-core/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/nicoveraz/urg-forecast-core/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/nicoveraz/urg-forecast-core/releases/tag/v0.1.0

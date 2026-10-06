@@ -1,6 +1,6 @@
 [project]
 name = "urg-forecast-core"
-version = "0.2.0"
+version = "0.3.0"
 description = "Base abierta para pronosticar la demanda de urgencias en Chile con datos públicos del DEIS MINSAL: una aproximación inicial para ajustar y extender."
 readme = "README.md"
 license = { file = "LICENSE" }

@@ -146,3 +146,11 @@ def test_modelos_lists_defaults_and_extras(capsys) -> None:
     out = capsys.readouterr().out
     for name in ("AutoARIMA", "MSTL", "TBATS", "Ensamble", "ArmónicoFeriados"):
         assert name in out
+
+
+def test_fuente_option_reaches_load_deis(monkeypatch) -> None:
+    seen = _capture_load_deis(monkeypatch)
+    assert cli.main(["pronosticar", "24-105"]) == 1
+    assert seen["source"] == "repo"
+    assert cli.main(["pronosticar", "24-105", "--fuente", "deis"]) == 1
+    assert seen["source"] == "deis"

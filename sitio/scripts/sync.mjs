@@ -76,9 +76,12 @@ hero:
   image:
     html: '<img class="hero-figura" src="${BASE}/pronostico.png" width="940" height="420" alt="Pronóstico semanal a 26 semanas para el Hospital de Puerto Montt, con bandas P80 y P95">' 
   actions:
+    - text: Ver la demo
+      link: ${BASE}/demo/
+      icon: right-arrow
     - text: Empezar
       link: ${BASE}/uso/
-      icon: right-arrow
+      variant: secondary
     - text: GitHub
       link: https://github.com/nicoveraz/urg-forecast-core
       icon: github
