@@ -9,10 +9,14 @@ API puede cambiar entre versiones menores).
 
 ### Agregado
 
-- **Regresores interactivos en la demo.** Sobre el gráfico de cada establecimiento,
-  botones para agregar al pronóstico los feriados o la circulación viral (con promedio
-  histórico o proyectada) y comparar el Armónico con y sin ese regresor, con lo que el
-  modelo supuso para cada semana y el veredicto del backtest cuando existe.
+- **La demo avanza de lo más simple a lo más detallado**, en cinco secciones numeradas y
+  con un índice al inicio: cómo ha sido la demanda, qué se espera, qué tan confiable es,
+  si mejora con información externa, y cómo reproducirlo (con la receta para un regresor
+  propio).
+- **Regresores interactivos en la demo.** En la sección "¿Mejora con información
+  externa?", botones para agregar al pronóstico los feriados o la circulación viral (con
+  promedio histórico o proyectada) y comparar el Armónico con y sin ese regresor, con lo
+  que el modelo supuso para cada semana y el veredicto del backtest cuando existe.
 - **Página "Para desarrolladores"** en el sitio: cada función pública, con su
   explicación y parámetros a la izquierda y, a la derecha, un ejemplo y su salida real,
   ejecutados con el snapshot incluido (`scripts/construir_api.py`). Un test ejecuta los

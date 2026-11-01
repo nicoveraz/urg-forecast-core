@@ -124,15 +124,15 @@ print(corrida.scores().groupby("model")[cols].mean())
 
 ## Probarlo
 
-**En la demo.** Sobre el gráfico de cada establecimiento hay tres botones: "+ Feriados",
-"+ Virus respiratorios" y "+ Virus, proyectados". Al activar uno, el gráfico compara el
-Armónico solo (línea punteada) con el Armónico más ese regresor (línea de color y su banda
-hasta P80), sin la calibración de intervalos, para que la única diferencia sea el
-regresor. El texto bajo el gráfico dice cuánto cambian las próximas cuatro semanas y, si
-el establecimiento está entre los 40 evaluados, el veredicto de su backtest. En el gráfico
-y su detalle se ve qué supuso el modelo para cada semana: los feriados o la positividad
-publicada o proyectada. Más abajo, en la misma página, está su backtest semana a semana
-(ver la sección anterior).
+**En la demo.** La sección 4 de cada establecimiento, "¿Mejora con información externa?",
+tiene tres botones: Feriados, Virus respiratorios y Virus proyectados. Cada uno muestra un
+gráfico que compara el Armónico solo (línea punteada) con el Armónico más ese regresor
+(línea de color y su banda hasta P80), sin la calibración de intervalos, para que la única
+diferencia sea el regresor. El texto bajo el gráfico dice cuánto cambian las próximas
+cuatro semanas y, si el establecimiento está entre los 40 evaluados, el veredicto de su
+backtest. En el gráfico y su detalle se ve qué supuso el modelo para cada semana: los
+feriados o la positividad publicada o proyectada. Más abajo vienen la comparación en 36
+ventanas y el backtest semana a semana (ver la sección anterior).
 
 **En la terminal.**
 

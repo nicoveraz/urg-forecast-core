@@ -13,10 +13,12 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
   }}
 >
   <p class="intro" style="max-width:46rem">
-    Elige un establecimiento de la red pública y mira su pronóstico semanal y cómo ha sido su
-    demanda. Son los mismos resultados que entregan <code>urg-forecast pronosticar</code> y{" "}
-    <code>urg-forecast analizar</code>, calculados cada semana con los datos más recientes del
-    DEIS.
+    Elige un establecimiento de la red pública. La página avanza de lo más simple a lo más
+    detallado: cómo ha sido su demanda, qué se espera para las próximas semanas, qué tan
+    confiable es ese pronóstico, si mejora con información externa y cómo reproducirlo. Son
+    los mismos resultados que entregan <code>urg-forecast analizar</code> y{" "}
+    <code>urg-forecast pronosticar</code>, calculados cada semana con los datos más recientes
+    del DEIS.
   </p>
 
   <div id="demo" class="not-content" data-base={base}>
@@ -66,50 +68,14 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
           <h2 id="nombre"></h2>
           <p id="detalle" class="detalle"></p>
         </div>
-        <div class="horizonte" role="group" aria-label="Horizonte">
-          <button type="button" data-h="12">12 semanas</button>
-          <button type="button" data-h="26" aria-pressed="true">26 semanas</button>
-        </div>
       </header>
+      <nav class="niveles" id="niveles" aria-label="Secciones, de lo más simple a lo más detallado"></nav>
 
-      <div class="cifras" id="cifras"></div>
-
-      <div class="regs" id="regs" role="group" aria-labelledby="regs-label" hidden>
-        <span id="regs-label" class="regs-label">Agregar un regresor al pronóstico</span>
-        <button type="button" data-reg="ArmónicoFeriados" aria-pressed="false">+ Feriados</button>
-        <button type="button" data-reg="ArmónicoFluNet" aria-pressed="false">+ Virus respiratorios</button>
-        <button type="button" data-reg="ArmónicoFluNetProy" aria-pressed="false">+ Virus, proyectados</button>
-        <a class="regs-ayuda" href={base + "regresores/"}>¿Qué es esto?</a>
-      </div>
-
-      <figure class="grafico">
-        <svg id="svg" role="img" aria-labelledby="svg-titulo"><title id="svg-titulo"></title></svg>
-        <div id="tooltip" class="tooltip" hidden></div>
-        <figcaption id="leyenda">
-          <span class="ley historia"></span> Historia semanal
-          <span class="ley p50"></span> Pronóstico (valor central)
-          <span class="ley banda80"></span> Hasta P80
-          <span class="ley banda95"></span> Hasta P95
-        </figcaption>
-        <figcaption id="leyenda-reg" hidden>
-          <span class="ley historia"></span> Historia semanal
-          <span class="ley base"></span> Armónico solo
-          <span class="ley conreg"></span> <span id="leyenda-reg-nombre"></span>
-          <span class="ley conreg-banda"></span> Hasta P80
-        </figcaption>
-      </figure>
-      <p id="regs-texto" class="regs-texto" hidden></p>
-      <p class="glosario">
-        <strong>Cómo leerlo:</strong> P50 es el valor central (la mitad de las semanas debería
-        quedar bajo él). P80 y P95 son los valores que, con 80 % y 95 % de probabilidad, no se
-        superan: sirven para planificar con margen.
-      </p>
-
-      <section id="analisis" hidden>
+      <section id="analisis" class="nivel" data-corto="Demanda" hidden>
         <h3>Cómo ha sido la demanda</h3>
         <p class="detalle">
-          Antes de pronosticar, la descripción: el nivel, el año típico y cómo vienen las
-          últimas semanas frente al año anterior. Es lo que entrega{" "}
+          Lo más simple primero: qué pasó. El nivel de atenciones, el año típico y cómo vienen
+          las últimas semanas frente al año anterior. Es lo que entrega{" "}
           <code>urg-forecast analizar</code>.
         </p>
         <div class="cifras" id="an-cifras"></div>
@@ -128,25 +94,67 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
         </p>
       </section>
 
-      <h3>Backtest: cómo se eligió el modelo</h3>
-      <p class="detalle">
-        Cada modelo pronosticó semanas pasadas que ya se conocen, como si estuviera en esa fecha,
-        y se comparó con lo que pasó. MAE es el error absoluto medio por semana; la pérdida P80
-        mide el error del P80 castigando más quedarse corto que pasarse. En ambos, menor es mejor.
-      </p>
-      <p id="bt-texto" class="detalle"></p>
-      <div class="tabla"><table id="bt"></table></div>
-
-      <section id="regresor" hidden>
-        <h3>Agregar un regresor: feriados y circulación viral</h3>
-        <p>
-          ¿Mejora el pronóstico con información externa? Dos ejemplos, medidos de la misma
-          forma y con resultados opuestos: los <strong>feriados</strong> del calendario chileno,
-          que se conocen de antemano, y la <strong>positividad nacional de influenza y VRS</strong>{" "}
-          que el ISP reporta a la OMS (FluNet), publicada con unas dos semanas de atraso. El
-          método y los resultados completos están en <a href={base + "regresores/"}>Regresores</a>.
+      <section id="pronostico" class="nivel" data-corto="Pronóstico">
+        <div class="nivel-cab">
+          <h3>Qué se espera</h3>
+          <div class="horizonte" role="group" aria-label="Horizonte">
+            <button type="button" data-h="12">12 semanas</button>
+            <button type="button" data-h="26" aria-pressed="true">26 semanas</button>
+          </div>
+        </div>
+        <p class="detalle">
+          El pronóstico semanal, con bandas para planificar con margen. Lo hace el modelo que
+          mejor le fue en el backtest de la sección siguiente. Es lo que entrega{" "}
+          <code>urg-forecast pronosticar</code>.
         </p>
+        <div class="cifras" id="cifras"></div>
         <figure class="grafico">
+          <svg id="svg" role="img" aria-labelledby="svg-titulo"><title id="svg-titulo"></title></svg>
+          <div id="tooltip" class="tooltip" hidden></div>
+          <figcaption id="leyenda">
+            <span class="ley historia"></span> Historia semanal
+            <span class="ley p50"></span> Pronóstico (valor central)
+            <span class="ley banda80"></span> Hasta P80
+            <span class="ley banda95"></span> Hasta P95
+          </figcaption>
+        </figure>
+        <p class="glosario">
+          <strong>Cómo leerlo:</strong> P50 es el valor central (la mitad de las semanas debería
+          quedar bajo él). P80 y P95 son los valores que, con 80 % y 95 % de probabilidad, no se
+          superan: sirven para planificar con margen.
+        </p>
+      </section>
+
+      <section id="confiable" class="nivel" data-corto="Confiabilidad">
+        <h3>Qué tan confiable es</h3>
+        <p class="detalle">
+          Cada modelo pronosticó semanas pasadas que ya se conocen, como si estuviera en esa fecha,
+          y se comparó con lo que pasó (backtest). MAE es el error absoluto medio por semana; la
+          pérdida P80 mide el error del P80 castigando más quedarse corto que pasarse. En ambos,
+          menor es mejor.
+        </p>
+        <p id="bt-texto" class="detalle"></p>
+        <div class="tabla"><table id="bt"></table></div>
+      </section>
+
+      <section id="externa" class="nivel" data-corto="Información externa" hidden>
+        <h3>¿Mejora con información externa?</h3>
+        <p>
+          Un paso más: sumar al modelo variables que no vienen del DEIS. Dos ejemplos, medidos
+          de la misma forma y con resultados opuestos: los <strong>feriados</strong> del
+          calendario chileno, que se conocen de antemano, y la <strong>positividad nacional de
+          influenza y VRS</strong> que el ISP reporta a la OMS (FluNet), publicada con unas dos
+          semanas de atraso. El método y los resultados completos están en{" "}
+          <a href={base + "regresores/"}>Regresores</a>.
+        </p>
+        <p>
+          Cada variante se compara con el Armónico sin regresor, en las mismas ventanas.{" "}
+          <strong>ArmónicoFeriados</strong> suma los feriados que caen en día hábil cada
+          semana. <strong>ArmónicoFluNet</strong> usa la positividad y llena las semanas que
+          aún no se publican con su promedio histórico. <strong>ArmónicoFluNetProy</strong>{" "}
+          la proyecta desde la temporada en curso (la línea punteada del gráfico).
+        </p>
+        <figure class="grafico" id="pos-fig" hidden>
           <svg id="svg-pos" role="img" aria-labelledby="pos-titulo"><title id="pos-titulo">Positividad semanal de influenza y VRS en Chile, con proyección</title></svg>
           <figcaption>
             <span class="ley flu"></span> Influenza
@@ -155,52 +163,89 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
             <span id="pos-fuente"></span>
           </figcaption>
         </figure>
-        <p>
-          Cada variante se compara con el Armónico sin regresor, en las mismas ventanas.{" "}
-          <strong>ArmónicoFeriados</strong> suma los feriados que caen en día hábil cada
-          semana. <strong>ArmónicoFluNet</strong> usa la positividad y llena las semanas que
-          aún no se publican con su promedio histórico. <strong>ArmónicoFluNetProy</strong>{" "}
-          la proyecta desde la temporada en curso (la línea punteada).
-        </p>
-        <div id="reg-propio"></div>
-        <div id="btr" hidden>
-          <h4>Por qué un intervalo más angosto o más bajo puede ser peor</h4>
-          <p>
-            El P80 es el valor que las atenciones no deberían superar en 4 de cada 5 semanas.
-            La pérdida P80 cobra <strong>0,8 por cada atención sobre el P80</strong> y{" "}
-            <strong>0,2 por cada atención bajo él</strong>. Bajar el P80 en 10 atenciones
-            ahorra 2 en cada semana que sigue bajo él y cuesta 8 en cada semana que queda sobre
-            él. Por eso un intervalo más angosto conviene solo si lo real lo sigue superando en
-            menos de 1 de cada 5 semanas; no es mejor por sí solo. Y como la pérdida solo mira
-            dónde queda el P80, un intervalo más angosto pero corrido hacia arriba también
-            puede salir peor.
-          </p>
-          <p>
-            El gráfico muestra el backtest de este establecimiento: cada tramo es un pronóstico
-            de 4 semanas hecho con lo que se sabía en su fecha, frente a lo que pasó. Toca un
-            tramo (o elige una ventana en la lista) para ver la cuenta semana a semana.
-          </p>
-          <div class="regs" id="btr-sel" role="group" aria-label="Regresor que se compara con el Armónico"></div>
+        <div id="reg-fc" hidden>
+          <h4>Qué cambia en el pronóstico</h4>
+          <div class="regs" id="regs" role="group" aria-labelledby="regs-label">
+            <span id="regs-label" class="regs-label">Regresor</span>
+            <button type="button" data-reg="ArmónicoFeriados" aria-pressed="false">Feriados</button>
+            <button type="button" data-reg="ArmónicoFluNet" aria-pressed="false">Virus respiratorios</button>
+            <button type="button" data-reg="ArmónicoFluNetProy" aria-pressed="false">Virus proyectados</button>
+          </div>
           <figure class="grafico">
-            <svg id="svg-btr" role="img" aria-labelledby="btr-titulo"><title id="btr-titulo">P80 de cada ventana del backtest frente a lo que pasó</title></svg>
-            <figcaption id="btr-leyenda"></figcaption>
+            <svg id="svg-regfc" role="img" aria-labelledby="regfc-titulo"><title id="regfc-titulo"></title></svg>
+            <div id="tooltip-reg" class="tooltip" hidden></div>
+            <figcaption id="leyenda-reg">
+              <span class="ley historia"></span> Historia semanal
+              <span class="ley base"></span> Armónico solo
+              <span class="ley conreg"></span> <span id="leyenda-reg-nombre"></span>
+              <span class="ley conreg-banda"></span> Hasta P80
+            </figcaption>
           </figure>
-          <label class="btr-ventana">
-            Ventana <select id="btr-ventana"></select>
-          </label>
-          <p id="btr-ej"></p>
-          <div class="tabla"><table id="btr-semanas"></table></div>
-          <p class="nota">
-            Pérdida de cada semana: 0,8 × lo que lo real superó al P80, o 0,2 × lo que quedó
-            bajo él. La de la ventana es el promedio de sus semanas. Modelos sin calibrar, como
-            en la comparación de arriba.
-          </p>
-          <h5 id="btr-titulo-resumen"></h5>
-          <div class="tabla"><table id="btr-resumen"></table></div>
-          <p id="btr-texto"></p>
+          <p id="regs-texto" class="regs-texto"></p>
         </div>
-        <p id="reg-red" class="detalle"></p>
-        <h4>La receta, con tus propios datos</h4>
+        <section id="regresor" hidden>
+          <h4>¿Mejora de verdad?</h4>
+          <div id="reg-propio"></div>
+          <p id="reg-red" class="detalle"></p>
+          <div id="btr" hidden>
+            <h4>Por qué un intervalo más angosto o más bajo puede ser peor</h4>
+            <p>
+              El P80 es el valor que las atenciones no deberían superar en 4 de cada 5 semanas.
+              La pérdida P80 cobra <strong>0,8 por cada atención sobre el P80</strong> y{" "}
+              <strong>0,2 por cada atención bajo él</strong>. Bajar el P80 en 10 atenciones
+              ahorra 2 en cada semana que sigue bajo él y cuesta 8 en cada semana que queda sobre
+              él. Por eso un intervalo más angosto conviene solo si lo real lo sigue superando en
+              menos de 1 de cada 5 semanas; no es mejor por sí solo. Y como la pérdida solo mira
+              dónde queda el P80, un intervalo más angosto pero corrido hacia arriba también
+              puede salir peor.
+            </p>
+            <p>
+              El gráfico muestra el backtest de este establecimiento: cada tramo es un pronóstico
+              de 4 semanas hecho con lo que se sabía en su fecha, frente a lo que pasó. Toca un
+              tramo (o elige una ventana en la lista) para ver la cuenta semana a semana.
+            </p>
+            <div class="regs" id="btr-sel" role="group" aria-label="Regresor que se compara con el Armónico"></div>
+            <figure class="grafico">
+              <svg id="svg-btr" role="img" aria-labelledby="btr-titulo"><title id="btr-titulo">P80 de cada ventana del backtest frente a lo que pasó</title></svg>
+              <figcaption id="btr-leyenda"></figcaption>
+            </figure>
+            <label class="btr-ventana">
+              Ventana <select id="btr-ventana"></select>
+            </label>
+            <p id="btr-ej"></p>
+            <div class="tabla"><table id="btr-semanas"></table></div>
+            <p class="nota">
+              Pérdida de cada semana: 0,8 × lo que lo real superó al P80, o 0,2 × lo que quedó
+              bajo él. La de la ventana es el promedio de sus semanas. Modelos sin calibrar, como
+              en la comparación de arriba.
+            </p>
+            <h5 id="btr-titulo-resumen"></h5>
+            <div class="tabla"><table id="btr-resumen"></table></div>
+            <p id="btr-texto"></p>
+          </div>
+        </section>
+      </section>
+
+      <section id="reproducir" class="nivel" data-corto="Reprodúcelo">
+        <h3>Reprodúcelo y extiéndelo</h3>
+        <p class="detalle" id="repro-texto"></p>
+        <div class="comando">
+          <code id="cmd"></code>
+          <button type="button" id="copiar">Copiar</button>
+        </div>
+        <details class="repro-python">
+          <summary>Lo mismo en Python</summary>
+          <pre class="receta"><code id="cmd-python"></code></pre>
+          <p class="nota">
+            Más funciones, cada una con su ejemplo, en{" "}
+            <a href={base + "desarrolladores/"}>Para desarrolladores</a>.
+          </p>
+        </details>
+        <h4>Tu propio regresor</h4>
+        <p class="detalle">
+          Para probar una variable propia, como la temperatura, con la misma comparación de la
+          sección anterior:
+        </p>
         <pre class="receta"><code>from urgencias_core.models.exogenous import HarmonicExogenous
 from urgencias_core.models.harmonic import HarmonicRegression
 from urgencias_core.eval.compare import compare_models
@@ -220,26 +265,11 @@ con_temp = lambda: HarmonicExogenous.from_regressor(
 )
 cmp = compare_models(historia, ("Armónico", HarmonicRegression), ("ConTemp", con_temp))
 print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></pre>
-      </section>
-
-      <h3>Reprodúcelo en tu computador</h3>
-      <p class="detalle" id="repro-texto"></p>
-      <div class="comando">
-        <code id="cmd"></code>
-        <button type="button" id="copiar">Copiar</button>
-      </div>
-      <details class="repro-python">
-        <summary>Lo mismo en Python</summary>
-        <pre class="receta"><code id="cmd-python"></code></pre>
         <p class="nota">
-          Más funciones, cada una con su ejemplo, en{" "}
-          <a href={base + "desarrolladores/"}>Para desarrolladores</a>.
+          Modelos estadísticos simples, sin ajuste local. Es una ilustración del método, no una
+          evaluación del establecimiento ni una herramienta validada para decidir dotación.
         </p>
-      </details>
-      <p class="nota">
-        Modelos estadísticos simples, sin ajuste local. Es una ilustración del método, no una
-        evaluación del establecimiento ni una herramienta validada para decidir dotación.
-      </p>
+      </section>
     </section>
   </div>
 </StarlightPage>
@@ -321,6 +351,20 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
   }
   #demo .ficha-cab h2 { margin: 0; font-size: var(--sl-text-2xl); }
   #demo .detalle { color: var(--sl-color-gray-3); margin: 0.25rem 0 0; }
+  /* Sections go from simple to detailed; each one is numbered and listed in the nav. */
+  #demo #ficha { counter-reset: nivel; }
+  #demo section.nivel { counter-increment: nivel; margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid var(--sl-color-hairline); }
+  #demo section.nivel[hidden] { display: none; }
+  #demo section.nivel h3 { margin-top: 0; }
+  #demo section.nivel, #demo #btr { scroll-margin-top: calc(var(--sl-nav-height, 3.5rem) + 1rem); }
+  #demo section.nivel h3::before { content: counter(nivel) ". "; color: var(--sl-color-accent); }
+  #demo .nivel-cab { display: flex; flex-wrap: wrap; gap: 0.75rem 1rem; justify-content: space-between; align-items: center; }
+  #demo .niveles { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 1rem; }
+  #demo .niveles button {
+    padding: 0.25rem 0.7rem; border: 1px solid var(--sl-color-gray-5); border-radius: 999px;
+    background: transparent; color: var(--sl-color-gray-2); font: inherit; font-size: var(--sl-text-sm); cursor: pointer;
+  }
+  #demo .niveles button:hover { border-color: var(--sl-color-accent); color: var(--sl-color-white); }
   #demo .horizonte { display: flex; gap: 0.25rem; }
   #demo .horizonte button {
     padding: 0.35rem 0.75rem;
@@ -347,8 +391,8 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
   #demo .cifra .v { font-size: var(--sl-text-2xl); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--sl-color-white); }
   #demo .cifra .l { font-size: var(--sl-text-sm); color: var(--sl-color-gray-3); }
   #demo .grafico { position: relative; margin: 1.25rem 0 0; }
-  #demo #svg { width: 100%; height: auto; display: block; overflow: visible; }
-  #demo #svg text { fill: var(--sl-color-gray-3); font-size: 11px; font-family: var(--sl-font); }
+  #demo #svg, #demo #svg-regfc { width: 100%; height: auto; display: block; overflow: visible; }
+  #demo #svg text, #demo #svg-regfc text { fill: var(--sl-color-gray-3); font-size: 11px; font-family: var(--sl-font); }
   #demo .grafico figcaption {
     display: flex; flex-wrap: wrap; gap: 0.35rem 1rem; align-items: center;
     font-size: var(--sl-text-sm); color: var(--sl-color-gray-3); margin-top: 0.5rem;
@@ -388,8 +432,8 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
   #demo th { color: var(--sl-color-gray-2); font-weight: 600; font-size: var(--sl-text-sm); }
   #demo code { font-family: var(--sl-font-mono); font-size: var(--sl-text-sm); }
   #demo .nota { margin-top: 1rem; }
-  #demo #regresor p { margin: 0.75rem 0 0; }
-  #demo #regresor .veredicto p { margin: 0; }
+  #demo #externa p { margin: 0.75rem 0 0; }
+  #demo #externa .veredicto p { margin: 0; }
   #demo .ley.tip-banda { background: color-mix(in srgb, var(--sl-color-gray-3) 25%, transparent); }
   #demo .ley.tip-media { height: 2px; background: var(--sl-color-gray-2); }
   #demo #svg-tipico { width: 100%; height: auto; display: block; overflow: visible; }
@@ -508,6 +552,8 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
   const ficha = $<HTMLElement>("ficha");
   const svg = document.getElementById("svg") as unknown as SVGSVGElement;
   const tooltip = $<HTMLDivElement>("tooltip");
+  const svgReg = document.getElementById("svg-regfc") as unknown as SVGSVGElement;
+  const tooltipReg = $<HTMLDivElement>("tooltip-reg");
 
   const nf = new Intl.NumberFormat("es-CL", { maximumFractionDigits: 0 });
   const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
@@ -634,8 +680,6 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
     const next4 = fc.slice(0, 4);
     const sum = (i: number) => next4.reduce((a, r) => a + (r[i] as number), 0);
     const peak = fc.reduce((a, r) => (r[1] > a[1] ? r : a), fc[0]);
-    const lastYear = d.historia.slice(-52);
-    const avg = lastYear.reduce((a, r) => a + r[1], 0) / lastYear.length;
     $("cifras").innerHTML = "";
     const cifra = (v: string, l: string) => {
       const div = document.createElement("div");
@@ -648,7 +692,6 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
     cifra(nf.format(sum(1)), "atenciones esperadas en las próximas 4 semanas");
     cifra(nf.format(sum(2)), "hasta P80 en esas 4 semanas");
     cifra(`${nf.format(peak[1])}`, `semana más alta del horizonte (${fecha(peak[0])})`);
-    cifra(nf.format(avg), "promedio semanal del último año");
 
     const [c, n] = d.cobertura;
     const esc = (d as Detail & { escala?: Record<string, number> }).escala ?? {};
@@ -694,27 +737,46 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
       "print(res.best)",
       'print(res.forecast[["timestamp", "q50", "q80", "q95"]])',
     ].join("\n");
-    renderRegToggles(d, fc);
-    drawChart(d, fc);
+    drawChart(d, fc, svg, tooltip, null);
     renderAnalysis(d);
+    $("externa").hidden = !(d.regresores?.["Armónico"] || reg);
+    renderRegToggles(d, fc);
+    if (activeReg) drawChart(d, fc, svgReg, tooltipReg, activeReg);
     renderRegressor(d);
+    renderNav();
+  }
+
+  // One button per visible section, numbered like the headings (CSS counters).
+  function renderNav() {
+    const nav = $("niveles");
+    nav.innerHTML = "";
+    let i = 0;
+    for (const sec of document.querySelectorAll<HTMLElement>("#ficha > section.nivel")) {
+      if (sec.hidden) continue;
+      i += 1;
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = `${i}. ${sec.dataset.corto}`;
+      b.addEventListener("click", () => sec.scrollIntoView({ behavior: "smooth", block: "start" }));
+      nav.append(b);
+    }
   }
 
   function renderRegToggles(d: Detail, fc: Detail["pronostico"]) {
-    const box = $("regs");
+    const box = $("reg-fc");
     const available = d.regresores ?? {};
-    box.hidden = !available["Armónico"];
-    if (activeReg && !available[activeReg]) activeReg = null;
-    box.querySelectorAll<HTMLButtonElement>("button").forEach((b) => {
+    const buttons = [...$("regs").querySelectorAll<HTMLButtonElement>("button")];
+    const names = buttons.map((b) => b.dataset.reg!);
+    box.hidden = !available["Armónico"] || !names.some((m) => available[m]);
+    if (box.hidden) { activeReg = null; return; }
+    if (!activeReg || !available[activeReg]) activeReg = names.find((m) => available[m])!;
+    buttons.forEach((b) => {
       const m = b.dataset.reg!;
       b.disabled = !available[m];
       b.style.setProperty("--reg-color", REG_COLOR[m]);
       b.setAttribute("aria-pressed", String(m === activeReg));
     });
-    $("leyenda").hidden = !!activeReg;
-    $("leyenda-reg").hidden = !activeReg;
     const txt = $("regs-texto");
-    if (!activeReg) { txt.hidden = true; return; }
     $("leyenda-reg").style.setProperty("--reg-color", REG_COLOR[activeReg]);
     $("leyenda-reg-nombre").textContent = `Armónico ${REG_NAME[activeReg]}`;
     const n = Math.min(4, fc.length);
@@ -727,7 +789,7 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
     const ev = reg?.establecimientos.find((e) => e.c === d.c)?.candidatos[activeReg];
     t += ev
       ? `En el backtest de este establecimiento: ${ev.veredicto} (gana ${ev.todas.gana} de ${ev.todas.n} ventanas).`
-      : "Este establecimiento no está entre los evaluados en el backtest de abajo.";
+      : "Este establecimiento no está entre los evaluados en la comparación de abajo.";
     txt.textContent = t;
     const mine = reg?.establecimientos.find((e) => e.c === d.c);
     if (ev && mine?.resumen) {
@@ -834,6 +896,7 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
 
   function renderRegressor(d: Detail) {
     const sec = $("regresor");
+    $("pos-fig").hidden = !reg;
     if (!reg) { sec.hidden = true; return; }
     sec.hidden = false;
     drawPositivity(reg);
@@ -1299,24 +1362,32 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
     return e;
   }
 
-  function drawChart(d: Detail, fc: Detail["pronostico"]) {
+  // The forecast chart. With ``regName`` it compares Armónico with and without that regressor
+  // (both uncalibrated) instead of showing the calibrated forecast.
+  function drawChart(d: Detail, fc: Detail["pronostico"], svg: SVGSVGElement, tooltip: HTMLDivElement, regName: string | null) {
+    const E = (n: string, a: Record<string, string | number>) => el(n, a, svg);
     const W = Math.max(300, Math.round(svg.parentElement!.clientWidth || 760));
     const narrow = W < 560;
     const H = narrow ? 260 : 320, m = { t: 14, r: 10, b: 26, l: narrow ? 40 : 48 };
     svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
     svg.querySelectorAll(":scope > :not(title)").forEach((n) => n.remove());
-    $("svg-titulo").textContent = `Atenciones semanales y pronóstico a ${horizon} semanas, ${d.n}`;
+    svg.querySelector("title")!.textContent = regName
+      ? `Pronóstico del Armónico con y sin el regresor ${REG_NAME[regName] ?? regName}, ${d.n}`
+      : `Atenciones semanales y pronóstico a ${horizon} semanas, ${d.n}`;
     const hist = d.historia.slice(-104);
     const pts = [...hist.map((r) => r[0]), ...fc.map((r) => r[0])].map((s) => +new Date(s));
     const x0 = pts[0], x1 = pts[pts.length - 1];
     const regs = d.regresores ?? {};
-    const overlay = activeReg && regs[activeReg] && regs["Armónico"]
-      ? { base: regs["Armónico"].pronostico.slice(0, fc.length), con: regs[activeReg].pronostico.slice(0, fc.length),
-          valores: regs[activeReg].valores ?? [], columnas: regs[activeReg].columnas ?? [] }
+    const overlay = regName && regs[regName] && regs["Armónico"]
+      ? { base: regs["Armónico"].pronostico.slice(0, fc.length), con: regs[regName].pronostico.slice(0, fc.length),
+          valores: regs[regName].valores ?? [], columnas: regs[regName].columnas ?? [] }
       : null;
-    const vals = [...hist.map((r) => r[1]), ...fc.map((r) => r[3]), ...(overlay ? overlay.con.map((r) => r[2]) : [])];
-    const lo = Math.min(...hist.map((r) => r[1]), ...fc.map((r) => r[1]));
-    const hi = Math.max(...vals);
+    // y range from what is drawn: the calibrated bands, or both uncalibrated forecasts
+    const shown = overlay
+      ? [...overlay.base.map((r) => r[1]), ...overlay.con.flatMap((r) => [r[1], r[2]])]
+      : fc.flatMap((r) => [r[1], r[3]]);
+    const lo = Math.min(...hist.map((r) => r[1]), ...shown);
+    const hi = Math.max(...hist.map((r) => r[1]), ...shown);
     const pad = (hi - lo) * 0.08 || 1;
     const y0 = Math.max(0, lo - pad), y1 = hi + pad;
     const X = (t: number) => m.l + ((t - x0) / (x1 - x0)) * (W - m.l - m.r);
@@ -1325,14 +1396,14 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
     // grid + y labels
     const step = niceStep((y1 - y0) / 4);
     for (let v = Math.ceil(y0 / step) * step; v <= y1; v += step) {
-      el("line", { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v), stroke: "var(--sl-color-hairline)" });
-      el("text", { x: m.l - 6, y: Y(v) + 4, "text-anchor": "end" }).textContent = nf.format(v);
+      E("line", { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v), stroke: "var(--sl-color-hairline)" });
+      E("text", { x: m.l - 6, y: Y(v) + 4, "text-anchor": "end" }).textContent = nf.format(v);
     }
     // x labels: Jan and Jul
     for (let t = firstOfMonth(x0); +t <= x1; t.setMonth(t.getMonth() + 1)) {
       if (![0, 6].includes(t.getMonth())) continue;
       if (narrow && t.getMonth() !== 0) continue;
-      const lab = el("text", { x: X(+t), y: H - 8, "text-anchor": "middle" });
+      const lab = E("text", { x: X(+t), y: H - 8, "text-anchor": "middle" });
       lab.textContent = narrow ? String(t.getFullYear()) : `${MESES[t.getMonth()]} ${t.getFullYear()}`;
     }
 
@@ -1342,35 +1413,36 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
     const F = fc.map((r) => [+new Date(r[0]), r[1], r[2], r[3]]);
     const lastH: [number, number] = [+new Date(hist[hist.length - 1][0]), hist[hist.length - 1][1]];
     const p50 = [lastH, ...F.map((r) => [r[0], r[1]] as [number, number])];
-    const dim = overlay ? 0 : 1; // with a regressor on, the chart compares Armónico with and without it
-    el("path", { d: band(F.map((r) => [r[0], r[1]]), F.map((r) => [r[0], r[3]])), fill: "var(--sl-color-accent)", "fill-opacity": 0.16 * dim });
-    el("path", { d: band(F.map((r) => [r[0], r[1]]), F.map((r) => [r[0], r[2]])), fill: "var(--sl-color-accent)", "fill-opacity": 0.32 * dim });
-    el("path", { d: line(hist.map((r) => [+new Date(r[0]), r[1]])), fill: "none", stroke: "var(--sl-color-gray-3)", "stroke-width": 1.8, "stroke-linejoin": "round" });
-    el("path", { d: line(p50), fill: "none", stroke: "var(--sl-color-accent)", "stroke-width": 2.6, "stroke-linejoin": "round", "stroke-opacity": dim });
+    if (!overlay) {
+      E("path", { d: band(F.map((r) => [r[0], r[1]]), F.map((r) => [r[0], r[3]])), fill: "var(--sl-color-accent)", "fill-opacity": 0.16 });
+      E("path", { d: band(F.map((r) => [r[0], r[1]]), F.map((r) => [r[0], r[2]])), fill: "var(--sl-color-accent)", "fill-opacity": 0.32 });
+    }
+    E("path", { d: line(hist.map((r) => [+new Date(r[0]), r[1]])), fill: "none", stroke: "var(--sl-color-gray-3)", "stroke-width": 1.8, "stroke-linejoin": "round" });
+    if (!overlay) E("path", { d: line(p50), fill: "none", stroke: "var(--sl-color-accent)", "stroke-width": 2.6, "stroke-linejoin": "round" });
     if (overlay) {
-      const color = REG_COLOR[activeReg!] ?? "var(--sl-color-accent)";
+      const color = REG_COLOR[regName!] ?? "var(--sl-color-accent)";
       const C = overlay.con.map((r) => [+new Date(r[0]), r[1], r[2]] as [number, number, number]);
       const B = overlay.base.map((r) => [+new Date(r[0]), r[1]] as [number, number]);
-      el("path", { d: band(C.map((r) => [r[0], r[1]]), C.map((r) => [r[0], r[2]])), fill: color, "fill-opacity": 0.22 });
-      el("path", { d: line([lastH, ...B]), fill: "none", stroke: "var(--sl-color-gray-2)", "stroke-width": 2, "stroke-dasharray": "5 4" });
-      el("path", { d: line([lastH, ...C.map((r) => [r[0], r[1]] as [number, number])]), fill: "none", stroke: color, "stroke-width": 2.6, "stroke-linejoin": "round" });
-      if (activeReg === "ArmónicoFeriados") {
+      E("path", { d: band(C.map((r) => [r[0], r[1]]), C.map((r) => [r[0], r[2]])), fill: color, "fill-opacity": 0.22 });
+      E("path", { d: line([lastH, ...B]), fill: "none", stroke: "var(--sl-color-gray-2)", "stroke-width": 2, "stroke-dasharray": "5 4" });
+      E("path", { d: line([lastH, ...C.map((r) => [r[0], r[1]] as [number, number])]), fill: "none", stroke: color, "stroke-width": 2.6, "stroke-linejoin": "round" });
+      if (regName === "ArmónicoFeriados") {
         // mark forecast weeks with holidays on a weekday
         for (const v of overlay.valores) {
           const n = Number(v[1]);
           if (!n || +new Date(String(v[0])) > x1) continue;
           const x = X(+new Date(String(v[0])));
-          el("line", { x1: x, x2: x, y1: H - m.b, y2: H - m.b - 8, stroke: color, "stroke-width": 3 });
-          if (!narrow) el("text", { x, y: H - m.b - 11, "text-anchor": "middle" }).textContent = n > 1 ? `${n}F` : "F";
+          E("line", { x1: x, x2: x, y1: H - m.b, y2: H - m.b - 8, stroke: color, "stroke-width": 3 });
+          if (!narrow) E("text", { x, y: H - m.b - 11, "text-anchor": "middle" }).textContent = n > 1 ? `${n}F` : "F";
         }
       }
     }
-    el("line", { x1: X(lastH[0]), x2: X(lastH[0]), y1: m.t, y2: H - m.b, stroke: "var(--sl-color-gray-4)", "stroke-dasharray": "3 4" });
-    el("text", { x: X(lastH[0]) - 6, y: m.t + 10, "text-anchor": "end" }).textContent = "datos hasta acá";
+    E("line", { x1: X(lastH[0]), x2: X(lastH[0]), y1: m.t, y2: H - m.b, stroke: "var(--sl-color-gray-4)", "stroke-dasharray": "3 4" });
+    E("text", { x: X(lastH[0]) - 6, y: m.t + 10, "text-anchor": "end" }).textContent = "datos hasta acá";
 
     // hover layer
-    const guide = el("line", { y1: m.t, y2: H - m.b, stroke: "var(--sl-color-gray-2)", "stroke-width": 1, visibility: "hidden" });
-    const dot = el("circle", { r: 4.5, fill: "var(--sl-color-accent)", stroke: "var(--sl-color-bg)", "stroke-width": 2, visibility: "hidden" });
+    const guide = E("line", { y1: m.t, y2: H - m.b, stroke: "var(--sl-color-gray-2)", "stroke-width": 1, visibility: "hidden" });
+    const dot = E("circle", { r: 4.5, fill: "var(--sl-color-accent)", stroke: "var(--sl-color-bg)", "stroke-width": 2, visibility: "hidden" });
     const all = [
       ...hist.map((r) => ({ t: +new Date(r[0]), s: r[0], v: r[1], f: null as null | number[] })),
       ...fc.map((r) => ({ t: +new Date(r[0]), s: r[0], v: r[1], f: [r[1], r[2], r[3]] })),
@@ -1381,7 +1453,7 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
       const v = overlay.valores.find((r) => r[0] === s);
       return b && c ? { b: b[1], c: c[1], v } : null;
     };
-    const hit = el("rect", { x: m.l, y: m.t, width: W - m.l - m.r, height: H - m.t - m.b, fill: "transparent" });
+    const hit = E("rect", { x: m.l, y: m.t, width: W - m.l - m.r, height: H - m.t - m.b, fill: "transparent" });
     const move = (ev: PointerEvent) => {
       const box = svg.getBoundingClientRect();
       const sx = ((ev.clientX - box.left) / box.width) * W;
@@ -1393,7 +1465,7 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
       const rb = best.f ? regAt(best.s) : null;
       const cyy = rb ? Y(rb.c) : cy;
       dot.setAttribute("cx", String(cx)); dot.setAttribute("cy", String(cyy));
-      dot.setAttribute("fill", rb ? (REG_COLOR[activeReg!] ?? "var(--sl-color-accent)") : best.f ? "var(--sl-color-accent)" : "var(--sl-color-gray-2)");
+      dot.setAttribute("fill", rb ? (REG_COLOR[regName!] ?? "var(--sl-color-accent)") : best.f ? "var(--sl-color-accent)" : "var(--sl-color-gray-2)");
       dot.setAttribute("visibility", "visible");
       tooltip.innerHTML = "";
       const head = document.createElement("strong");
@@ -1401,11 +1473,11 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
       tooltip.append(head, document.createElement("br"));
       const ra = best.f ? regAt(best.s) : null;
       if (ra) {
-        tooltip.append(`Armónico ${nf.format(ra.b)} · ${REG_NAME[activeReg!]} ${nf.format(ra.c)}`);
+        tooltip.append(`Armónico ${nf.format(ra.b)} · ${REG_NAME[regName!]} ${nf.format(ra.c)}`);
         if (ra.v) {
           tooltip.append(document.createElement("br"));
           tooltip.append(
-            activeReg === "ArmónicoFeriados"
+            regName === "ArmónicoFeriados"
               ? `${ra.v[1]} feriado${Number(ra.v[1]) === 1 ? "" : "s"} en día hábil`
               : `Positividad supuesta: influenza ${String(ra.v[1]).replace(".", ",")} %, VRS ${String(ra.v[2]).replace(".", ",")} %`,
           );
@@ -1438,8 +1510,8 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
 
   document.querySelectorAll<HTMLButtonElement>("#regs button").forEach((b) =>
     b.addEventListener("click", () => {
-      activeReg = activeReg === b.dataset.reg ? null : b.dataset.reg!;
-      if (activeReg && activeReg !== btReg) { btReg = activeReg; btSel = -1; } // the backtest below follows
+      activeReg = b.dataset.reg!; // one regressor is always shown
+      if (activeReg !== btReg) { btReg = activeReg; btSel = -1; } // the backtest below follows
       render();
     }),
   );
