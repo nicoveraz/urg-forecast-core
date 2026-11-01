@@ -39,7 +39,7 @@ from urgencias_core.eval.baselines import (
 )
 from urgencias_core.eval.harness import quantile_loss
 from urgencias_core.models.ensemble import MedianEnsemble
-from urgencias_core.models.harmonic import HarmonicRegression
+from urgencias_core.models.harmonic import HarmonicFluNet, HarmonicRegression
 from urgencias_core.models.protocol import Forecaster, HorizonSpec
 
 COVID_EXCLUDE_YEARS = frozenset({2020, 2021})
@@ -284,6 +284,7 @@ def extra_models() -> dict[str, Callable[[], Forecaster]]:
         "Theta": _theta,
         "Ensamble": _ensemble,
         "ArmónicoFeriados": lambda: HarmonicRegression(holidays=True),
+        "ArmónicoFluNet": HarmonicFluNet,
     }
 
 
@@ -297,6 +298,10 @@ MODEL_INFO = {
     "Theta": "solo tendencia (no detecta el ciclo anual); sirve de contraste",
     "Ensamble": "mediana, cuantil a cuantil, de AutoARIMA, Armónico y MSTL",
     "ArmónicoFeriados": "Armónico + feriados chilenos en día hábil de cada semana",
+    "ArmónicoFluNet": (
+        "Armónico + positividad nacional de influenza y VRS (OMS FluNet); "
+        "ejemplo de regresor externo"
+    ),
 }
 
 

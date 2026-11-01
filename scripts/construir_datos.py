@@ -1,15 +1,18 @@
 """Build the weekly data published on the repository's ``datos`` branch.
 
-Run by .github/workflows/datos.yml. Two steps:
+Run by .github/workflows/datos.yml. Three steps:
 
 1. ``espejo``: download DEIS once and write the mirror (daily totals per
    establishment + metadata) that ``urg-forecast`` reads by default.
-2. ``demo``: run the default forecast for every establishment with enough
+2. ``flunet``: copy Chile's WHO FluNet series (viral circulation) for the example
+   regressor model ``ArmónicoFluNet``.
+3. ``demo``: run the default forecast for every establishment with enough
    history and write one small JSON per establishment for the site's demo page.
 
 Usage::
 
     uv run python scripts/construir_datos.py espejo salida/
+    uv run python scripts/construir_datos.py flunet salida/
     uv run python scripts/construir_datos.py demo salida/ --workers 4
 """
 
@@ -105,7 +108,7 @@ def forecast_one(code: str, out_dir: str, cache_dir: str) -> dict:
 def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     ap = argparse.ArgumentParser()
-    ap.add_argument("paso", choices=["espejo", "demo"])
+    ap.add_argument("paso", choices=["espejo", "flunet", "demo"])
     ap.add_argument("salida", type=Path)
     ap.add_argument("--cache", default="data/external/deis_cache")
     ap.add_argument("--desde", type=int, default=2021)
@@ -118,6 +121,16 @@ def main() -> int:
 
         meta = build_mirror(args.salida, start_year=args.desde, cache_dir=args.cache)
         print(json.dumps(meta, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.paso == "flunet":
+        from urgencias_core.data.flunet import FLUNET_FILE, download_flunet, weekly_positivity
+
+        raw = download_flunet("CHL")
+        weekly_positivity(raw)  # fail here, not in users' hands, if the format changed
+        args.salida.mkdir(parents=True, exist_ok=True)
+        raw.to_csv(args.salida / FLUNET_FILE, index=False)
+        print(f"FluNet CHL: {len(raw)} rows, up to {raw['ISO_WEEKSTARTDATE'].max()}")
         return 0
 
     # demo: read the mirror just built in `salida` (no network), via a local cache dir

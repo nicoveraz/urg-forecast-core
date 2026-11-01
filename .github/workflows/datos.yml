@@ -45,6 +45,9 @@ jobs:
       - name: Build the mirror (one DEIS download per year)
         run: uv run python scripts/construir_datos.py espejo salida
 
+      - name: Copy WHO FluNet for Chile (example regressor; never blocks the mirror)
+        run: uv run python scripts/construir_datos.py flunet salida || echo "FluNet unavailable this week"
+
       - name: Precompute demo forecasts
         run: uv run python scripts/construir_datos.py demo salida --workers 4
 
