@@ -412,11 +412,10 @@ tabla de backtest, no la explicación.
 edad, así que puedes modelar las causas respiratorias o la urgencia pediátrica
 en vez del total.
 
-**Fuentes externas.** `ArmónicoFluNet` muestra cómo sumar una serie que no es del
-DEIS (la circulación viral de FluNet) sin hacer trampa en el backtest: en cada ventana
-usa solo lo que estaba publicado en ese momento. Con datos reales no mejoró el total de
-atenciones (detalle en `docs/modelos.md`), y eso también es un resultado: sirve de
-plantilla para probar clima, vacunación o vigilancia regional con el mismo rigor.
+**Fuentes externas.** Con la receta de [Agregar un regresor externo](#agregar-un-regresor-externo)
+se puede probar clima, vacunación o vigilancia regional con el mismo rigor. El ejemplo de
+FluNet no mejoró el total de atenciones en ningún hospital de forma consistente (detalle en
+`docs/modelos.md`), y eso también es un resultado.
 
 **Calendario chileno.** `urgencias_core.features.calendar_features` construye
 variables de feriados, interferiados, calendario escolar y eventos regionales,

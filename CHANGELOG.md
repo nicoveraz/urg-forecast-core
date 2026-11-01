@@ -14,6 +14,13 @@ API puede cambiar entre versiones menores).
   influenza y VRS de la OMS (FluNet), con un backtest que en cada ventana usa solo las
   semanas ya publicadas. El workflow semanal copia la serie de Chile a la rama `datos`.
   Módulo `urgencias_core.data.flunet`. Sugerencia recibida en LinkedIn.
+- **Forma estándar de agregar un regresor externo y medir si sirve.**
+  `HarmonicExogenous` (`urgencias_core.models.exogenous`) suma cualquier serie semanal al
+  Armónico usando en cada ventana solo lo ya publicado, y rellena lo que falta con el
+  promedio histórico o con una proyección de la propia serie. `compare_models`
+  (`urgencias_core.eval.compare`) y el comando `urg-forecast comparar` lo comparan contra
+  el Armónico en 36 ventanas, con prueba de signos, invierno aparte y un veredicto.
+  Nuevo modelo opcional `ArmónicoFluNetProy`. La demo muestra el ejemplo con FluNet.
 - Sección Comunidad en el sitio: cómo contribuir, código de conducta y
   seguridad. El código de conducta ahora está en español.
 
