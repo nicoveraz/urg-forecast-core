@@ -477,9 +477,10 @@ tabla de backtest, no la explicación.
 
 ### Otras ideas
 
-**Otras series.** `load_deis` entrega conteos diarios por causa y grupo de
-edad, así que puedes modelar las causas respiratorias o la urgencia pediátrica
-en vez del total.
+**Otras series.** Con `load_deis(..., source="deis")` (los archivos completos del
+DEIS) tienes conteos diarios por causa y grupo de edad, así que puedes analizar y
+pronosticar las causas respiratorias o la urgencia pediátrica en vez del total. La copia
+semanal del repositorio trae solo el total.
 
 **Fuentes externas.** Con la receta de [Agregar un regresor externo](#agregar-un-regresor-externo)
 se puede probar clima, vacunación o vigilancia regional con el mismo rigor. Los dos
