@@ -147,8 +147,10 @@ El paso a paso, con un modelo completo y cómo leer el resultado, está en
 
 ## Ideas para seguir
 
-- Modelar por separado causas respiratorias o urgencia pediátrica, que
-  `load_deis` ya entrega por causa y grupo de edad.
-- Agregar covariables: vacaciones escolares (`features.calendar_features`),
-  temperatura, o circulación viral regional (FluNet es solo nacional).
+- Modelar por separado las causas respiratorias o la urgencia pediátrica:
+  `load_deis(..., source="deis")` las entrega por causa y grupo de edad.
+- Sumar los feriados a los modelos por defecto, después de evaluarlos a 26 semanas y en
+  establecimientos pequeños.
 - Calibrar los intervalos por horizonte en vez de con un solo factor.
+
+El detalle de cada punto está en la [hoja de ruta](roadmap.md).

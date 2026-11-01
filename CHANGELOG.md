@@ -23,6 +23,9 @@ API puede cambiar entre versiones menores).
 - **Demo más clara y reproducible:** cómo leer P50/P80/P95, qué es el backtest y cuánto se
   ensancharon las bandas; el comando de reproducción fija la versión del paquete y dice con
   qué datos se calculó, y hay una versión en Python.
+- **Hoja de ruta revisada:** sin los puntos ya resueltos (backtest con varias ventanas,
+  variables exógenas, análisis), ordenada por impacto, con por qué importa cada punto,
+  por dónde empezar y cuáles sirven como primera contribución.
 - **Página "Regresores"** (`docs/regresores.md`, en el sitio bajo Modelos): cómo se
   agregan sin hacer trampa, los incluidos, qué mostraron con datos reales, cómo probarlos
   y cómo sumar uno propio.
