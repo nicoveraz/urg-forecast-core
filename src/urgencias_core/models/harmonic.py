@@ -77,7 +77,7 @@ class HarmonicRegression:
         return ((pd.to_datetime(ts) - self._t0).dt.days / 7.0).to_numpy(dtype=float)
 
     def fit(self, history: pd.DataFrame, target_col: str) -> None:
-        from urgencias_core.eval.baselines import auto_arima
+        from urgencias_core.models.baselines import auto_arima
 
         ts = pd.to_datetime(history["timestamp"]).reset_index(drop=True)
         self._t0 = ts.iloc[0]
@@ -99,15 +99,6 @@ class HarmonicRegression:
         for col in horizon.quantile_columns:
             out[col] = base + r[col].to_numpy()[: len(base)]
         return out
-
-
-def __getattr__(name: str):
-    # HarmonicFluNet moved to models.exogenous; keep the old import path working.
-    if name == "HarmonicFluNet":
-        from urgencias_core.models.exogenous import HarmonicFluNet
-
-        return HarmonicFluNet
-    raise AttributeError(name)
 
 
 __all__ = ["HarmonicRegression", "holidays_per_week"]

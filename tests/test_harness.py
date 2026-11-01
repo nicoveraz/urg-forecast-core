@@ -2,10 +2,15 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+import pytest
 
-from urgencias_core.eval.baselines import SeasonalNaiveBaseline
-from urgencias_core.eval.harness import quantile_loss, run_harness
+from urgencias_core.eval.harness import run_harness
+from urgencias_core.eval.metrics import quantile_loss
+from urgencias_core.models.baselines import SeasonalNaiveBaseline
 from urgencias_core.models.protocol import HorizonSpec
+
+# run_harness is deprecated (removed in 0.5); these tests keep it working until then.
+pytestmark = pytest.mark.filterwarnings("ignore:run_harness is deprecated:DeprecationWarning")
 
 
 def test_quantile_loss_known_case() -> None:

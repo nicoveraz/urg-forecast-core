@@ -77,9 +77,6 @@ def test_flunet_is_an_instance_of_the_generic_model() -> None:
     assert issubclass(HarmonicFluNet, HarmonicExogenous)
     m = HarmonicFluNet(future="forecast", lag_weeks=1)
     assert m.columns == ("flu", "rsv") and m.report_delay_weeks == 2
-    from urgencias_core.models.harmonic import HarmonicFluNet as old_path
-
-    assert old_path is HarmonicFluNet
 
 
 def test_sign_test() -> None:

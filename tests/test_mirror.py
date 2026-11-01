@@ -11,7 +11,8 @@ import pytest
 from urgencias_core.data import mirror as mirror_mod
 from urgencias_core.data.deis import YearFetchResult
 from urgencias_core.data.fixtures import deis_snapshot_path
-from urgencias_core.pipeline import load_deis, run_forecast, weekly_series
+from urgencias_core.data.series import load_deis, weekly_series
+from urgencias_core.forecast import run_forecast
 
 NAMES = {"24-105": "Hospital de Puerto Montt", "24-115": "Hospital de Frutillar"}
 
@@ -110,7 +111,7 @@ def test_load_deis_from_repo_source(built) -> None:
 def test_unreachable_mirror_without_cache_errors(tmp_path, monkeypatch) -> None:
     import httpx
 
-    from urgencias_core.pipeline import NoDataError
+    from urgencias_core.data.series import NoDataError
 
     def boom(*a, **k):
         raise httpx.ConnectError("offline")

@@ -1,4 +1,4 @@
-"""Pipeline behaviour: horizon parsing, weekly aggregation, backtest + forecast."""
+"""Data loading and forecasting: horizon parsing, weekly aggregation, backtest + forecast."""
 
 from __future__ import annotations
 
@@ -6,16 +6,15 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from urgencias_core.eval.baselines import SeasonalNaiveBaseline
-from urgencias_core.pipeline import (
+from urgencias_core.data.series import (
     NoDataError,
     facility_name,
     load_deis,
-    parse_horizon,
-    run_forecast,
     to_weekly,
     weekly_series,
 )
+from urgencias_core.forecast import parse_horizon, run_forecast
+from urgencias_core.models.baselines import SeasonalNaiveBaseline
 
 
 @pytest.mark.parametrize(
@@ -116,7 +115,7 @@ def test_run_forecast_needs_enough_history() -> None:
 
 
 def test_fallback_to_snapshot_when_deis_unreachable(monkeypatch) -> None:
-    import urgencias_core.pipeline as pl
+    import urgencias_core.data.series as pl
 
     monkeypatch.setattr(pl, "deis_reachable", lambda: False)
     df = pl.load_deis(["24-105"], fallback_to_snapshot=True, source="deis")
@@ -125,7 +124,7 @@ def test_fallback_to_snapshot_when_deis_unreachable(monkeypatch) -> None:
 
 
 def test_fallback_when_live_fetch_is_empty(monkeypatch) -> None:
-    import urgencias_core.pipeline as pl
+    import urgencias_core.data.series as pl
 
     monkeypatch.setattr(pl, "deis_reachable", lambda: True)
     monkeypatch.setattr(pl, "fetch", lambda **kw: pd.DataFrame())
@@ -154,7 +153,7 @@ def test_rolling_origins_shrink_with_short_history() -> None:
 
 
 def test_failing_model_is_skipped() -> None:
-    from urgencias_core.pipeline import default_models
+    from urgencias_core.models.registry import default_models
 
     class Broken:
         def fit(self, history, target_col):
@@ -192,7 +191,7 @@ def test_harmonic_regression_follows_annual_cycle() -> None:
 
 
 def test_calibration_widens_too_narrow_bands() -> None:
-    from urgencias_core.pipeline import apply_calibration, calibration_factors
+    from urgencias_core.eval.calibration import apply_calibration, calibration_factors
 
     rng = np.random.default_rng(1)
     y = 100 + rng.normal(0, 20, 60)
@@ -207,7 +206,7 @@ def test_calibration_widens_too_narrow_bands() -> None:
 
 
 def test_calibration_never_narrows() -> None:
-    from urgencias_core.pipeline import calibration_factors
+    from urgencias_core.eval.calibration import calibration_factors
 
     actual = pd.DataFrame({"count": np.full(30, 100.0)})
     pred = pd.DataFrame({"q50": 100.0, "q80": 150.0, "q90": 160.0, "q95": 170.0}, index=range(30))
@@ -215,7 +214,7 @@ def test_calibration_never_narrows() -> None:
 
 
 def test_resolve_models_builtin_custom_and_errors() -> None:
-    from urgencias_core.pipeline import resolve_models
+    from urgencias_core.models.registry import resolve_models
 
     assert list(resolve_models(["autoarima", "Armonico"])) == ["AutoARIMA", "Armónico"]
     custom = resolve_models(["urgencias_core.models.harmonic:HarmonicRegression"])
@@ -269,7 +268,7 @@ def test_median_ensemble_takes_quantile_median() -> None:
 
 
 def test_extra_models_resolve_by_folded_name() -> None:
-    from urgencias_core.pipeline import MODEL_INFO, available_models, resolve_models
+    from urgencias_core.models.registry import MODEL_INFO, available_models, resolve_models
 
     assert list(resolve_models(["armonicoferiados", "ENSAMBLE"])) == [
         "ArmónicoFeriados",
@@ -279,7 +278,7 @@ def test_extra_models_resolve_by_folded_name() -> None:
 
 
 def test_extra_models_run_on_snapshot() -> None:
-    from urgencias_core.pipeline import resolve_models
+    from urgencias_core.models.registry import resolve_models
 
     df = load_deis(["24-115"], offline=True)
     models = resolve_models(["Ensamble", "ArmonicoFeriados", "Theta"])

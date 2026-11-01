@@ -53,13 +53,8 @@ def forecast_one(code: str, out_dir: str, cache_dir: str) -> dict:
     """Forecast one establishment from the local mirror; return its index entry."""
     warnings.filterwarnings("ignore")
     from urgencias_core.data.mirror import mirror_facilities, mirror_rows
-    from urgencias_core.pipeline import (
-        COVID_EXCLUDE_YEARS,
-        NoDataError,
-        min_weeks_needed,
-        run_forecast,
-        weekly_series,
-    )
+    from urgencias_core.data.series import COVID_EXCLUDE_YEARS, NoDataError, weekly_series
+    from urgencias_core.forecast import min_weeks_needed, run_forecast
 
     base = Path(out_dir).resolve().as_uri() + "/"
     fac = mirror_facilities(cache_dir=cache_dir, base_url=base, max_age_hours=1e9)
@@ -141,14 +136,10 @@ def compare_one(code: str, out_dir: str, cache_dir: str) -> dict:
     warnings.filterwarnings("ignore")
     from urgencias_core.data.flunet import load_flunet, weekly_positivity
     from urgencias_core.data.mirror import mirror_rows
+    from urgencias_core.data.series import COVID_EXCLUDE_YEARS, weekly_series
     from urgencias_core.eval.compare import compare_many
     from urgencias_core.models.exogenous import HarmonicFluNet
-    from urgencias_core.pipeline import (
-        COVID_EXCLUDE_YEARS,
-        FLUNET_PROY,
-        available_models,
-        weekly_series,
-    )
+    from urgencias_core.models.registry import FLUNET_PROY, available_models
 
     base = Path(out_dir).resolve().as_uri() + "/"
     df = mirror_rows({code}, cache_dir=cache_dir, base_url=base, max_age_hours=1e9)

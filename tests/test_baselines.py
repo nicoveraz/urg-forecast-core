@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from urgencias_core.eval.baselines import (
+from urgencias_core.models.baselines import (
     SeasonalNaiveBaseline,
     auto_arima,
     auto_ets,

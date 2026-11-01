@@ -237,7 +237,7 @@ It is scored in the same backtest windows and wins only with the lowest P80
 loss. From Python:
 
 ```python
-from urgencias_core.pipeline import default_models
+from urgencias_core import default_models
 from mi_modelo import PromedioAnual
 
 modelos = default_models() | {"PromedioAnual": PromedioAnual}

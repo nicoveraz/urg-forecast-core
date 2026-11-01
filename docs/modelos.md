@@ -41,7 +41,7 @@ anteriores y usa sus cuantiles. No tiene parámetros ni tendencia.
 ### AutoARIMA
 
 ARIMA estacional con periodo de 52 semanas, eligiendo los órdenes
-automáticamente. Usa una búsqueda acotada (`FAST_ARIMA` en `pipeline.py`) que
+automáticamente. Usa una búsqueda acotada (`FAST_ARIMA` en `models/registry.py`) que
 tarda cerca de 1 s por ajuste; la búsqueda completa tarda unos 18 s y en la
 comparación con datos en vivo mejoró el error en menos de 3%.
 

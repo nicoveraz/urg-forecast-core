@@ -17,16 +17,17 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from urgencias_core.eval.baselines import (
+from urgencias_core.data.series import facility_name, load_deis, weekly_series
+from urgencias_core.eval.metrics import quantile_loss
+from urgencias_core.models.baselines import (
     SeasonalNaiveBaseline,
     StatsForecastWrapper,
     auto_arima,
     auto_ets,
 )
-from urgencias_core.eval.harness import quantile_loss
 from urgencias_core.models.harmonic import HarmonicRegression
 from urgencias_core.models.protocol import HorizonSpec
-from urgencias_core.pipeline import FAST_ARIMA, facility_name, load_deis, weekly_series
+from urgencias_core.models.registry import FAST_ARIMA
 
 warnings.filterwarnings("ignore")
 

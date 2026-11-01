@@ -216,7 +216,7 @@ def mirror_rows(
     max_age_hours: float = MIRROR_MAX_AGE_HOURS,
 ) -> pd.DataFrame:
     """Daily totals for ``codes`` in the canonical DEIS row schema used by the pipeline."""
-    from urgencias_core.pipeline import TOTAL_CAUSE_GLOSA
+    from urgencias_core.data.series import TOTAL_CAUSE_GLOSA
 
     cache = Path(cache_dir)
     daily = pd.read_parquet(_fetch(DAILY_FILE, cache, base_url, max_age_hours))
