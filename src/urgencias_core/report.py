@@ -1,4 +1,4 @@
-"""Turn a :class:`~urgencias_core.pipeline.ForecastResult` into a readable report.
+"""Turn a :class:`~urgencias_core.forecast.ForecastResult` into a readable report.
 
 - :func:`summary_text` — plain-text summary with ASCII tables (what the CLI prints).
 - :func:`write_outputs` — the same summary plus CSVs and PNG figures in a folder.
@@ -17,7 +17,8 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 from tabulate import tabulate  # noqa: E402
 
-from urgencias_core.pipeline import COVID_EXCLUDE_YEARS, ForecastResult  # noqa: E402
+from urgencias_core.data.series import COVID_EXCLUDE_YEARS  # noqa: E402
+from urgencias_core.forecast import ForecastResult  # noqa: E402
 
 TABLE_FMT = "psql"  # pure ASCII: + - |
 STALE_AFTER_WEEKS = 4

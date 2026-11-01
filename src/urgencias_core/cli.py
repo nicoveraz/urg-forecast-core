@@ -116,7 +116,7 @@ Los nombres no distinguen mayúsculas ni tildes.
 
 
 def _horizon_type(text: str) -> int:
-    from urgencias_core.pipeline import parse_horizon
+    from urgencias_core.forecast import parse_horizon
 
     try:
         return parse_horizon(text)
@@ -378,14 +378,9 @@ def _forecast(
     calibrate: bool = True,
     source: str = "repo",
 ) -> int:
-    from urgencias_core.pipeline import (
-        NoDataError,
-        facility_name,
-        load_deis,
-        resolve_models,
-        run_forecast,
-        weekly_series,
-    )
+    from urgencias_core.data.series import NoDataError, facility_name, load_deis, weekly_series
+    from urgencias_core.forecast import run_forecast
+    from urgencias_core.models.registry import resolve_models
     from urgencias_core.report import output_dir, summary_text, write_outputs
 
     if model_names and any(":" in m for m in model_names) and "" not in sys.path:
@@ -478,14 +473,9 @@ def _search(text: str, year: int, cache_dir: Path | None = None, source: str = "
 def _compare(args: argparse.Namespace) -> int:
     from tabulate import tabulate
 
+    from urgencias_core.data.series import NoDataError, facility_name, load_deis, weekly_series
     from urgencias_core.eval.compare import compare_models
-    from urgencias_core.pipeline import (
-        NoDataError,
-        facility_name,
-        load_deis,
-        resolve_models,
-        weekly_series,
-    )
+    from urgencias_core.models.registry import resolve_models
 
     if ":" in args.modelo and "" not in sys.path:
         sys.path.insert(0, "")
@@ -545,7 +535,7 @@ def _compare(args: argparse.Namespace) -> int:
 def _list_models() -> int:
     from tabulate import tabulate
 
-    from urgencias_core.pipeline import MODEL_INFO, default_models, extra_models
+    from urgencias_core.models.registry import MODEL_INFO, default_models, extra_models
 
     rows = [[n, "sí", MODEL_INFO.get(n, "")] for n in default_models()]
     rows += [[n, "", MODEL_INFO.get(n, "")] for n in extra_models()]
@@ -568,7 +558,7 @@ def main(argv: list[str] | None = None) -> int:
         parser.print_help()
         return 0
     if args.command == "demo":
-        from urgencias_core.pipeline import DEMO_FACILITIES
+        from urgencias_core.data.series import DEMO_FACILITIES
 
         return _forecast(
             list(DEMO_FACILITIES),

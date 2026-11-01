@@ -1,5 +1,10 @@
-"""Eval harness: train every registered forecaster, hold out the last N
-periods, and report MAE/RMSE/MAPE + quantile (pinball) loss per quantile.
+"""Deprecated single-holdout harness (removed in 0.5).
+
+Use :func:`urgencias_core.eval.backtest.backtest` (several rolling windows) and
+:func:`urgencias_core.eval.compare.compare_models` (is a candidate consistently better?).
+
+Train every registered forecaster, hold out the last N periods, and report
+MAE/RMSE/MAPE + quantile (pinball) loss per quantile.
 
 Includes a ≥5% improvement rule: the best candidate must beat the best
 baseline by at least ``warning_threshold`` on the check quantile (default
@@ -9,11 +14,13 @@ P80 pinball loss), otherwise a warning is emitted via the package logger.
 from __future__ import annotations
 
 import logging
+import warnings
 from dataclasses import dataclass, field, replace
 
 import numpy as np
 import pandas as pd
 
+from urgencias_core.eval.metrics import quantile_loss
 from urgencias_core.models.protocol import Forecaster, HorizonSpec
 
 logger = logging.getLogger(__name__)
@@ -28,12 +35,6 @@ class HarnessReport:
     warning_message: str
     # Holdout predictions per forecaster (timestamp + quantile columns).
     predictions: dict[str, pd.DataFrame] = field(default_factory=dict)
-
-
-def quantile_loss(y_true: np.ndarray, y_pred: np.ndarray, q: float) -> float:
-    """Pinball loss at quantile ``q``."""
-    diff = y_true - y_pred
-    return float(np.mean(np.maximum(q * diff, (q - 1) * diff)))
 
 
 def run_harness(
@@ -71,6 +72,12 @@ def run_harness(
     verbose
         When True, prints the table and any warning to stdout.
     """
+    warnings.warn(
+        "run_harness is deprecated and will be removed in 0.5; use "
+        "urgencias_core.eval.backtest.backtest or urgencias_core.eval.compare.compare_models",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     if holdout_length <= 0 or holdout_length >= len(series):
         raise ValueError(
             f"holdout_length must be in (0, len(series)={len(series)}), got {holdout_length}"

@@ -7,7 +7,7 @@ import pandas as pd
 import pytest
 
 from urgencias_core.data.flunet import weekly_positivity
-from urgencias_core.models.harmonic import HarmonicFluNet
+from urgencias_core.models.exogenous import HarmonicFluNet
 from urgencias_core.models.protocol import HorizonSpec
 
 
@@ -76,6 +76,6 @@ def test_flunet_model_rejects_lag_shorter_than_delay() -> None:
 
 
 def test_flunet_model_resolves_by_name() -> None:
-    from urgencias_core.pipeline import resolve_models
+    from urgencias_core.models.registry import resolve_models
 
     assert list(resolve_models(["armonicoflunet"])) == ["ArmónicoFluNet"]

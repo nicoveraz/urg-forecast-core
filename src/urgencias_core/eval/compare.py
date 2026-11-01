@@ -21,11 +21,10 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from math import comb
 
-import numpy as np
 import pandas as pd
 
-from urgencias_core.eval.harness import quantile_loss
-from urgencias_core.models.protocol import Forecaster, HorizonSpec
+from urgencias_core.eval.backtest import MIN_TRAIN_WEEKS, backtest
+from urgencias_core.models.protocol import Forecaster
 
 WINTER_MONTHS = (5, 6, 7, 8, 9)
 
@@ -45,7 +44,7 @@ def paired_windows(
     horizon_weeks: int = 4,
     origins: int = 36,
     step: int = 4,
-    min_train_weeks: int = 104,
+    min_train_weeks: int = MIN_TRAIN_WEEKS,
 ) -> pd.DataFrame:
     """Per-window scores of each model on the same rolling windows.
 
@@ -54,34 +53,9 @@ def paired_windows(
     weeks apart, while at least ``min_train_weeks`` remain for training. A model that fails
     on a window is left out of that window.
     """
-    spec = HorizonSpec(grain="W-MON", length=horizon_weeks)
-    n = len(history)
-    rows = []
-    for k in range(origins):
-        cut = n - horizon_weeks - k * step
-        if cut < min_train_weeks:
-            break
-        train = history.iloc[:cut].reset_index(drop=True)
-        actual = history["count"].iloc[cut : cut + horizon_weeks].to_numpy(dtype=float)
-        origin = pd.to_datetime(train["timestamp"].iloc[-1])
-        for name, factory in models.items():
-            try:
-                fc = factory()
-                fc.fit(train, "count")
-                pred = fc.predict(spec)
-            except Exception:  # noqa: BLE001 - one failed window must not sink the comparison
-                continue
-            q80 = pred["q80"].to_numpy(dtype=float)[: len(actual)]
-            q50 = pred["q50"].to_numpy(dtype=float)[: len(actual)]
-            rows.append(
-                {
-                    "origin": origin,
-                    "model": name,
-                    "qloss_80": quantile_loss(actual, q80, 0.8),
-                    "mae": float(np.mean(np.abs(actual - q50))),
-                }
-            )
-    return pd.DataFrame(rows, columns=["origin", "model", "qloss_80", "mae"])
+    cols = ["origin", "model", "qloss_80", "mae"]
+    scores = backtest(history, models, horizon_weeks, origins, step, min_train_weeks).scores()
+    return scores[cols] if not scores.empty else pd.DataFrame(columns=cols)
 
 
 @dataclass
@@ -158,7 +132,7 @@ def compare_many(
     horizon_weeks: int = 4,
     origins: int = 36,
     step: int = 4,
-    min_train_weeks: int = 104,
+    min_train_weeks: int = MIN_TRAIN_WEEKS,
     alpha: float = 0.05,
 ) -> dict[str, Comparison]:
     """Like :func:`compare_models` for several candidates, fitting the base only once."""
@@ -178,7 +152,7 @@ def compare_models(
     horizon_weeks: int = 4,
     origins: int = 36,
     step: int = 4,
-    min_train_weeks: int = 104,
+    min_train_weeks: int = MIN_TRAIN_WEEKS,
     alpha: float = 0.05,
 ) -> Comparison:
     """Paired backtest of ``candidate`` against ``base`` (each a ``(name, factory)`` pair).

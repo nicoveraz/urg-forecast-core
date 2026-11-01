@@ -9,7 +9,8 @@ import pytest
 
 from urgencias_core import cli
 from urgencias_core.data.deis import facilities_in_file, facility_code_variants
-from urgencias_core.pipeline import load_deis, run_forecast, weekly_series
+from urgencias_core.data.series import load_deis, weekly_series
+from urgencias_core.forecast import run_forecast
 from urgencias_core.report import summary_text
 
 
@@ -46,7 +47,7 @@ def test_version_flag(capsys) -> None:
 
 
 def _capture_load_deis(monkeypatch) -> dict:
-    from urgencias_core import pipeline
+    from urgencias_core.data import series as pipeline
 
     seen: dict = {}
 
@@ -158,7 +159,7 @@ def test_fuente_option_reaches_load_deis(monkeypatch) -> None:
 
 
 def test_comparar_reports_windows_and_writes_csv(tmp_path, monkeypatch, capsys) -> None:
-    import urgencias_core.pipeline as pipeline
+    import urgencias_core.data.series as pipeline
 
     snapshot = load_deis(["24-105"], offline=True)
     monkeypatch.setattr(pipeline, "load_deis", lambda *a, **k: snapshot)
