@@ -356,8 +356,9 @@ en vez del total.
 
 **Fuentes externas.** `ArmónicoFluNet` muestra cómo sumar una serie que no es del
 DEIS (la circulación viral de FluNet) sin hacer trampa en el backtest: en cada ventana
-usa solo lo que estaba publicado en ese momento. Sirve de plantilla para clima,
-vacunación o vigilancia regional.
+usa solo lo que estaba publicado en ese momento. Con datos reales no mejoró el total de
+atenciones (detalle en `docs/modelos.md`), y eso también es un resultado: sirve de
+plantilla para probar clima, vacunación o vigilancia regional con el mismo rigor.
 
 **Calendario chileno.** `urgencias_core.features.calendar_features` construye
 variables de feriados, interferiados, calendario escolar y eventos regionales,

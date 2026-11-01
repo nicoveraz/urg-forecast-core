@@ -135,7 +135,14 @@ sumar una fuente externa; no es parte de los modelos por defecto.
   publicado hasta ahí. Por eso la señal real llega solo a la primera semana del pronóstico
   (rezago 3 menos 2 de publicación); más adelante es casi lo mismo que el ciclo anual del
   Armónico.
-- **Qué mostró con datos reales:** RESULTADO_FLUNET
+- **Qué mostró con datos reales:** en los 40 hospitales públicos con más atenciones
+  (octubre de 2026), **no mejoró al Armónico**. A 4 semanas, con 12 ventanas en el último
+  año, la pérdida P80 subió 1,8% en la mediana y FluNet ganó en 17 de 40 hospitales; con un
+  rezago de 6 semanas (cuatro semanas de señal real) fue peor: +2,2%, ganando en 12. A 26
+  semanas quedó igual (+2,1% en P80, −0,2% en error absoluto). Lo más probable: la
+  positividad nacional poco agrega a lo que el ciclo anual ya explica del **total** de
+  atenciones de un hospital, y la señal real alcanza solo a las primeras semanas. Puede
+  rendir más pronosticando solo las atenciones respiratorias, o con vigilancia regional.
 - **Para experimentar:** la clase `HarmonicFluNet` (en
   `src/urgencias_core/models/harmonic.py`) acepta `lag_weeks`, `report_delay_weeks`,
   `viruses` y tu propia serie en `positivity`, por ejemplo una de vigilancia regional si
