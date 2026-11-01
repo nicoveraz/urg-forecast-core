@@ -1,12 +1,16 @@
 """Ejemplo 4: agregar una variable externa (regresor) y medir si mejora el pronóstico.
 
-La variable es la positividad nacional de influenza y VRS (OMS FluNet), pero la receta
-sirve para cualquier serie semanal: temperatura, contaminación, vacunación. Son dos pasos:
+Un regresor (``Regressor``) es una tabla semanal más las reglas de su fuente: cuántas
+semanas tarda en publicarse y si su futuro se conoce. Vienen dos: la positividad nacional
+de influenza y VRS (OMS FluNet, 2 semanas de atraso) y el calendario chileno (feriados,
+interferiados, vacaciones escolares: se conoce de antemano). La receta sirve para cualquier
+serie semanal: temperatura, contaminación, vacunación. Son dos pasos:
 
-1. Agregarla sin hacer trampa: ``HarmonicExogenous`` solo usa, en cada ventana, lo que
-   ya estaba publicado en esa fecha, y rellena lo que falta con el promedio histórico
-   (``"climatology"``) o con una proyección de la propia serie (``"forecast"``).
-2. Medir si sirve: ``compare_many`` la compara con el Armónico en las mismas ventanas.
+1. Agregarla sin hacer trampa: ``HarmonicExogenous.from_regressor`` solo usa, en cada
+   ventana, lo que ya estaba publicado en esa fecha, y rellena lo que falta con el promedio
+   histórico (``"climatology"``) o con una proyección de la propia serie (``"forecast"``).
+2. Medir si sirve: ``compare_many`` compara cada variante con el Armónico en las mismas
+   ventanas.
 
     uv run python examples/04_regresor_externo.py
     uv run python examples/04_regresor_externo.py --codigo 13-100
@@ -26,11 +30,19 @@ import matplotlib.pyplot as plt  # noqa: E402
 import pandas as pd  # noqa: E402
 
 from urgencias_core import load_deis, weekly_series  # noqa: E402
-from urgencias_core.data.flunet import load_flunet, weekly_positivity  # noqa: E402
 from urgencias_core.eval.compare import compare_many  # noqa: E402
 from urgencias_core.models.exogenous import HarmonicExogenous  # noqa: E402
 from urgencias_core.models.harmonic import HarmonicRegression  # noqa: E402
 from urgencias_core.models.protocol import HorizonSpec  # noqa: E402
+from urgencias_core.regressors import Regressor, calendar, flunet  # noqa: E402
+
+# Un regresor propio se declara igual que los incluidos (no se usa en este ejemplo):
+TEMPERATURA = Regressor(
+    name="temperatura",
+    load=lambda: pd.read_csv("temperatura_semanal.csv", parse_dates=["timestamp"]),
+    columns=("temp_min",),  # una columna por variable; timestamp = lunes de cierre DEIS
+    report_delay_weeks=1,  # se publica con una semana de atraso
+)
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -43,24 +55,21 @@ def main(argv: list[str] | None = None) -> None:
 
     semanal = weekly_series(load_deis([a.codigo], offline=a.offline), a.codigo)
 
-    # El regresor: una tabla con `timestamp` (lunes de cierre de la semana DEIS) y una
-    # columna por variable. weekly_positivity ya la deja así: timestamp, flu, rsv.
-    positividad = weekly_positivity(load_flunet())
+    virus = flunet()  # timestamp, flu, rsv; publicado con 2 semanas de atraso
+    positividad = virus.table()
 
-    def con_virus(futuro: str, rezago: int):
-        # FluNet se publica con unas 2 semanas de atraso. La semana t usa la positividad
-        # de t - rezago; lo que aún no se publica se rellena según `futuro`.
-        return lambda: HarmonicExogenous(
-            positividad,
-            ["flu", "rsv"],
-            lag_weeks=rezago,
-            report_delay_weeks=2,
-            future=futuro,
-        )
-
+    # Cada variante es una fábrica de modelos (una instancia nueva por ventana).
     candidatos = {
-        "Promedio histórico (rezago 3)": con_virus("climatology", 3),
-        "Proyección (rezago 1)": con_virus("forecast", 1),
+        # La semana t usa la positividad de t - 3; lo no publicado, promedio histórico.
+        "FluNet, promedio histórico (rezago 3)": lambda: HarmonicExogenous.from_regressor(
+            virus, lag_weeks=3, future="climatology"
+        ),
+        # La semana t usa t - 1; lo no publicado se proyecta desde la temporada en curso.
+        "FluNet, proyección (rezago 1)": lambda: HarmonicExogenous.from_regressor(
+            virus, lag_weeks=1, future="forecast"
+        ),
+        # El calendario se conoce: feriados, interferiados y vacaciones de la misma semana.
+        "Calendario": lambda: HarmonicExogenous.from_regressor(calendar()),
     }
     resultados = compare_many(
         semanal, ("Armónico", HarmonicRegression), candidatos, origins=a.ventanas
@@ -70,7 +79,7 @@ def main(argv: list[str] | None = None) -> None:
         print(cmp.summary().round(3))
 
     # Qué supuso el modelo para las próximas semanas: dato publicado o proyección.
-    modelo = con_virus("forecast", 1)()
+    modelo = candidatos["FluNet, proyección (rezago 1)"]()
     modelo.fit(semanal, "count")
     supuesto = modelo.regressor_path(HorizonSpec(grain="W-MON", length=8))
     print(supuesto.round({"flu": 3, "rsv": 3}))

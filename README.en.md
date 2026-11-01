@@ -183,7 +183,7 @@ The value is in what you add. That is the point of the next two sections.
 
 ## Models
 
-Four are compared by default and the best one is used. Six more are available
+Four are compared by default and the best one is used. Seven more are available
 for experimenting with `-m`:
 
 | Model | Default | In short |
@@ -196,6 +196,7 @@ for experimenting with `-m`:
 | Theta | | trend only; a contrast |
 | Ensamble | | median of AutoARIMA, Armónico and MSTL |
 | ArmónicoFeriados | | Armónico + Chilean weekday holidays |
+| ArmónicoCalendario | | Armónico + holidays, bridge days and school holidays |
 | ArmónicoFluNet | | Armónico + viral circulation (WHO FluNet); external-data example |
 | ArmónicoFluNetProy | | same, but projects viral circulation instead of using its seasonal average |
 

@@ -105,18 +105,39 @@ por cuantil. Código en `src/urgencias_core/models/ensemble.py`.
 - **Costo:** el de los tres modelos juntos (unos pocos segundos).
 - **Para experimentar:** `MedianEnsemble` acepta cualquier conjunto de modelos.
 
-### ArmónicoFeriados
+### ArmónicoFeriados y ArmónicoCalendario
 
-El modelo Armónico más una variable con la cantidad de feriados que caen en día
-hábil en cada semana, según el calendario chileno (biblioteca `holidays`). Los
-feriados futuros se conocen, así que la variable sirve también para pronosticar.
+El modelo Armónico más variables del **calendario chileno** por semana DEIS, que se conocen
+de antemano y sirven también para las semanas que se pronostican. Vienen del regresor
+`calendar()` (`urgencias_core.regressors`, construido con
+`features.calendar.weekly_calendar`):
 
-- **Para qué probarlo:** las semanas con feriados (Fiestas Patrias, fin de año)
-  suelen tener otra demanda. Es el ejemplo más simple de agregar una covariable.
-- **Para experimentar:** `holidays_per_week()` está en
-  `src/urgencias_core/models/harmonic.py`; sirve como plantilla para agregar
-  otras variables (vacaciones escolares, campañas de vacunación, clima). Para una variable
-  cuyo futuro no se conoce, mira `ArmónicoFluNet` y `ArmónicoFluNetProy`.
+- `ArmónicoFeriados`: cuántos feriados caen en día hábil esa semana.
+- `ArmónicoCalendario`: además, los interferiados y la fracción de la semana en vacaciones
+  escolares.
+
+**Qué mostró con datos reales** (noviembre de 2026): en los 40 hospitales públicos con más
+atenciones, hasta 36 ventanas de 4 semanas desde enero de 2024, comparando con el Armónico
+en las mismas ventanas:
+
+| Variante | Cambio mediano P80 | Ventanas ganadas | Veredicto por hospital |
+|---|---|---|---|
+| Feriados | −2,9% | 66% | mejora 19, empeora 0, sin diferencia 21 |
+| Calendario completo | −3,4% | 62% | mejora 7, empeora 0, sin diferencia 33 |
+
+**Los feriados sí mejoran el pronóstico.** La mediana por hospital es negativa en 39 de 40
+y ningún hospital empeora. Si fuera azar, se esperaría que uno de los 40 saliera "mejora",
+no 19. La ganancia es mayor en las ventanas de septiembre (−7,5%, gana en 88%: Fiestas
+Patrias) y se mantiene el resto del año (−2,5%). Sumar interferiados y vacaciones
+escolares no agrega: el cambio mediano es parecido, pero gana en menos ventanas y en
+menos hospitales, y la pérdida total casi no baja (−0,4% contra −1,5% con solo feriados).
+Las vacaciones son aproximadas (`_is_school_holiday`) y se parecen mucho al ciclo anual
+que el Armónico ya modela.
+
+- **Para experimentar:** `weekly_calendar(inicio, fin, CalendarConfig(...))` acepta eventos
+  regionales propios (la Semana Musical de Frutillar viene como ejemplo) y fechas de
+  vacaciones exactas si las tienes. `examples/04_regresor_externo.py` compara FluNet y el
+  calendario en un establecimiento.
 
 ### ArmónicoFluNet y ArmónicoFluNetProy
 

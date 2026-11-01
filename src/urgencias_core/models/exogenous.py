@@ -17,19 +17,31 @@ backtest honest: **at a forecast origin it only sees what had been published by 
     (no trend) and AutoARIMA residuals, so a season running early or late carries forward.
     This allows ``lag_weeks < report_delay_weeks`` (even 0: the concurrent week, projected).
 
+With ``known_future=True`` (calendar variables: holidays, school holidays) the values are
+known ahead, so every row of the table is usable, including future weeks, and nothing is
+filled unless the table ends before the forecast does.
+
 Years listed in ``exclude_years`` (2020-2021 by default, the pandemic) are left out of the
 climatology and of the projection's fit. Projected values are clipped to the range observed.
+
+The easiest way in is :meth:`HarmonicExogenous.from_regressor` with a
+:class:`~urgencias_core.regressors.Regressor`, which carries the table and its publication
+rules (see :mod:`urgencias_core.regressors`).
 """
 
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
 
 from urgencias_core.models.harmonic import WEEKS_PER_YEAR, HarmonicRegression
 from urgencias_core.models.protocol import HorizonSpec
+
+if TYPE_CHECKING:
+    from urgencias_core.regressors import Regressor
 
 FUTURE_MODES = ("climatology", "forecast")
 
@@ -74,6 +86,7 @@ class HarmonicExogenous(HarmonicRegression):
         report_delay_weeks: int = 0,
         future: str = "climatology",
         exclude_years: Sequence[int] = (2020, 2021),
+        known_future: bool = False,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
@@ -81,7 +94,9 @@ class HarmonicExogenous(HarmonicRegression):
             raise ValueError(f"future must be one of {FUTURE_MODES}, not {future!r}")
         if lag_weeks < 0 or report_delay_weeks < 0:
             raise ValueError("lag_weeks and report_delay_weeks must be >= 0")
-        if future == "climatology" and lag_weeks < report_delay_weeks:
+        if known_future and report_delay_weeks:
+            raise ValueError("a variable with a known future has no report delay")
+        if not known_future and future == "climatology" and lag_weeks < report_delay_weeks:
             raise ValueError(
                 "with future='climatology' lag_weeks must be >= report_delay_weeks "
                 "(otherwise the forecast never sees real data); use future='forecast'"
@@ -92,7 +107,30 @@ class HarmonicExogenous(HarmonicRegression):
         self.report_delay_weeks = report_delay_weeks
         self.future = future
         self.exclude_years = tuple(exclude_years)
+        self.known_future = known_future
         self._fill: dict[str, pd.Series] = {}
+
+    @classmethod
+    def from_regressor(
+        cls,
+        regressor: Regressor,
+        columns: Sequence[str] | None = None,
+        lag_weeks: int = 0,
+        future: str = "climatology",
+        **kwargs,
+    ) -> HarmonicExogenous:
+        """Build from a :class:`~urgencias_core.regressors.Regressor`: its table (loaded
+        lazily), its report delay and whether its future is known. ``columns`` defaults to
+        all of the regressor's columns."""
+        return cls(
+            regressor.load,
+            columns or regressor.columns,
+            lag_weeks=lag_weeks,
+            report_delay_weeks=regressor.report_delay_weeks,
+            future=future,
+            known_future=regressor.known_future,
+            **kwargs,
+        )
 
     # -- data ---------------------------------------------------------------------------
     @property
@@ -108,7 +146,10 @@ class HarmonicExogenous(HarmonicRegression):
     def _published(self) -> pd.DataFrame:
         df = self.regressors
         ts = pd.to_datetime(df["timestamp"])
-        cut = self._origin - pd.Timedelta(weeks=self.report_delay_weeks)
+        if self.known_future:
+            cut = ts.max()  # calendar-like: known ahead, nothing is "unpublished"
+        else:
+            cut = self._origin - pd.Timedelta(weeks=self.report_delay_weeks)
         pub = df.loc[ts <= cut, ["timestamp", *self.columns]].copy()
         pub["timestamp"] = pd.to_datetime(pub["timestamp"])
         if pub.empty:
@@ -174,10 +215,10 @@ class HarmonicExogenous(HarmonicRegression):
         return out
 
 
-def _flunet_positivity() -> pd.DataFrame:
-    from urgencias_core.data.flunet import load_flunet, weekly_positivity
+def _flunet_loader():
+    from urgencias_core.regressors import flunet
 
-    return weekly_positivity(load_flunet())
+    return flunet().load
 
 
 class HarmonicFluNet(HarmonicExogenous):
@@ -202,7 +243,7 @@ class HarmonicFluNet(HarmonicExogenous):
         **kwargs,
     ) -> None:
         super().__init__(
-            positivity if positivity is not None else _flunet_positivity,
+            positivity if positivity is not None else _flunet_loader(),
             columns=viruses,
             lag_weeks=lag_weeks,
             report_delay_weeks=report_delay_weeks,

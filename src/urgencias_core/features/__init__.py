@@ -1,5 +1,5 @@
 """Chilean calendar features (holidays, bridge days, school calendar, regional events)."""
 
-from urgencias_core.features.calendar import CalendarConfig, calendar_features
+from urgencias_core.features.calendar import CalendarConfig, calendar_features, weekly_calendar
 
-__all__ = ["calendar_features", "CalendarConfig"]
+__all__ = ["CalendarConfig", "calendar_features", "weekly_calendar"]
