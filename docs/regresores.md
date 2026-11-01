@@ -79,6 +79,49 @@ regional.
 Las dos conclusiones son útiles: un resultado negativo bien medido le ahorra trabajo a
 quien venga después.
 
+## Por qué un intervalo más angosto o más bajo puede ser peor
+
+Al sumar un regresor, la banda hasta P80 a veces se angosta o baja. Eso no basta para que el
+pronóstico sea mejor. La comparación usa la pérdida P80, que cobra distinto según el lado:
+
+- si lo real supera el P80, **0,8** por cada atención de diferencia;
+- si queda bajo el P80, **0,2** por cada atención.
+
+Bajar el P80 en 10 atenciones ahorra 2 en cada semana que sigue bajo él y cuesta 8 en cada
+semana que queda sobre él. Conviene solo si lo real lo sigue superando en menos de 1 de
+cada 5 semanas, que es lo que promete un P80. Un ejemplo inventado, con cuatro semanas:
+
+| Semana | Real | P80 A | Pérdida A | P80 B, 30 más abajo | Pérdida B |
+|---|---|---|---|---|---|
+| 1 | 1.000 | 1.050 | 0,2 × 50 = 10 | 1.020 | 0,2 × 20 = 4 |
+| 2 | 980 | 1.050 | 0,2 × 70 = 14 | 1.020 | 0,2 × 40 = 8 |
+| 3 | 1.040 | 1.050 | 0,2 × 10 = 2 | 1.020 | **0,8 × 20 = 16** |
+| 4 | 1.035 | 1.050 | 0,2 × 15 = 3 | 1.020 | **0,8 × 15 = 12** |
+| **Pérdida P80** (promedio) | | | **7,25** | | **10,0** |
+
+B ahorra 12 en las dos semanas tranquilas y pierde 23 en las otras dos: es más angosto y
+peor. En cuatro hospitales grandes revisados en noviembre de 2026, los regresores cambian
+el ancho del intervalo apenas (entre 1 y 4 %). Cuando empeoran, es porque lo real supera
+su P80 más seguido o por más, no por el ancho en sí.
+
+La demo lo muestra con el backtest real de cada uno de los 40 establecimientos evaluados.
+Hay un gráfico con el P80 de cada ventana y lo que pasó, la cuenta semana a semana de la
+ventana que elijas, y una tabla con el ancho, las semanas sobre el P80 y las dos partes de
+la pérdida. En Python, `backtest(...).scores()` trae esas columnas para cada ventana:
+`width_80` (P80 menos P50), `qloss_80_short` (la parte por quedarse corto) y
+`qloss_80_excess` (la parte por pasarse); las dos suman `qloss_80`.
+
+```python
+from urgencias_core import backtest
+from urgencias_core.models.registry import available_models
+
+modelos = available_models()
+dos = {m: modelos[m] for m in ("Armónico", "ArmónicoFeriados")}
+corrida = backtest(semanal, dos, length=4, origins=36, step=4)
+cols = ["width_80", "qloss_80_short", "qloss_80_excess", "qloss_80"]
+print(corrida.scores().groupby("model")[cols].mean())
+```
+
 ## Probarlo
 
 **En la demo.** Sobre el gráfico de cada establecimiento hay tres botones: "+ Feriados",
@@ -88,7 +131,8 @@ hasta P80), sin la calibración de intervalos, para que la única diferencia sea
 regresor. El texto bajo el gráfico dice cuánto cambian las próximas cuatro semanas y, si
 el establecimiento está entre los 40 evaluados, el veredicto de su backtest. En el gráfico
 y su detalle se ve qué supuso el modelo para cada semana: los feriados o la positividad
-publicada o proyectada.
+publicada o proyectada. Más abajo, en la misma página, está su backtest semana a semana
+(ver la sección anterior).
 
 **En la terminal.**
 

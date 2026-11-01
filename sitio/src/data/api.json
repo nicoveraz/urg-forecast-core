@@ -393,9 +393,9 @@
        "número de ventanas y semanas entre ellas"
       ]
      ],
-     "returns": "`Backtest`: `windows`, `scores()`, `failed`, `pairs(modelo)`.",
-     "example": "from urgencias_core import backtest\n\ndos = {\"Armónico\": modelos[\"Armónico\"], \"UltimoAnio\": UltimoAnio}\ncorrida = backtest(semanal, dos, length=4, origins=6, step=8)\nerrores = corrida.scores()\nprint(errores.groupby(\"model\")[[\"mae\", \"qloss_80\"]].mean())",
-     "output": "              mae  qloss_80\nmodel                      \nArmónico    135.5      48.2\nUltimoAnio  298.7      86.6",
+     "returns": "`Backtest`: `windows`, `scores()`, `failed`, `pairs(modelo)`. `scores()` trae `mae`, la pérdida de cada cuantil (`qloss_80`, …), sus dos partes (`qloss_80_short`: semanas sobre el P80, a 0,8 por atención; `qloss_80_excess`: bajo él, a 0,2), el ancho `width_80` (P80 menos P50) y `covered` de `n` semanas bajo el P80. `compare_scores` hace la comparación de `compare_models` sobre una corrida ya hecha.",
+     "example": "from urgencias_core import backtest\n\ndos = {\"Armónico\": modelos[\"Armónico\"], \"UltimoAnio\": UltimoAnio}\ncorrida = backtest(semanal, dos, length=4, origins=6, step=8)\nerrores = corrida.scores()\ncols = [\"mae\", \"width_80\", \"qloss_80_short\", \"qloss_80_excess\", \"qloss_80\"]\nprint(errores.groupby(\"model\")[cols].mean().round(1))",
+     "output": "              mae  width_80  qloss_80_short  qloss_80_excess  qloss_80\nmodel                                                                 \nArmónico    135.5      90.3            36.5             11.7      48.2\nUltimoAnio  298.7     278.2            72.1             14.5      86.6",
      "run": true
     },
     {

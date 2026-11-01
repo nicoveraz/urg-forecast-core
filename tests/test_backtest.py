@@ -10,6 +10,9 @@ import pandas as pd
 import pytest
 
 from urgencias_core.eval.backtest import backtest, window_cuts
+from urgencias_core.eval.compare import compare_many, compare_scores
+from urgencias_core.eval.metrics import score
+from urgencias_core.models.baselines import SeasonalNaiveBaseline
 from urgencias_core.models.harmonic import HarmonicRegression
 
 
@@ -55,6 +58,41 @@ def test_backtest_scores_each_window_and_records_failures() -> None:
     calls["n"] = 0
     backtest(h, {"X": boom}, 4, 3, 8, min_train_weeks=104, stop_failed=True)
     assert calls["n"] == 1
+
+
+def _pred(q50: list[float], q80: list[float]) -> pd.DataFrame:
+    q80a = np.array(q80, dtype=float)
+    return pd.DataFrame({"q50": q50, "q80": q80a, "q90": q80a + 1, "q95": q80a + 2})
+
+
+def test_p80_loss_splits_into_short_and_excess() -> None:
+    actual = pd.DataFrame({"count": [100.0, 120.0, 90.0, 110.0]})
+    s = score(actual, _pred([95, 95, 95, 95], [110, 110, 110, 110]))
+    # 120 is 10 above the P80 (0.8 x 10); 100, 90 and 110 leave 10, 20 and 0 below (0.2 x ...)
+    assert s["qloss_80_short"] == pytest.approx(0.8 * 10 / 4)
+    assert s["qloss_80_excess"] == pytest.approx(0.2 * (10 + 20 + 0) / 4)
+    assert s["qloss_80"] == pytest.approx(s["qloss_80_short"] + s["qloss_80_excess"])
+    assert s["width_80"] == pytest.approx(15) and s["covered"] == 3
+
+
+def test_narrower_band_is_worse_when_more_than_one_week_in_five_ends_above() -> None:
+    actual = pd.DataFrame({"count": [100.0, 106.0, 98.0, 106.0, 101.0]})
+    wide, narrow = _pred([95] * 5, [107] * 5), _pred([95] * 5, [103] * 5)
+    sw, sn = score(actual, wide), score(actual, narrow)
+    assert sn["width_80"] < sw["width_80"]
+    assert sn["covered"] == 3  # 2 of 5 weeks above the narrow P80
+    assert sn["qloss_80"] > sw["qloss_80"]
+
+
+def test_compare_scores_matches_compare_many() -> None:
+    h = _history()
+    models = {"H": HarmonicRegression, "N": SeasonalNaiveBaseline}
+    run = backtest(h, models, 4, 6, 4, min_train_weeks=104)
+    a = compare_scores(run.scores(), "H", ["N"], 4)["N"]
+    b = compare_many(h, ("H", HarmonicRegression), {"N": SeasonalNaiveBaseline}, 4, 6, 4)["N"]
+    pd.testing.assert_frame_equal(a.windows, b.windows)
+    with pytest.raises(ValueError):
+        compare_scores(run.scores(), "H", ["H"], 4)
 
 
 @pytest.mark.parametrize(

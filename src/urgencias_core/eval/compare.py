@@ -142,7 +142,24 @@ def compare_many(
     long = paired_windows(
         history, {bname: bf, **candidates}, horizon_weeks, origins, step, min_train_weeks
     )
-    return {c: _comparison(long, bname, c, horizon_weeks, alpha) for c in candidates}
+    return compare_scores(long, bname, list(candidates), horizon_weeks, alpha)
+
+
+def compare_scores(
+    scores: pd.DataFrame,
+    base: str,
+    candidates: list[str],
+    horizon_weeks: int,
+    alpha: float = 0.05,
+) -> dict[str, Comparison]:
+    """The comparisons of :func:`compare_many` from a backtest already run.
+
+    ``scores`` is ``Backtest.scores()`` (or :func:`paired_windows`). Use it to run the
+    backtest once and both compare the models and look at what each one predicted.
+    """
+    if base in candidates:
+        raise ValueError("base and candidates need different names")
+    return {c: _comparison(scores, base, c, horizon_weeks, alpha) for c in candidates}
 
 
 def compare_models(
@@ -174,6 +191,7 @@ __all__ = [
     "WINTER_MONTHS",
     "compare_many",
     "compare_models",
+    "compare_scores",
     "paired_windows",
     "sign_test",
 ]
