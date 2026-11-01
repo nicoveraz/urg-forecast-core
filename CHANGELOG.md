@@ -7,6 +7,16 @@ API puede cambiar entre versiones menores).
 
 ## [Sin publicar]
 
+### Agregado
+
+- **Regresores interactivos en la demo.** Sobre el gráfico de cada establecimiento,
+  botones para agregar al pronóstico los feriados o la circulación viral (con promedio
+  histórico o proyectada) y comparar el Armónico con y sin ese regresor, con lo que el
+  modelo supuso para cada semana y el veredicto del backtest cuando existe.
+- **Página "Regresores"** (`docs/regresores.md`, en el sitio bajo Modelos): cómo se
+  agregan sin hacer trampa, los incluidos, qué mostraron con datos reales, cómo probarlos
+  y cómo sumar uno propio.
+
 ## [0.4.0] - 2026-11-01
 
 La base se ordena en torno a su objetivo: analizar y proyectar las atenciones de urgencia,

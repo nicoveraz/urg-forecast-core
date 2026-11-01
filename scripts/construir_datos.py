@@ -92,6 +92,69 @@ def analysis_block(weekly: pd.DataFrame) -> dict:
     }
 
 
+_POSITIVITY: pd.DataFrame | None = None  # FluNet positivity, loaded once per worker
+
+
+def _positivity(out_dir: str) -> pd.DataFrame | None:
+    """FluNet positivity from the copy just written to ``out_dir`` (None if missing)."""
+    global _POSITIVITY
+    if _POSITIVITY is None:
+        from urgencias_core.data.flunet import FLUNET_FILE, weekly_positivity
+
+        path = Path(out_dir) / FLUNET_FILE
+        if not path.exists():
+            return None
+        _POSITIVITY = weekly_positivity(pd.read_csv(path, low_memory=False))
+    return _POSITIVITY
+
+
+def regressor_block(weekly: pd.DataFrame, out_dir: str) -> dict:
+    """Forecasts of Armónico with and without each example regressor, for the demo toggles.
+
+    Raw quantiles (no calibration) so the only difference between the lines is the
+    regressor. ``valores`` holds what each model assumed for the forecast weeks.
+    """
+    from urgencias_core.models.exogenous import HarmonicExogenous, HarmonicFluNet
+    from urgencias_core.models.harmonic import HarmonicRegression
+    from urgencias_core.models.protocol import HorizonSpec
+    from urgencias_core.models.registry import FLUNET_PROY
+    from urgencias_core.regressors import calendar
+
+    spec = HorizonSpec(grain="W-MON", length=HORIZON)
+    models: dict = {
+        "Armónico": HarmonicRegression,
+        "ArmónicoFeriados": lambda: HarmonicExogenous.from_regressor(calendar(), ["holidays"]),
+    }
+    pos = _positivity(out_dir)
+    if pos is not None:
+        models["ArmónicoFluNet"] = lambda: HarmonicFluNet(positivity=pos)
+        models["ArmónicoFluNetProy"] = lambda: HarmonicFluNet(positivity=pos, **FLUNET_PROY)
+    out = {}
+    for name, factory in models.items():
+        try:
+            m = factory()
+            m.fit(weekly, "count")
+            pred = m.predict(spec)
+        except Exception:  # noqa: BLE001 - a failing variant just has no toggle
+            continue
+        item = {
+            "pronostico": [
+                [str(r.timestamp.date()), _round(r.q50), _round(r.q80)] for r in pred.itertuples()
+            ]
+        }
+        if hasattr(m, "regressor_path"):
+            path = m.regressor_path(spec)
+            cols = [c for c in path.columns if c != "timestamp"]
+            scale = 1 if name == "ArmónicoFeriados" else 100  # positivity in %
+            item["valores"] = [
+                [str(t.date())] + [_round(scale * float(r[c])) for c in cols]
+                for t, (_, r) in zip(path["timestamp"], path.iterrows(), strict=True)
+            ]
+            item["columnas"] = cols
+        out[name] = item
+    return out
+
+
 def forecast_one(code: str, out_dir: str, cache_dir: str) -> dict:
     """Forecast one establishment from the local mirror; return its index entry."""
     warnings.filterwarnings("ignore")
@@ -149,6 +212,7 @@ def forecast_one(code: str, out_dir: str, cache_dir: str) -> dict:
         "semanas_backtest": res.backtest_weeks,
         "escala": {k: _round(v) for k, v in res.interval_scale.items()},
         "analisis": analysis_block(weekly),
+        "regresores": regressor_block(weekly, out_dir),
     }
     (Path(out_dir) / "demo" / f"{code}.json").write_text(
         json.dumps(detail, ensure_ascii=False, separators=(",", ":"))

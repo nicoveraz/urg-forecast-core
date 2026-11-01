@@ -101,7 +101,7 @@ columnas, el atraso de publicación y si el futuro se conoce) y su nombre en
 lag_weeks=, future=)` y `compare_models` contra el Armónico en varios establecimientos. Si
 gana, se registra como modelo (como `ArmónicoCalendario`). Documenta el resultado aunque
 sea negativo: también le sirve a quien venga después. Ejemplo:
-`examples/04_regresor_externo.py`.
+`examples/04_regresor_externo.py`; la explicación completa, en [Regresores](regresores.md).
 
 **Un análisis.** Una función en `analysis/descriptive.py` (o un módulo nuevo en
 `analysis/` si es otro tema) que recibe la serie semanal y devuelve un `DataFrame`, sin
