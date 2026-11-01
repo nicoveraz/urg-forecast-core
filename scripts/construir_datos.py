@@ -12,7 +12,9 @@ Run by .github/workflows/datos.yml. Four steps:
    establishments, compare Armónico with and without external regressors (holidays from
    the calendar, FluNet viral positivity) over many
    backtest windows (:func:`urgencias_core.eval.compare.compare_models`) and write
-   ``demo/regresor.json`` for the demo page. Needs ``flunet`` and ``demo`` first.
+   ``demo/regresor.json`` for the demo page, plus ``demo/regresor/<code>.json`` with
+   what each model predicted week by week in every window (the demo uses it to show why
+   a narrower band can be worse). Needs ``flunet`` and ``demo`` first.
 
 Usage::
 
@@ -239,13 +241,70 @@ def _pct(x: float) -> float | None:
     return None if pd.isna(x) else float(round(100 * x, 1))
 
 
+def backtest_summary(scores: pd.DataFrame, names: list[str]) -> dict:
+    """Per model, over the windows where every model produced a forecast.
+
+    ``ancho``: mean P50-to-P80 width; ``sobre``: % of weeks above the P80 (expected 20);
+    ``corto`` and ``exceso``: the two parts of the P80 loss (weeks above the P80 cost 0.8
+    per attendance, weeks below 0.2); ``perdida`` is their sum.
+    """
+    done = scores.groupby("origin")["model"].nunique()
+    s = scores[scores["origin"].isin(done[done == len(names)].index)]
+    out = {}
+    for m in names:
+        g = s[s["model"] == m]
+        if g.empty:
+            continue
+        short, excess = _round(g["qloss_80_short"].mean()), _round(g["qloss_80_excess"].mean())
+        out[m] = {
+            "ventanas": int(len(g)),
+            "ancho": _round(g["width_80"].mean()),
+            "sobre": _pct(1 - g["covered"].sum() / g["n"].sum()),
+            "corto": short,
+            "exceso": excess,
+            "perdida": _round(short + excess),
+        }
+    return out
+
+
+def backtest_detail(run, names: list[str]) -> list[dict]:
+    """Every window, oldest first: its weeks, what happened and each model's P50 and P80."""
+    out = []
+    for w in sorted(run.windows, key=lambda w: w.origin):
+        preds = {}
+        for m in names:
+            p = w.preds.get(m)
+            preds[m] = (
+                None
+                if p is None
+                else [
+                    [_round(v) for v in p["q50"]],
+                    [_round(v) for v in p["q80"]],
+                ]
+            )
+        out.append(
+            {
+                "origen": str(w.origin.date()),
+                "semanas": [str(t.date()) for t in w.actual["timestamp"]],
+                "real": [int(round(v)) for v in w.actual["count"]],
+                "modelos": preds,
+            }
+        )
+    return out
+
+
 def compare_one(code: str, out_dir: str, cache_dir: str) -> dict:
-    """Paired comparison of the regressor candidates against the base for one establishment."""
+    """Paired comparison of the regressor candidates against the base for one establishment.
+
+    One backtest feeds both the comparisons and the week-by-week detail (``detalle``),
+    which :func:`regressor_example` writes to its own file.
+    """
     warnings.filterwarnings("ignore")
     from urgencias_core.data.flunet import load_flunet, weekly_positivity
     from urgencias_core.data.mirror import mirror_rows
     from urgencias_core.data.series import COVID_EXCLUDE_YEARS, weekly_series
-    from urgencias_core.eval.compare import compare_many
+    from urgencias_core.eval.backtest import backtest
+    from urgencias_core.eval.compare import compare_scores
     from urgencias_core.models.exogenous import HarmonicFluNet
     from urgencias_core.models.registry import FLUNET_PROY, available_models
 
@@ -259,16 +318,18 @@ def compare_one(code: str, out_dir: str, cache_dir: str) -> dict:
         "ArmónicoFluNet": lambda: HarmonicFluNet(positivity=pos),
         "ArmónicoFluNetProy": lambda: HarmonicFluNet(positivity=pos, **FLUNET_PROY),
     }
+    names = [REG_BASE, *REG_CANDIDATES]
+    run = backtest(
+        weekly,
+        {m: fixed.get(m, models.get(m)) for m in names},
+        REG_HORIZON,
+        REG_WINDOWS,
+        REG_STEP,
+    )
+    scores = run.scores()
+    comparisons = compare_scores(scores, REG_BASE, list(REG_CANDIDATES), REG_HORIZON)
     out: dict = {"c": code, "candidatos": {}}
     windows = None
-    comparisons = compare_many(
-        weekly,
-        (REG_BASE, models[REG_BASE]),
-        {c: fixed.get(c, models.get(c)) for c in REG_CANDIDATES},
-        horizon_weeks=REG_HORIZON,
-        origins=REG_WINDOWS,
-        step=REG_STEP,
-    )
     for cand, cmp in comparisons.items():
         s = cmp.summary()
         out["candidatos"][cand] = {
@@ -295,6 +356,8 @@ def compare_one(code: str, out_dir: str, cache_dir: str) -> dict:
             + [None if pd.isna(r[c]) else _round(r[c]) for c in REG_CANDIDATES]
             for t, r in windows.sort_index().iterrows()
         ]
+    out["resumen"] = backtest_summary(scores, names)
+    out["detalle"] = backtest_detail(run, names)
     return out
 
 
@@ -322,6 +385,8 @@ def regressor_example(salida: Path, workers: int, top: int) -> int:
     names = {e["c"]: e for e in index}
 
     local = _local_cache(salida)
+    detail_dir = salida / "demo" / "regresor"
+    detail_dir.mkdir(parents=True, exist_ok=True)
     results = []
     with ProcessPoolExecutor(max_workers=workers) as pool:
         futs = {pool.submit(compare_one, c, str(salida), str(local)): c for c in codes}
@@ -333,6 +398,10 @@ def regressor_example(salida: Path, workers: int, top: int) -> int:
                 print(f"regresor: {code} failed ({str(exc)[:80]})")
                 continue
             e = names[code]
+            detail = {"c": code, "n": e["n"], "ventanas": r.pop("detalle")}
+            (detail_dir / f"{code}.json").write_text(
+                json.dumps(detail, ensure_ascii=False, separators=(",", ":"))
+            )
             results.append(r | {"n": e["n"], "r": e["r"], "t": e["t"], "vol": volume[code]})
             print(f"regresor {i}/{len(codes)}", flush=True)
     shutil.rmtree(local)
