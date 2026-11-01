@@ -22,13 +22,14 @@ def test_help_lists_subcommands(capsys) -> None:
         "buscar",
         "pronosticar",
         "modelos",
+        "comparar",
         "flujo típico",
         "aproximación inicial",
     ):
         assert word in out
 
 
-@pytest.mark.parametrize("command", ["demo", "buscar", "pronosticar", "modelos"])
+@pytest.mark.parametrize("command", ["demo", "buscar", "pronosticar", "modelos", "comparar"])
 def test_each_subcommand_help_has_examples(command, capsys) -> None:
     with pytest.raises(SystemExit):
         cli.main([command, "--help"])
@@ -154,3 +155,20 @@ def test_fuente_option_reaches_load_deis(monkeypatch) -> None:
     assert seen["source"] == "repo"
     assert cli.main(["pronosticar", "24-105", "--fuente", "deis"]) == 1
     assert seen["source"] == "deis"
+
+
+def test_comparar_reports_windows_and_writes_csv(tmp_path, monkeypatch, capsys) -> None:
+    import urgencias_core.pipeline as pipeline
+
+    snapshot = load_deis(["24-105"], offline=True)
+    monkeypatch.setattr(pipeline, "load_deis", lambda *a, **k: snapshot)
+    argv = ["comparar", "24-105", "-m", "armonicoferiados", "--ventanas", "3", "-o", str(tmp_path)]
+    assert cli.main(argv) == 0
+    out = capsys.readouterr().out
+    assert "ArmónicoFeriados frente a Armónico, 3 ventanas" in out
+    assert "invierno" in out
+    assert (tmp_path / "24-105" / "comparacion.csv").exists()
+
+
+def test_comparar_rejects_same_model(capsys) -> None:
+    assert cli.main(["comparar", "24-105", "-m", "armonico"]) == 2

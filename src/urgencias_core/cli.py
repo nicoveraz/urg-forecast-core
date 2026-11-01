@@ -6,6 +6,7 @@ Subcommands::
     urg-forecast buscar "puerto montt"         # find an establishment's DEIS code
     urg-forecast pronosticar 24-105 -H 6m      # backtest + forecast, any establishment
     urg-forecast modelos                       # list built-in models
+    urg-forecast comparar 24-105 -m ArmonicoFluNet   # does a regressor help? many windows
 
 Prints a summary with ASCII tables and writes CSVs + PNGs to ``--salida``.
 The interface is in Spanish (the audience is Chilean ED teams); the code and
@@ -87,6 +88,20 @@ historia completa. Los intervalos se ensanchan según el error del backtest
 
 Modelo propio: una clase con fit(history, target_col) y predict(horizon) que
 devuelva timestamp, q50, q80, q90, q95, en un .py de la carpeta actual.
+
+{BASE_NOTE}
+"""
+
+COMPARE_EPILOG = f"""\
+ejemplos:
+  urg-forecast comparar 24-105 -m ArmonicoFluNet
+  urg-forecast comparar 24-105 -m ArmonicoFluNetProy --base Armonico -H 8
+  urg-forecast comparar 24-105 -m mi_modelo:MiClase --ventanas 24 --paso 6
+
+Ajusta ambos modelos en las mismas ventanas (por defecto 36 ventanas de 4 semanas,
+cada 4 semanas: unos tres inviernos) y cuenta en cuántas gana el candidato, con
+una prueba de signos. Separa invierno (mayo a septiembre) del resto. Con muchos
+establecimientos, uno de cada veinte saldrá "mejora" o "empeora" por azar.
 
 {BASE_NOTE}
 """
@@ -279,6 +294,62 @@ def build_parser() -> argparse.ArgumentParser:
     )
     add_cache_option(p_fc)
 
+    p_cmp = _spanish(
+        sub.add_parser(
+            "comparar",
+            add_help=False,
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            help="¿ayuda un regresor? compara dos modelos en muchas ventanas",
+            description=(
+                "Compara un modelo candidato (p. ej. con un regresor externo) contra uno\n"
+                "base en muchas ventanas del backtest, para ver si la diferencia es\n"
+                "consistente o solo ruido. Escribe una fila por ventana en --salida."
+            ),
+            epilog=COMPARE_EPILOG,
+        )
+    )
+    p_cmp.add_argument("codigo", metavar="CODIGO", help="código DEIS, p. ej. 24-105")
+    p_cmp.add_argument(
+        "-m",
+        "--modelo",
+        required=True,
+        metavar="NOMBRE",
+        help="modelo candidato: uno de 'urg-forecast modelos' o 'modulo:Clase'",
+    )
+    p_cmp.add_argument(
+        "--base", default="Armónico", metavar="NOMBRE", help="modelo base (por defecto: Armónico)"
+    )
+    p_cmp.add_argument(
+        "-H",
+        "--horizonte",
+        type=_horizon_type,
+        default=4,
+        metavar="N|Nm",
+        help="largo de cada ventana (por defecto 4 semanas)",
+    )
+    p_cmp.add_argument(
+        "--ventanas", type=int, default=36, metavar="N", help="número de ventanas (36)"
+    )
+    p_cmp.add_argument(
+        "--paso", type=int, default=4, metavar="SEMANAS", help="semanas entre ventanas (4)"
+    )
+    p_cmp.add_argument(
+        "-o",
+        "--salida",
+        type=Path,
+        default=DEFAULT_OUT,
+        metavar="CARPETA",
+        help=f"carpeta para el CSV (por defecto: ./{DEFAULT_OUT})",
+    )
+    p_cmp.add_argument(
+        "--desde",
+        type=int,
+        default=2022,
+        metavar="AÑO",
+        help="con --fuente deis: primer año DEIS a usar (por defecto: 2022)",
+    )
+    add_cache_option(p_cmp)
+
     _spanish(
         sub.add_parser(
             "modelos",
@@ -404,6 +475,73 @@ def _search(text: str, year: int, cache_dir: Path | None = None, source: str = "
     return 0
 
 
+def _compare(args: argparse.Namespace) -> int:
+    from tabulate import tabulate
+
+    from urgencias_core.eval.compare import compare_models
+    from urgencias_core.pipeline import (
+        NoDataError,
+        facility_name,
+        load_deis,
+        resolve_models,
+        weekly_series,
+    )
+
+    if ":" in args.modelo and "" not in sys.path:
+        sys.path.insert(0, "")
+    try:
+        (bname, bf), (cname, cf) = (
+            next(iter(resolve_models([args.base]).items())),
+            next(iter(resolve_models([args.modelo]).items())),
+        )
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    if bname == cname:
+        print("error: el candidato y la base son el mismo modelo", file=sys.stderr)
+        return 2
+    try:
+        df = load_deis(
+            [args.codigo],
+            start_year=args.desde,
+            cache_dir=args.cache or _default_cache(),
+            source=args.fuente,
+        )
+    except NoDataError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    name = facility_name(df, args.codigo)
+    log.info("Comparando %s contra %s en %s (puede tardar unos minutos)...", cname, bname, name)
+    cmp = compare_models(
+        weekly_series(df, args.codigo),
+        (bname, bf),
+        (cname, cf),
+        horizon_weeks=args.horizonte,
+        origins=args.ventanas,
+        step=args.paso,
+    )
+    if cmp.n == 0:
+        print("error: no hay historia suficiente para ninguna ventana", file=sys.stderr)
+        return 1
+    s = cmp.summary()
+    rows = [
+        [k, int(r["ventanas"]), f"{100 * r['cambio_mediano']:+.1f} %",
+         f"{100 * r['cambio_total']:+.1f} %", int(r["gana"]), int(r["pierde"]), f"{r['p']:.2f}"]
+        for k, r in s.iterrows()
+    ]  # fmt: skip
+    heads = ["Ventanas", "N", "Cambio mediano", "Cambio total", "Gana", "Pierde", "p"]
+    print()
+    print(f"{name} ({args.codigo})")
+    print(tabulate(rows, headers=heads, tablefmt="psql"))
+    print(cmp.text())
+    out = args.salida / args.codigo
+    out.mkdir(parents=True, exist_ok=True)
+    path = out / "comparacion.csv"
+    cmp.windows.to_csv(path, index=False)
+    print(f"Una fila por ventana en {path}")
+    return 0
+
+
 def _list_models() -> int:
     from tabulate import tabulate
 
@@ -446,6 +584,8 @@ def main(argv: list[str] | None = None) -> int:
         )
     if args.command == "modelos":
         return _list_models()
+    if args.command == "comparar":
+        return _compare(args)
     if args.command == "buscar":
         return _search(args.texto, args.anio, cache_dir=args.cache, source=args.fuente)
     return _forecast(
