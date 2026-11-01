@@ -9,6 +9,11 @@ API puede cambiar entre versiones menores).
 
 ### Agregado
 
+- **Circulación viral como ejemplo de fuente externa.** Modelo opcional
+  `ArmónicoFluNet` (`-m armonicoflunet`): el Armónico más la positividad nacional de
+  influenza y VRS de la OMS (FluNet), con un backtest que en cada ventana usa solo las
+  semanas ya publicadas. El workflow semanal copia la serie de Chile a la rama `datos`.
+  Módulo `urgencias_core.data.flunet`. Sugerencia recibida en LinkedIn.
 - Sección Comunidad en el sitio: cómo contribuir, código de conducta y
   seguridad. El código de conducta ahora está en español.
 

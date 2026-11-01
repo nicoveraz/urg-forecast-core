@@ -188,7 +188,7 @@ El valor está en lo que le agregues. Para eso son las dos secciones que siguen.
 <!-- sitio:modelos -->
 ## Modelos
 
-Por defecto se comparan cuatro y se usa el mejor. Hay otros cuatro para
+Por defecto se comparan cuatro y se usa el mejor. Hay otros cinco para
 experimentar, que se activan con `-m`:
 
 | Modelo | Por defecto | En pocas palabras |
@@ -201,6 +201,7 @@ experimentar, que se activan con `-m`:
 | Theta | | solo tendencia; sirve de contraste |
 | Ensamble | | mediana de AutoARIMA, Armónico y MSTL |
 | ArmónicoFeriados | | Armónico + feriados chilenos en día hábil |
+| ArmónicoFluNet | | Armónico + circulación viral (OMS FluNet); ejemplo de fuente externa |
 
 Los nombres no distinguen mayúsculas ni tildes (`-m armonicoferiados` sirve).
 Qué hace cada uno, cuándo conviene y cómo agregar el tuyo está en
@@ -352,6 +353,11 @@ tabla de backtest, no la explicación.
 **Otras series.** `load_deis` entrega conteos diarios por causa y grupo de
 edad, así que puedes modelar las causas respiratorias o la urgencia pediátrica
 en vez del total.
+
+**Fuentes externas.** `ArmónicoFluNet` muestra cómo sumar una serie que no es del
+DEIS (la circulación viral de FluNet) sin hacer trampa en el backtest: en cada ventana
+usa solo lo que estaba publicado en ese momento. Sirve de plantilla para clima,
+vacunación o vigilancia regional.
 
 **Calendario chileno.** `urgencias_core.features.calendar_features` construye
 variables de feriados, interferiados, calendario escolar y eventos regionales,

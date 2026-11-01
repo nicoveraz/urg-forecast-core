@@ -115,7 +115,32 @@ feriados futuros se conocen, así que la variable sirve también para pronostica
   suelen tener otra demanda. Es el ejemplo más simple de agregar una covariable.
 - **Para experimentar:** `holidays_per_week()` está en
   `src/urgencias_core/models/harmonic.py`; sirve como plantilla para agregar
-  otras variables (vacaciones escolares, campañas de vacunación, clima).
+  otras variables (vacaciones escolares, campañas de vacunación, clima). Para una variable
+  cuyo futuro no se conoce, mira `ArmónicoFluNet`.
+
+### ArmónicoFluNet
+
+El modelo Armónico más la **circulación viral**: la positividad semanal de influenza y de
+virus respiratorio sincicial (VRS) que el ISP reporta a la OMS
+([FluNet](https://www.who.int/tools/flunet)), rezagada 3 semanas. Es un ejemplo de cómo
+sumar una fuente externa; no es parte de los modelos por defecto.
+
+- **De dónde salen los datos:** el workflow semanal copia la serie de Chile a la rama
+  `datos` (`flunet_chl.csv`), así que el comando la lee desde el repositorio y no consulta
+  a la OMS en cada uso. Es semanal desde 1997, separada en red centinela y no centinela,
+  con unas dos semanas de rezago y **solo nacional**: no distingue regiones.
+- **Backtest honesto:** en cada ventana usa solo las semanas de FluNet que ya estaban
+  publicadas en ese momento (dos semanas de rezago). Para las semanas siguientes reemplaza
+  la positividad por su promedio histórico de esa semana del año, calculado también con lo
+  publicado hasta ahí. Por eso la señal real llega solo a la primera semana del pronóstico
+  (rezago 3 menos 2 de publicación); más adelante es casi lo mismo que el ciclo anual del
+  Armónico.
+- **Qué mostró con datos reales:** RESULTADO_FLUNET
+- **Para experimentar:** la clase `HarmonicFluNet` (en
+  `src/urgencias_core/models/harmonic.py`) acepta `lag_weeks`, `report_delay_weeks`,
+  `viruses` y tu propia serie en `positivity`, por ejemplo una de vigilancia regional si
+  tienes acceso. `urgencias_core.data.flunet.weekly_positivity` convierte los datos crudos
+  de FluNet a semanas DEIS.
 
 ## Agregar tu propio modelo
 
@@ -135,6 +160,6 @@ El paso a paso, con un modelo completo y cómo leer el resultado, está en
 - Modelar por separado causas respiratorias o urgencia pediátrica, que
   `load_deis` ya entrega por causa y grupo de edad.
 - Agregar covariables: vacaciones escolares (`features.calendar_features`),
-  temperatura, circulación viral.
+  temperatura, o circulación viral regional (FluNet es solo nacional).
 - Un backtest con más ventanas para comparar con más confianza.
 - Calibrar los intervalos por horizonte en vez de con un solo factor.
