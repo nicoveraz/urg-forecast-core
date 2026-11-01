@@ -50,6 +50,7 @@ function fixLinks(md, page) {
   md = md.split(README).join("#");
   md = md.replace(new RegExp(BLOB.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&") + "([\\w-]+)\\.md", "g"),
     (_, slug) => `${BASE}/${slug}/`);
+  md = md.split("](img/").join(`](${BASE}/img/`);
   md = md.replace(/\]\(([\w-]+)\.md(#[\w-]+)?\)/g, (_, slug, hash = "") => `](${BASE}/${slug}/${hash})`);
   md = md.replace(/\]\(#([\w-]+)\)/g, (m, anchor) => {
     const target = ANCHORS[anchor];
@@ -76,6 +77,9 @@ mkdirSync(out, { recursive: true });
 // Served as a plain file: Starlight's hero <Image> would crop it to a square.
 mkdirSync(join(here, "..", "public"), { recursive: true });
 copyFileSync(join(repo, "docs", "img", "pronostico_puerto_montt.png"), join(here, "..", "public", "pronostico.png"));
+// Diagrams used by the docs pages, served from /img/.
+mkdirSync(join(here, "..", "public", "img"), { recursive: true });
+copyFileSync(join(repo, "docs", "img", "arquitectura.svg"), join(here, "..", "public", "img", "arquitectura.svg"));
 let inicio = section("inicio", "uso");
 const lead = inicio.match(/^\*\*(.+?)\*\*/s)[1].replace(/\s+/g, " ");
 inicio = inicio.replace(/^\*\*.+?\*\*\s*/s, "");

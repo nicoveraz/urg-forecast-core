@@ -13,22 +13,18 @@ repositorio.
 
 ## El recorrido de los datos
 
-```text
-data/deis, mirror           regressors.py (flunet, calendario)
-  │ load_deis                 │
-  ▼ weekly_series             ▼
-serie semanal ──► analysis/   tabla de regresores
-(timestamp, count)          (timestamp, columnas)
-  │                           │
-  ▼                           ▼
-models/   Forecaster  ◄────  HarmonicExogenous
-  │       fit, predict; models/registry: nombres
-  ▼
-eval/     backtest: metrics, calibration, compare
-  │
-  ▼
-forecast  run_forecast ──► report, cli, demo
-```
+![Recorrido de los datos: del DEIS a la serie semanal; de ahí al análisis y a los modelos, que pueden sumar variables externas; los modelos se evalúan, se elige el mejor y se pronostica; todo termina en informes, comandos y la demo](img/arquitectura.svg)
+
+1. **Datos.** `data/` lee el DEIS (la copia semanal o el snapshot incluido) y
+   `weekly_series` lo deja como serie semanal: `timestamp`, `count`.
+2. **Análisis.** `analysis/` describe esa serie: año típico, nivel, comparación interanual.
+3. **Modelos.** `models/` la proyecta. Cada modelo tiene `fit` y `predict`, y se piden por
+   nombre. `HarmonicExogenous` suma una tabla de variables externas (`regressors.py`), usando
+   en cada fecha solo lo que ya estaba publicado.
+4. **Evaluación.** `eval/` mide cada modelo en el pasado (`backtest`) y dice si un cambio
+   ayuda de verdad (`compare_models`).
+5. **Pronóstico.** `forecast.py` elige el de menor pérdida P80 y pronostica.
+6. **Resultados.** `report.py`, `cli.py` y la demo muestran el análisis y el pronóstico.
 
 Todo es un `DataFrame` de pandas: no hay clases de datos propias ni base de datos.
 
