@@ -215,6 +215,12 @@ Por qué esos cuatro van por defecto, en
 <!-- sitio:extender -->
 ## Extender
 
+Hay ejemplos que se pueden ejecutar en
+[`examples/`](https://github.com/nicoveraz/urg-forecast-core/tree/main/examples) (pronóstico,
+backtest, modelo propio, regresor externo), y el mapa del paquete, con dónde va cada
+cosa nueva, en
+[`docs/arquitectura.md`](https://github.com/nicoveraz/urg-forecast-core/blob/main/docs/arquitectura.md).
+
 Todo lo que hace el comando son unas pocas funciones sobre DataFrames:
 
 ```python

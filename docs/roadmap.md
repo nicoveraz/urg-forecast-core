@@ -14,14 +14,23 @@ primera contribución. Para ideas de modelos, revisa también la sección final 
   y grupo de edad, pero el pronóstico usa solo el total. Modelar por separado
   las causas respiratorias o la urgencia pediátrica es el paso natural.
 
+## Estructura
+
+El reordenamiento en curso (ver [`arquitectura.md`](arquitectura.md)):
+
+- **Análisis descriptivo** (`analysis/`): estacionalidad, tendencia, comparación
+  interanual, semanas pico y día de la semana, sobre la misma serie semanal.
+- **Regresores unificados:** el calendario chileno (`features.calendar`) y FluNet con el
+  mismo formato de tabla, distinguiendo variables con futuro conocido (feriados,
+  vacaciones) de las que se publican con atraso (virus). Hoy `ArmónicoFeriados` arma los
+  feriados por su cuenta y `HarmonicExogenous` solo sirve con el Armónico.
+
 ## Modelos
 
-- **Backtest rolling.** Hoy el backtest es un único holdout al final de la
-  serie. Varias ventanas darían una estimación del error más estable.
-- **Variables exógenas.** `ArmónicoFeriados` incorpora feriados; el resto del
-  calendario chileno (`features.calendar`) y el clima no entran a ningún modelo.
-- **Granularidad diaria.** El pipeline es semanal. Pasar a diario exige revisar
-  el rezago de reporte del DEIS.
+- **Granularidad diaria.** Todo es semanal. Pasar a diario exige revisar el rezago de
+  reporte del DEIS.
+- **Calibración por horizonte.** Hoy los intervalos se ensanchan con un solo factor para
+  todo el horizonte.
 
 ## Operación
 
