@@ -27,6 +27,7 @@ export default defineConfig({
           label: "Modelos",
           items: [
             { label: "Los modelos", slug: "modelos" },
+            { label: "Regresores", slug: "regresores" },
             { label: "Por qué estos por defecto", slug: "seleccion-de-modelos" },
           ],
         },

@@ -327,10 +327,13 @@ términos de Fourier y feriados) y `ensemble.py` (combina varios modelos).
 
 ### Agregar un regresor externo
 
-Un regresor es una serie semanal que no viene del DEIS: circulación viral, temperatura,
-contaminación, vacunación. La forma estándar de sumarlo tiene dos pasos: **agregarlo sin
-hacer trampa** y **medir si sirve**. La [demo](https://nicoveraz.github.io/urg-forecast-core/demo/)
-muestra los dos con la circulación viral de FluNet.
+Un regresor es una serie semanal que no viene del DEIS: feriados, circulación viral,
+temperatura, contaminación, vacunación. La forma estándar de sumarlo tiene dos pasos:
+**agregarlo sin hacer trampa** y **medir si sirve**. Qué son, cuáles vienen y qué
+mostraron con datos reales está en
+[`docs/regresores.md`](https://github.com/nicoveraz/urg-forecast-core/blob/main/docs/regresores.md).
+En la [demo](https://nicoveraz.github.io/urg-forecast-core/demo/) puedes agregarlos al
+pronóstico con un botón.
 
 **1. Agregarlo.** Un `Regressor` es una tabla con `timestamp` (el lunes de cierre de cada
 semana DEIS) y una columna por variable, más las reglas de su fuente. Vienen dos:

@@ -60,16 +60,31 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
 
       <div class="cifras" id="cifras"></div>
 
+      <div class="regs" id="regs" role="group" aria-labelledby="regs-label" hidden>
+        <span id="regs-label" class="regs-label">Agregar un regresor al pronóstico</span>
+        <button type="button" data-reg="ArmónicoFeriados" aria-pressed="false">+ Feriados</button>
+        <button type="button" data-reg="ArmónicoFluNet" aria-pressed="false">+ Virus respiratorios</button>
+        <button type="button" data-reg="ArmónicoFluNetProy" aria-pressed="false">+ Virus, proyectados</button>
+        <a class="regs-ayuda" href={base + "regresores/"}>¿Qué es esto?</a>
+      </div>
+
       <figure class="grafico">
         <svg id="svg" role="img" aria-labelledby="svg-titulo"><title id="svg-titulo"></title></svg>
         <div id="tooltip" class="tooltip" hidden></div>
-        <figcaption>
+        <figcaption id="leyenda">
           <span class="ley historia"></span> Historia semanal
           <span class="ley p50"></span> Pronóstico (valor central)
           <span class="ley banda80"></span> Hasta P80
           <span class="ley banda95"></span> Hasta P95
         </figcaption>
+        <figcaption id="leyenda-reg" hidden>
+          <span class="ley historia"></span> Historia semanal
+          <span class="ley base"></span> Armónico solo
+          <span class="ley conreg"></span> <span id="leyenda-reg-nombre"></span>
+          <span class="ley conreg-banda"></span> Hasta P80
+        </figcaption>
       </figure>
+      <p id="regs-texto" class="regs-texto" hidden></p>
 
       <section id="analisis" hidden>
         <h3>Cómo ha sido la demanda</h3>
@@ -104,7 +119,8 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
           ¿Mejora el pronóstico con información externa? Dos ejemplos, medidos de la misma
           forma y con resultados opuestos: los <strong>feriados</strong> del calendario chileno,
           que se conocen de antemano, y la <strong>positividad nacional de influenza y VRS</strong>{" "}
-          que el ISP reporta a la OMS (FluNet), publicada con unas dos semanas de atraso.
+          que el ISP reporta a la OMS (FluNet), publicada con unas dos semanas de atraso. El
+          método y los resultados completos están en <a href={base + "regresores/"}>Regresores</a>.
         </p>
         <figure class="grafico">
           <svg id="svg-pos" role="img" aria-labelledby="pos-titulo"><title id="pos-titulo">Positividad semanal de influenza y VRS en Chile, con proyección</title></svg>
@@ -318,8 +334,22 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
   #demo #svg-pos { width: 100%; height: auto; display: block; overflow: visible; }
   #demo #svg-pos text, #demo #svg-reg text { fill: var(--sl-color-gray-3); font-size: 11px; font-family: var(--sl-font); }
   #demo #svg-reg { width: 100%; height: auto; display: block; overflow: visible; margin-top: 0.5rem; }
+  #demo .grafico figcaption[hidden], #demo .regs[hidden] { display: none; }
+  #demo .regs { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; margin-top: 1.25rem; }
+  #demo .regs-label { font-size: var(--sl-text-sm); color: var(--sl-color-gray-3); margin-right: 0.25rem; }
+  #demo .regs button {
+    padding: 0.3rem 0.75rem; border: 1px solid var(--sl-color-gray-5); border-radius: 999px;
+    background: transparent; color: var(--sl-color-gray-2); font: inherit; font-size: var(--sl-text-sm); cursor: pointer;
+  }
+  #demo .regs button[aria-pressed="true"] { background: var(--reg-color); border-color: var(--reg-color); color: var(--sl-color-black); }
+  #demo .regs button:disabled { opacity: 0.4; cursor: not-allowed; }
+  #demo .regs-ayuda { font-size: var(--sl-text-sm); margin-left: 0.25rem; }
+  #demo .regs-texto { font-size: var(--sl-text-sm); color: var(--sl-color-gray-2); margin: 0.5rem 0 0; }
+  #demo .ley.base { height: 0; border-top: 2px dashed var(--sl-color-gray-2); }
+  #demo .ley.conreg { height: 3px; background: var(--reg-color, var(--sl-color-accent)); }
+  #demo .ley.conreg-banda { background: color-mix(in srgb, var(--reg-color, var(--sl-color-accent)) 25%, transparent); }
   #demo .ley.punto { width: 0.6rem; height: 0.6rem; border-radius: 50%; margin-right: 0; }
-  #demo .ley.inv { background: color-mix(in srgb, var(--sl-color-blue) 14%, transparent); }
+  #demo .ley.inv { background: color-mix(in srgb, var(--sl-color-gray-3) 22%, transparent); }
   #demo .veredictos { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 0.75rem; margin-top: 1rem; }
   #demo .veredicto { border: 1px solid var(--sl-color-hairline); border-radius: 0.5rem; padding: 0.75rem 0.9rem; }
   #demo .veredicto .m { font-weight: 600; color: var(--sl-color-white); }
@@ -342,6 +372,7 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
     cobertura: [number, number];
     ventanas: number;
     semanas_backtest: number;
+    regresores?: Record<string, { pronostico: [string, number, number][]; valores?: (string | number)[][]; columnas?: string[] }>;
     analisis?: {
       nivel: number; cambio_nivel: number | null; interanual: number | null; amplitud: number;
       alta: [number, string]; baja: [number, string];
@@ -359,6 +390,7 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
     positividad: [string, number, number][]; proyeccion: [string, number, number][]; establecimientos: RegEntry[];
   };
   let reg: Reg | null = null;
+  let activeReg: string | null = null;
 
   const root = document.getElementById("demo")!;
   const BASE = root.dataset.base + "datos/demo/";
@@ -530,9 +562,41 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
     }
     bt.append(tb);
     $("cmd").textContent = `urg-forecast analizar ${d.c} && urg-forecast pronosticar ${d.c} -H ${horizon}`;
+    renderRegToggles(d, fc);
     drawChart(d, fc);
     renderAnalysis(d);
     renderRegressor(d);
+  }
+
+  function renderRegToggles(d: Detail, fc: Detail["pronostico"]) {
+    const box = $("regs");
+    const available = d.regresores ?? {};
+    box.hidden = !available["Armónico"];
+    if (activeReg && !available[activeReg]) activeReg = null;
+    box.querySelectorAll<HTMLButtonElement>("button").forEach((b) => {
+      const m = b.dataset.reg!;
+      b.disabled = !available[m];
+      b.style.setProperty("--reg-color", REG_COLOR[m]);
+      b.setAttribute("aria-pressed", String(m === activeReg));
+    });
+    $("leyenda").hidden = !!activeReg;
+    $("leyenda-reg").hidden = !activeReg;
+    const txt = $("regs-texto");
+    if (!activeReg) { txt.hidden = true; return; }
+    $("leyenda-reg").style.setProperty("--reg-color", REG_COLOR[activeReg]);
+    $("leyenda-reg-nombre").textContent = `Armónico ${REG_NAME[activeReg]}`;
+    const n = Math.min(4, fc.length);
+    const sum = (rows: [string, number, number][]) => rows.slice(0, n).reduce((a, r) => a + r[1], 0);
+    const base = sum(available["Armónico"].pronostico), conReg = sum(available[activeReg].pronostico);
+    const diff = conReg - base;
+    let t = `Próximas ${n} semanas: ${nf.format(conReg)} atenciones ${REG_NAME[activeReg]}, ` +
+      `${diff >= 0 ? "+" : "−"}${nf.format(Math.abs(diff))} (${pct(base ? (100 * diff) / base : null)}) frente al Armónico solo. `;
+    const ev = reg?.establecimientos.find((e) => e.c === d.c)?.candidatos[activeReg];
+    t += ev
+      ? `En el backtest de este establecimiento: ${ev.veredicto} (gana ${ev.todas.gana} de ${ev.todas.n} ventanas).`
+      : "Este establecimiento no está entre los evaluados en el backtest de abajo.";
+    txt.textContent = t;
+    txt.hidden = false;
   }
 
   function renderAnalysis(d: Detail) {
@@ -604,9 +668,21 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
     for (const [w, v] of a.actual) el("circle", { cx: X(w), cy: Y(v), r: 2.6, fill: "var(--sl-color-accent)" }, s);
   }
 
-  // Feriados (works) in the accent colour; the FluNet variants in neutral tones.
-  const CAND_COLORS = ["var(--sl-color-accent)", "var(--sl-color-gray-3)", "var(--sl-color-purple)"];
-  const candColor = (i: number) => CAND_COLORS[i % CAND_COLORS.length];
+  const REG_COLOR: Record<string, string> = {
+    ArmónicoFeriados: "var(--sl-color-green)",
+    ArmónicoFluNet: "var(--sl-color-blue)",
+    ArmónicoFluNetProy: "var(--sl-color-purple)",
+  };
+  const REG_NAME: Record<string, string> = {
+    ArmónicoFeriados: "con feriados",
+    ArmónicoFluNet: "con virus respiratorios",
+    ArmónicoFluNetProy: "con virus proyectados",
+  };
+  const OTHER_COLORS = ["var(--sl-color-orange)", "var(--sl-color-red)", "var(--sl-color-gray-3)"];
+  const candColor = (i: number) => {
+    const m = reg?.candidatos[i] ?? "";
+    return REG_COLOR[m] ?? OTHER_COLORS[i % OTHER_COLORS.length];
+  };
 
   const VEREDICTO: Record<string, string> = { mejora: "mejora", empeora: "empeora", "sin diferencia clara": "neutro" };
   const pct = (v: number | null) => (v == null ? "–" : `${v > 0 ? "+" : ""}${v.toFixed(1).replace(".", ",")} %`);
@@ -745,7 +821,7 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
     const x0 = rows[0].t - 2 * wk, x1 = rows[rows.length - 1].t + 2 * wk;
     const X0 = (t: number) => m.l + ((t - x0) / (x1 - x0)) * (W - m.l - m.r);
     for (const r of rows.filter((r) => r.winter))
-      el("rect", { x: X0(r.t - 2 * wk), y: m.t, width: X0(r.t + 2 * wk) - X0(r.t - 2 * wk), height: H - m.t - m.b, fill: "var(--sl-color-blue)", "fill-opacity": 0.1 }, s);
+      el("rect", { x: X0(r.t - 2 * wk), y: m.t, width: X0(r.t + 2 * wk) - X0(r.t - 2 * wk), height: H - m.t - m.b, fill: "var(--sl-color-gray-3)", "fill-opacity": 0.12 }, s);
     const { X, Y } = axes(s, W, H, m, x0, x1, -lim, lim, (v) => `${v > 0 ? "+" : ""}${v} %`);
     el("line", { x1: m.l, x2: W - m.r, y1: Y(0), y2: Y(0), stroke: "var(--sl-color-gray-3)" }, s);
     const k = cands.length;
@@ -774,7 +850,12 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
     const hist = d.historia.slice(-104);
     const pts = [...hist.map((r) => r[0]), ...fc.map((r) => r[0])].map((s) => +new Date(s));
     const x0 = pts[0], x1 = pts[pts.length - 1];
-    const vals = [...hist.map((r) => r[1]), ...fc.map((r) => r[3])];
+    const regs = d.regresores ?? {};
+    const overlay = activeReg && regs[activeReg] && regs["Armónico"]
+      ? { base: regs["Armónico"].pronostico.slice(0, fc.length), con: regs[activeReg].pronostico.slice(0, fc.length),
+          valores: regs[activeReg].valores ?? [], columnas: regs[activeReg].columnas ?? [] }
+      : null;
+    const vals = [...hist.map((r) => r[1]), ...fc.map((r) => r[3]), ...(overlay ? overlay.con.map((r) => r[2]) : [])];
     const lo = Math.min(...hist.map((r) => r[1]), ...fc.map((r) => r[1]));
     const hi = Math.max(...vals);
     const pad = (hi - lo) * 0.08 || 1;
@@ -802,10 +883,29 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
     const F = fc.map((r) => [+new Date(r[0]), r[1], r[2], r[3]]);
     const lastH: [number, number] = [+new Date(hist[hist.length - 1][0]), hist[hist.length - 1][1]];
     const p50 = [lastH, ...F.map((r) => [r[0], r[1]] as [number, number])];
-    el("path", { d: band(F.map((r) => [r[0], r[1]]), F.map((r) => [r[0], r[3]])), fill: "var(--sl-color-accent)", "fill-opacity": 0.16 });
-    el("path", { d: band(F.map((r) => [r[0], r[1]]), F.map((r) => [r[0], r[2]])), fill: "var(--sl-color-accent)", "fill-opacity": 0.32 });
+    const dim = overlay ? 0 : 1; // with a regressor on, the chart compares Armónico with and without it
+    el("path", { d: band(F.map((r) => [r[0], r[1]]), F.map((r) => [r[0], r[3]])), fill: "var(--sl-color-accent)", "fill-opacity": 0.16 * dim });
+    el("path", { d: band(F.map((r) => [r[0], r[1]]), F.map((r) => [r[0], r[2]])), fill: "var(--sl-color-accent)", "fill-opacity": 0.32 * dim });
     el("path", { d: line(hist.map((r) => [+new Date(r[0]), r[1]])), fill: "none", stroke: "var(--sl-color-gray-3)", "stroke-width": 1.8, "stroke-linejoin": "round" });
-    el("path", { d: line(p50), fill: "none", stroke: "var(--sl-color-accent)", "stroke-width": 2.6, "stroke-linejoin": "round" });
+    el("path", { d: line(p50), fill: "none", stroke: "var(--sl-color-accent)", "stroke-width": 2.6, "stroke-linejoin": "round", "stroke-opacity": dim });
+    if (overlay) {
+      const color = REG_COLOR[activeReg!] ?? "var(--sl-color-accent)";
+      const C = overlay.con.map((r) => [+new Date(r[0]), r[1], r[2]] as [number, number, number]);
+      const B = overlay.base.map((r) => [+new Date(r[0]), r[1]] as [number, number]);
+      el("path", { d: band(C.map((r) => [r[0], r[1]]), C.map((r) => [r[0], r[2]])), fill: color, "fill-opacity": 0.22 });
+      el("path", { d: line([lastH, ...B]), fill: "none", stroke: "var(--sl-color-gray-2)", "stroke-width": 2, "stroke-dasharray": "5 4" });
+      el("path", { d: line([lastH, ...C.map((r) => [r[0], r[1]] as [number, number])]), fill: "none", stroke: color, "stroke-width": 2.6, "stroke-linejoin": "round" });
+      if (activeReg === "ArmónicoFeriados") {
+        // mark forecast weeks with holidays on a weekday
+        for (const v of overlay.valores) {
+          const n = Number(v[1]);
+          if (!n || +new Date(String(v[0])) > x1) continue;
+          const x = X(+new Date(String(v[0])));
+          el("line", { x1: x, x2: x, y1: H - m.b, y2: H - m.b - 8, stroke: color, "stroke-width": 3 });
+          if (!narrow) el("text", { x, y: H - m.b - 11, "text-anchor": "middle" }).textContent = n > 1 ? `${n}F` : "F";
+        }
+      }
+    }
     el("line", { x1: X(lastH[0]), x2: X(lastH[0]), y1: m.t, y2: H - m.b, stroke: "var(--sl-color-gray-4)", "stroke-dasharray": "3 4" });
     el("text", { x: X(lastH[0]) - 6, y: m.t + 10, "text-anchor": "end" }).textContent = "datos hasta acá";
 
@@ -816,6 +916,12 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
       ...hist.map((r) => ({ t: +new Date(r[0]), s: r[0], v: r[1], f: null as null | number[] })),
       ...fc.map((r) => ({ t: +new Date(r[0]), s: r[0], v: r[1], f: [r[1], r[2], r[3]] })),
     ];
+    const regAt = (s: string) => {
+      if (!overlay) return null;
+      const b = overlay.base.find((r) => r[0] === s), c = overlay.con.find((r) => r[0] === s);
+      const v = overlay.valores.find((r) => r[0] === s);
+      return b && c ? { b: b[1], c: c[1], v } : null;
+    };
     const hit = el("rect", { x: m.l, y: m.t, width: W - m.l - m.r, height: H - m.t - m.b, fill: "transparent" });
     const move = (ev: PointerEvent) => {
       const box = svg.getBoundingClientRect();
@@ -825,22 +931,37 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
       const cx = X(best.t), cy = Y(best.v);
       guide.setAttribute("x1", String(cx)); guide.setAttribute("x2", String(cx));
       guide.setAttribute("visibility", "visible");
-      dot.setAttribute("cx", String(cx)); dot.setAttribute("cy", String(cy));
-      dot.setAttribute("fill", best.f ? "var(--sl-color-accent)" : "var(--sl-color-gray-2)");
+      const rb = best.f ? regAt(best.s) : null;
+      const cyy = rb ? Y(rb.c) : cy;
+      dot.setAttribute("cx", String(cx)); dot.setAttribute("cy", String(cyy));
+      dot.setAttribute("fill", rb ? (REG_COLOR[activeReg!] ?? "var(--sl-color-accent)") : best.f ? "var(--sl-color-accent)" : "var(--sl-color-gray-2)");
       dot.setAttribute("visibility", "visible");
       tooltip.innerHTML = "";
       const head = document.createElement("strong");
       head.textContent = `Semana al ${fecha(best.s)}`;
       tooltip.append(head, document.createElement("br"));
-      tooltip.append(
-        best.f
-          ? `Pronóstico ${nf.format(best.f[0])} · P80 ${nf.format(best.f[1])} · P95 ${nf.format(best.f[2])}`
-          : `${nf.format(best.v)} atenciones`,
-      );
+      const ra = best.f ? regAt(best.s) : null;
+      if (ra) {
+        tooltip.append(`Armónico ${nf.format(ra.b)} · ${REG_NAME[activeReg!]} ${nf.format(ra.c)}`);
+        if (ra.v) {
+          tooltip.append(document.createElement("br"));
+          tooltip.append(
+            activeReg === "ArmónicoFeriados"
+              ? `${ra.v[1]} feriado${Number(ra.v[1]) === 1 ? "" : "s"} en día hábil`
+              : `Positividad supuesta: influenza ${String(ra.v[1]).replace(".", ",")} %, VRS ${String(ra.v[2]).replace(".", ",")} %`,
+          );
+        }
+      } else {
+        tooltip.append(
+          best.f
+            ? `Pronóstico ${nf.format(best.f[0])} · P80 ${nf.format(best.f[1])} · P95 ${nf.format(best.f[2])}`
+            : `${nf.format(best.v)} atenciones`,
+        );
+      }
       tooltip.hidden = false;
       const px = (cx / W) * box.width;
       tooltip.style.left = `${Math.min(Math.max(px - tooltip.offsetWidth / 2, 0), box.width - tooltip.offsetWidth)}px`;
-      tooltip.style.top = `${(cy / H) * box.height - tooltip.offsetHeight - 14}px`;
+      tooltip.style.top = `${(cyy / H) * box.height - tooltip.offsetHeight - 14}px`;
     };
     hit.addEventListener("pointermove", move as EventListener);
     hit.addEventListener("pointerleave", () => {
@@ -856,6 +977,12 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
     return (f < 1.5 ? 1 : f < 3.5 ? 2 : f < 7.5 ? 5 : 10) * p;
   }
 
+  document.querySelectorAll<HTMLButtonElement>("#regs button").forEach((b) =>
+    b.addEventListener("click", () => {
+      activeReg = activeReg === b.dataset.reg ? null : b.dataset.reg!;
+      render();
+    }),
+  );
   q.addEventListener("input", renderList);
   q.addEventListener("focus", () => { q.select(); renderList(); });
   q.addEventListener("blur", () => setTimeout(closeList, 200));

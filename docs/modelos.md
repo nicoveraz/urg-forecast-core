@@ -107,81 +107,30 @@ por cuantil. Código en `src/urgencias_core/models/ensemble.py`.
 
 ### ArmónicoFeriados y ArmónicoCalendario
 
-El modelo Armónico más variables del **calendario chileno** por semana DEIS, que se conocen
-de antemano y sirven también para las semanas que se pronostican. Vienen del regresor
-`calendar()` (`urgencias_core.regressors`, construido con
-`features.calendar.weekly_calendar`):
+El Armónico más variables del **calendario chileno** por semana DEIS, que se conocen de
+antemano y sirven también para las semanas que se pronostican (regresor `calendar()`):
 
 - `ArmónicoFeriados`: cuántos feriados caen en día hábil esa semana.
 - `ArmónicoCalendario`: además, los interferiados y la fracción de la semana en vacaciones
   escolares.
 
-**Qué mostró con datos reales** (noviembre de 2026): en los 40 hospitales públicos con más
-atenciones, hasta 36 ventanas de 4 semanas desde enero de 2024, comparando con el Armónico
-en las mismas ventanas:
-
-| Variante | Cambio mediano P80 | Ventanas ganadas | Veredicto por hospital |
-|---|---|---|---|
-| Feriados | −2,9% | 66% | mejora 19, empeora 0, sin diferencia 21 |
-| Calendario completo | −3,4% | 62% | mejora 7, empeora 0, sin diferencia 33 |
-
-**Los feriados sí mejoran el pronóstico.** La mediana por hospital es negativa en 39 de 40
-y ningún hospital empeora. Si fuera azar, se esperaría que uno de los 40 saliera "mejora",
-no 19. La ganancia es mayor en las ventanas de septiembre (−7,5%, gana en 88%: Fiestas
-Patrias) y se mantiene el resto del año (−2,5%). Sumar interferiados y vacaciones
-escolares no agrega: el cambio mediano es parecido, pero gana en menos ventanas y en
-menos hospitales, y la pérdida total casi no baja (−0,4% contra −1,5% con solo feriados).
-Las vacaciones son aproximadas (`_is_school_holiday`) y se parecen mucho al ciclo anual
-que el Armónico ya modela.
-
-- **Para experimentar:** `weekly_calendar(inicio, fin, CalendarConfig(...))` acepta eventos
-  regionales propios (la Semana Musical de Frutillar viene como ejemplo) y fechas de
-  vacaciones exactas si las tienes. `examples/04_regresor_externo.py` compara FluNet y el
-  calendario en un establecimiento.
+**Los feriados sí mejoran el pronóstico:** en 39 de los 40 hospitales con más atenciones
+baja la pérdida P80 (−2,9 % en la mediana), y en 19 la mejora es consistente por sí sola.
+El calendario completo no agrega más. Detalle y método en [Regresores](regresores.md).
 
 ### ArmónicoFluNet y ArmónicoFluNetProy
 
-El modelo Armónico más la **circulación viral**: la positividad semanal de influenza y de
-virus respiratorio sincicial (VRS) que el ISP reporta a la OMS
-([FluNet](https://www.who.int/tools/flunet)). Es el ejemplo de cómo sumar una fuente
-externa con `HarmonicExogenous` (ver
-[Agregar un regresor externo](https://github.com/nicoveraz/urg-forecast-core/blob/main/README.md#agregar-un-regresor-externo));
-no son parte de los modelos por defecto.
+El Armónico más la **circulación viral**: la positividad semanal nacional de influenza y
+VRS que el ISP reporta a la OMS ([FluNet](https://www.who.int/tools/flunet)), publicada con
+unas dos semanas de atraso (regresor `flunet()`). Se diferencian en cómo llenan las
+semanas que aún no se publican:
 
-- **De dónde salen los datos:** el workflow semanal copia la serie de Chile a la rama
-  `datos` (`flunet_chl.csv`), así que el comando la lee desde el repositorio y no consulta
-  a la OMS en cada uso. Es semanal desde 1997, separada en red centinela y no centinela,
-  con unas dos semanas de atraso y **solo nacional**: no distingue regiones.
-- **Backtest honesto:** en cada ventana usan solo las semanas de FluNet ya publicadas en
-  ese momento. Se diferencian en cómo llenan las que faltan:
-  - `ArmónicoFluNet` (rezago 3 semanas): con el promedio histórico de esa semana del
-    año. La señal real llega solo a la primera semana del pronóstico.
-  - `ArmónicoFluNetProy` (rezago 1 semana): con una proyección de la positividad desde la
-    temporada en curso (Armónico sin tendencia y ARIMA), que arrastra si la temporada
-    viene adelantada o atrasada.
-- **Qué mostró con datos reales** (noviembre de 2026): en los 40 hospitales públicos con
-  más atenciones, hasta 36 ventanas de 4 semanas desde enero de 2024 (inviernos 2024, 2025 y
-  2026), comparando con el Armónico en las mismas ventanas:
+- `ArmónicoFluNet` (rezago 3): con el promedio histórico de esa semana del año.
+- `ArmónicoFluNetProy` (rezago 1): con una proyección de la positividad desde la temporada
+  en curso.
 
-  | Variante | Cambio mediano P80 | Ventanas ganadas | Veredicto por hospital |
-  |---|---|---|---|
-  | Promedio histórico, rezago 3 | +1,0% | 45% | mejora 0, empeora 7, sin diferencia 33 |
-  | Proyección, rezago 3 | +0,9% | 45% | mejora 0, empeora 2, sin diferencia 38 |
-  | Proyección, rezago 1 | +1,8% | 44% | mejora 0, empeora 3, sin diferencia 37 |
-
-  **Ningún hospital mejoró de forma consistente.** Los que ganan un invierno no son los
-  que ganan el siguiente: la correlación entre inviernos del cambio por hospital es
-  cercana a cero (−0,25 a 0,24). El daño se concentra en invierno, cuando el regresor
-  suma variabilidad sin aportar información que el ciclo anual no tenga. Proyectar la
-  positividad reduce los hospitales que empeoran, pero no hace que mejore. Lo más
-  probable: la positividad nacional poco agrega a lo que el ciclo anual explica del
-  **total** de atenciones. Puede rendir más pronosticando solo las atenciones
-  respiratorias o pediátricas, o con vigilancia regional.
-- **Para experimentar:** `HarmonicFluNet` (en `src/urgencias_core/models/exogenous.py`)
-  acepta `lag_weeks`, `report_delay_weeks`, `future`, `viruses` y tu propia serie en
-  `positivity`. `urgencias_core.data.flunet.weekly_positivity` convierte los datos crudos
-  de FluNet a semanas DEIS. `urg-forecast comparar CODIGO -m ArmonicoFluNetProy` repite la
-  comparación para un establecimiento.
+**No mejoran el total de atenciones** en ningún hospital de forma consistente. Detalle,
+posibles razones y cómo probar otras fuentes en [Regresores](regresores.md).
 
 ## Agregar tu propio modelo
 

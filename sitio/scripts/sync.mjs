@@ -113,6 +113,8 @@ write("acerca", { title: "Acerca de", description: "Datos, estado del proyecto, 
   section("acerca", "fin"));
 write("modelos", { title: "Modelos", description: "Los modelos incluidos, cuándo conviene cada uno y cómo agregar el tuyo." },
   stripH1(read("docs/modelos.md")));
+write("regresores", { title: "Regresores", description: "Variables externas al DEIS: cómo se agregan sin hacer trampa, cuáles vienen y qué mostraron con datos reales." },
+  stripH1(read("docs/regresores.md")));
 write("seleccion-de-modelos", { title: "Por qué estos modelos", description: "La comparación con datos DEIS en vivo detrás de los modelos por defecto." },
   stripH1(read("docs/seleccion-de-modelos.md")));
 write("arquitectura", { title: "Arquitectura", description: "Cómo está organizado el paquete, sus contratos y dónde va cada cosa nueva." },
