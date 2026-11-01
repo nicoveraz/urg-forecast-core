@@ -98,12 +98,14 @@ Pronóstico con Armónico: atenciones semanales
 | `urg-forecast buscar [TEXTO]` | Lista los establecimientos cuyo nombre, código, tipo (Hospital, SAPU, SAR, SUR), comuna, región o servicio de salud contiene `TEXTO` (todos si va vacío). La primera columna es el código que recibe `pronosticar`. |
 | `urg-forecast pronosticar CODIGO [CODIGO ...]` | Backtest + pronóstico para uno o más establecimientos. Códigos como `24-105` o `124105`. |
 | `urg-forecast modelos` | Lista los modelos disponibles y cuáles se comparan por defecto. |
+| `urg-forecast comparar CODIGO -m MODELO` | ¿Sirve un regresor o un modelo nuevo? Lo compara contra el Armónico (o `--base`) en muchas ventanas y dice si la diferencia es consistente o ruido. Ver [Agregar un regresor externo](#agregar-un-regresor-externo). |
 
 | Opción | Comandos | Significado |
 |---|---|---|
 | `-H`, `--horizonte` | demo, pronosticar | Horizonte: semanas (`12`, `12s`) o meses (`6m`). Por defecto 26 semanas. |
 | `-o`, `--salida` | demo, pronosticar | Carpeta de salida (por defecto `./urg-forecast-salida`); una subcarpeta por establecimiento. |
 | `-m`, `--modelo` | demo, pronosticar | Modelo a usar, repetible. Nombre de `urg-forecast modelos` o `archivo:Clase` para uno propio. Ver [Modelos](#modelos). |
+| `--base`, `--ventanas`, `--paso` | comparar | Modelo base (Armónico), número de ventanas (36) y semanas entre ellas (4). Con `comparar`, `-H` es el largo de cada ventana (4 semanas). |
 | `--sin-calibrar` | demo, pronosticar | No ensanchar los intervalos según el error del backtest. |
 | `--desde AÑO` | pronosticar | Primer año DEIS a usar (por defecto 2022). 2020–2021 siempre se excluyen. |
 | `--offline` | demo, pronosticar | Solo el snapshot incluido, sin red. El snapshot trae únicamente los dos hospitales del demo. |
@@ -188,7 +190,7 @@ El valor está en lo que le agregues. Para eso son las dos secciones que siguen.
 <!-- sitio:modelos -->
 ## Modelos
 
-Por defecto se comparan cuatro y se usa el mejor. Hay otros cinco para
+Por defecto se comparan cuatro y se usa el mejor. Hay otros seis para
 experimentar, que se activan con `-m`:
 
 | Modelo | Por defecto | En pocas palabras |
@@ -202,6 +204,7 @@ experimentar, que se activan con `-m`:
 | Ensamble | | mediana de AutoARIMA, Armónico y MSTL |
 | ArmónicoFeriados | | Armónico + feriados chilenos en día hábil |
 | ArmónicoFluNet | | Armónico + circulación viral (OMS FluNet); ejemplo de fuente externa |
+| ArmónicoFluNetProy | | igual, pero proyecta la circulación viral en vez de usar su promedio histórico |
 
 Los nombres no distinguen mayúsculas ni tildes (`-m armonicoferiados` sirve).
 Qué hace cada uno, cuándo conviene y cómo agregar el tuyo está en
@@ -313,6 +316,61 @@ print(resultado.backtest)
 Más ejemplos en `src/urgencias_core/models/`: `harmonic.py` (regresión con
 términos de Fourier y feriados) y `ensemble.py` (combina varios modelos).
 
+### Agregar un regresor externo
+
+Un regresor es una serie semanal que no viene del DEIS: circulación viral, temperatura,
+contaminación, vacunación. La forma estándar de sumarlo tiene dos pasos: **agregarlo sin
+hacer trampa** y **medir si sirve**. La [demo](https://nicoveraz.github.io/urg-forecast-core/demo/)
+muestra los dos con la circulación viral de FluNet.
+
+**1. Agregarlo.** `HarmonicExogenous` es el Armónico más las columnas de una tabla con
+`timestamp` (el lunes de cierre de cada semana DEIS) y una columna por variable:
+
+```python
+import pandas as pd
+from urgencias_core.models.exogenous import HarmonicExogenous
+
+temperatura = pd.read_csv("temperatura_semanal.csv", parse_dates=["timestamp"])
+con_temp = lambda: HarmonicExogenous(
+    temperatura, ["temp_min"],
+    lag_weeks=0,            # la semana t usa el valor de la semana t - lag
+    report_delay_weeks=1,   # cuántas semanas tarda en publicarse cada dato
+    future="forecast",      # qué hacer con lo no publicado: "forecast" o "climatology"
+)
+```
+
+La regla que lo mantiene honesto: en cada ventana del backtest el modelo solo ve los
+datos que ya estaban **publicados** en esa fecha. Lo que falta se rellena con el promedio
+histórico de esa semana del año (`"climatology"`) o con una proyección de la propia serie
+(`"forecast"`: Armónico sin tendencia y ARIMA, que arrastra si la temporada viene
+adelantada o atrasada). 2020 y 2021 quedan fuera de ambos.
+
+**2. Medir si sirve.** Tres ventanas alcanzan para elegir modelo, no para saber si un
+regresor ayuda: con pocas, la diferencia es casi siempre ruido. `compare_models` ajusta
+ambos modelos en las mismas 36 ventanas de 4 semanas (unos tres inviernos), cuenta en
+cuántas gana el candidato, aplica una prueba de signos y separa invierno del resto:
+
+```python
+from urgencias_core.eval.compare import compare_models
+from urgencias_core.models.harmonic import HarmonicRegression
+
+cmp = compare_models(semanal, ("Armónico", HarmonicRegression), ("ConTemp", con_temp))
+print(cmp.text())       # gana, pierde, p, cambio mediano y veredicto
+cmp.summary()           # todas, invierno (mayo a septiembre) y resto
+cmp.windows             # una fila por ventana
+```
+
+Desde la terminal, con un modelo incluido o uno propio (`archivo:Clase`):
+
+```bash
+urg-forecast comparar 24-105 -m ArmonicoFluNetProy
+```
+
+El veredicto es `mejora`, `empeora` o `sin diferencia clara`, por establecimiento. Si
+pruebas muchos, cerca de uno de cada veinte saldrá distinto de "sin diferencia" por azar:
+un regresor útil mejora en muchos, no en unos pocos. `HarmonicFluNet`, en
+`src/urgencias_core/models/exogenous.py`, es el ejemplo completo.
+
 ### Pedirle a una IA que lo extienda
 
 Si usas un asistente de IA (ChatGPT, Claude, Copilot u otro), copia esta
@@ -354,11 +412,10 @@ tabla de backtest, no la explicación.
 edad, así que puedes modelar las causas respiratorias o la urgencia pediátrica
 en vez del total.
 
-**Fuentes externas.** `ArmónicoFluNet` muestra cómo sumar una serie que no es del
-DEIS (la circulación viral de FluNet) sin hacer trampa en el backtest: en cada ventana
-usa solo lo que estaba publicado en ese momento. Con datos reales no mejoró el total de
-atenciones (detalle en `docs/modelos.md`), y eso también es un resultado: sirve de
-plantilla para probar clima, vacunación o vigilancia regional con el mismo rigor.
+**Fuentes externas.** Con la receta de [Agregar un regresor externo](#agregar-un-regresor-externo)
+se puede probar clima, vacunación o vigilancia regional con el mismo rigor. El ejemplo de
+FluNet no mejoró el total de atenciones en ningún hospital de forma consistente (detalle en
+`docs/modelos.md`), y eso también es un resultado.
 
 **Calendario chileno.** `urgencias_core.features.calendar_features` construye
 variables de feriados, interferiados, calendario escolar y eventos regionales,

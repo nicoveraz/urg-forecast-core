@@ -74,6 +74,49 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
       <p id="bt-texto" class="detalle"></p>
       <div class="tabla"><table id="bt"></table></div>
 
+      <section id="regresor" hidden>
+        <h3>Agregar un regresor: circulación viral (ejemplo)</h3>
+        <p>
+          ¿Mejora el pronóstico si el modelo sabe cuántos virus respiratorios circulan? Es el
+          ejemplo de cómo sumar una serie externa y medir si sirve. El regresor es la
+          positividad nacional de influenza y VRS que el ISP reporta a la OMS (FluNet),
+          publicada con unas dos semanas de atraso.
+        </p>
+        <figure class="grafico">
+          <svg id="svg-pos" role="img" aria-labelledby="pos-titulo"><title id="pos-titulo">Positividad semanal de influenza y VRS en Chile, con proyección</title></svg>
+          <figcaption>
+            <span class="ley flu"></span> Influenza
+            <span class="ley vrs"></span> VRS
+            <span class="ley proy"></span> Proyección
+            <span id="pos-fuente"></span>
+          </figcaption>
+        </figure>
+        <p>
+          Se comparan dos formas de llenar las semanas que aún no se publican:{" "}
+          <strong>ArmónicoFluNet</strong> usa el promedio histórico de esa semana del año y{" "}
+          <strong>ArmónicoFluNetProy</strong> proyecta la positividad desde la temporada en
+          curso (la línea punteada). Ambos contra el Armónico sin regresor, en las mismas
+          ventanas.
+        </p>
+        <div id="reg-propio"></div>
+        <p id="reg-red" class="detalle"></p>
+        <h4>La receta, con tus propios datos</h4>
+        <pre class="receta"><code>from urgencias_core.models.exogenous import HarmonicExogenous
+from urgencias_core.models.harmonic import HarmonicRegression
+from urgencias_core.eval.compare import compare_models
+
+# timestamp = lunes de cierre de la semana DEIS; una columna por variable
+temperatura = pd.read_csv("temperatura_semanal.csv", parse_dates=["timestamp"])
+con_temp = lambda: HarmonicExogenous(
+    temperatura, ["temp_min"],
+    lag_weeks=0,            # semana objetivo t usa el valor de t
+    report_delay_weeks=1,   # se publica con 1 semana de atraso
+    future="forecast",      # lo no publicado se proyecta ("climatology": promedio)
+)
+cmp = compare_models(historia, ("Armónico", HarmonicRegression), ("ConTemp", con_temp))
+print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></pre>
+      </section>
+
       <h3>Reprodúcelo en tu computador</h3>
       <div class="comando">
         <code id="cmd"></code>
@@ -231,6 +274,28 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
   #demo th { color: var(--sl-color-gray-2); font-weight: 600; font-size: var(--sl-text-sm); }
   #demo code { font-family: var(--sl-font-mono); font-size: var(--sl-text-sm); }
   #demo .nota { margin-top: 1rem; }
+  #demo #regresor p { margin: 0.75rem 0 0; }
+  #demo #regresor .veredicto p { margin: 0; }
+  #demo h4 { font-size: var(--sl-text-lg); color: var(--sl-color-white); margin: 1.5rem 0 0.5rem; }
+  #demo .ley.flu { height: 3px; background: var(--sl-color-blue); }
+  #demo .ley.vrs { height: 3px; background: var(--sl-color-orange); }
+  #demo .ley.proy { height: 0; border-top: 2px dashed var(--sl-color-gray-3); }
+  #demo #svg-pos { width: 100%; height: auto; display: block; overflow: visible; }
+  #demo #svg-pos text, #demo #svg-reg text { fill: var(--sl-color-gray-3); font-size: 11px; font-family: var(--sl-font); }
+  #demo #svg-reg { width: 100%; height: auto; display: block; overflow: visible; margin-top: 0.5rem; }
+  #demo .ley.cand0 { width: 0.6rem; height: 0.6rem; border-radius: 50%; background: var(--sl-color-gray-3); margin-right: 0; }
+  #demo .ley.cand1 { width: 0.6rem; height: 0.6rem; border-radius: 50%; background: var(--sl-color-accent); margin-right: 0; }
+  #demo .ley.inv { background: color-mix(in srgb, var(--sl-color-blue) 14%, transparent); }
+  #demo .veredictos { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 0.75rem; margin-top: 1rem; }
+  #demo .veredicto { border: 1px solid var(--sl-color-hairline); border-radius: 0.5rem; padding: 0.75rem 0.9rem; }
+  #demo .veredicto .m { font-weight: 600; color: var(--sl-color-white); }
+  #demo .veredicto .v { display: inline-block; margin: 0.35rem 0; padding: 0.1rem 0.55rem; border-radius: 999px; font-size: var(--sl-text-sm); font-weight: 600; }
+  #demo .v.mejora { background: color-mix(in srgb, var(--sl-color-green) 22%, transparent); color: var(--sl-color-green-high); }
+  #demo .v.empeora { background: color-mix(in srgb, var(--sl-color-red) 22%, transparent); color: var(--sl-color-red-high); }
+  #demo .v.neutro { background: var(--sl-color-gray-6); color: var(--sl-color-gray-2); }
+  #demo .veredicto .l { font-size: var(--sl-text-sm); color: var(--sl-color-gray-3); margin: 0; }
+  #demo .receta { font-size: var(--sl-text-xs); overflow-x: auto; padding: 0.75rem 0.9rem; border: 1px solid var(--sl-color-hairline); border-radius: 0.5rem; background: var(--sl-color-gray-7, var(--sl-color-bg-nav)); }
+  #demo .receta code { font-size: inherit; white-space: pre; }
 </style>
 
 <script>
@@ -244,6 +309,15 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
     ventanas: number;
     semanas_backtest: number;
   };
+
+  type RegStats = { n: number; gana: number; pierde: number; p: number; mediana: number | null; total: number | null };
+  type RegCand = { veredicto: string; todas: RegStats; invierno: RegStats; resto: RegStats };
+  type RegEntry = { c: string; n: string; candidatos: Record<string, RegCand>; ventanas: [string, boolean, number, ...(number | null)[]][] };
+  type Reg = {
+    base: string; candidatos: string[]; horizonte: number; ventanas: number; paso: number; flunet_hasta: string;
+    positividad: [string, number, number][]; proyeccion: [string, number, number][]; establecimientos: RegEntry[];
+  };
+  let reg: Reg | null = null;
 
   const root = document.getElementById("demo")!;
   const BASE = root.dataset.base + "datos/demo/";
@@ -292,6 +366,13 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
     const wanted = decodeURIComponent(location.hash.slice(1)) || "24-105";
     const first = entries.find((e) => e.c === wanted && e.ok) || entries.find((e) => e.ok);
     if (first) select(first);
+    try {
+      const r = await fetch(BASE + "regresor.json");
+      if (r.ok) reg = (await r.json()) as Reg;
+    } catch {
+      /* the regressor example is optional; the forecast works without it */
+    }
+    if (current) render();
   }
 
   function filtered(): Entry[] {
@@ -409,6 +490,147 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
     bt.append(tb);
     $("cmd").textContent = `urg-forecast pronosticar ${d.c} -H ${horizon}`;
     drawChart(d, fc);
+    renderRegressor(d);
+  }
+
+  const VEREDICTO: Record<string, string> = { mejora: "mejora", empeora: "empeora", "sin diferencia clara": "neutro" };
+  const pct = (v: number | null) => (v == null ? "–" : `${v > 0 ? "+" : ""}${v.toFixed(1).replace(".", ",")} %`);
+
+  function renderRegressor(d: Detail) {
+    const sec = $("regresor");
+    if (!reg) { sec.hidden = true; return; }
+    sec.hidden = false;
+    drawPositivity(reg);
+    $("pos-fuente").textContent = `· OMS FluNet, datos hasta el ${fecha(reg.flunet_hasta)}`;
+    const box = $("reg-propio");
+    box.innerHTML = "";
+    const mine = reg.establecimientos.find((e) => e.c === d.c);
+    const cmdFor = (m: string) => `urg-forecast comparar ${d.c} -m ${m.normalize("NFD").replace(/[̀-ͯ]/g, "")}`;
+    if (!mine) {
+      const p = document.createElement("p");
+      p.textContent =
+        `Este análisis se precalcula para los ${reg.establecimientos.length} establecimientos con más atenciones ` +
+        `y ${d.n} no está entre ellos. Puedes correrlo tú (tarda unos minutos):`;
+      const c = document.createElement("div");
+      c.className = "comando";
+      c.innerHTML = "<code></code>";
+      (c.firstChild as HTMLElement).textContent = cmdFor(reg.candidatos[reg.candidatos.length - 1]);
+      box.append(p, c);
+    } else {
+      const intro = document.createElement("p");
+      const n = mine.candidatos[reg.candidatos[0]].todas.n;
+      intro.textContent =
+        `${n} ventanas de ${reg.horizonte} semanas, una cada ${reg.paso} semanas desde ${fecha(mine.ventanas[0][0])}. ` +
+        `Cada punto es una ventana: bajo cero, el modelo con regresor tuvo menor pérdida P80 que el Armónico.`;
+      box.append(intro);
+      const grid = document.createElement("div");
+      grid.className = "veredictos";
+      for (const m of reg.candidatos) {
+        const c = mine.candidatos[m];
+        const card = document.createElement("div");
+        card.className = "veredicto";
+        card.innerHTML = `<div class="m"></div><span class="v"></span><p class="l"></p><p class="l"></p>`;
+        const [title, badge, l1, l2] = card.children as unknown as HTMLElement[];
+        title.textContent = m;
+        badge.textContent = c.veredicto;
+        badge.classList.add(VEREDICTO[c.veredicto] ?? "neutro");
+        l1.textContent = `Gana ${c.todas.gana} de ${c.todas.n} ventanas (p = ${c.todas.p.toFixed(2).replace(".", ",")}); cambio mediano ${pct(c.todas.mediana)}.`;
+        l2.textContent = `Invierno (may–sep): gana ${c.invierno.gana} de ${c.invierno.n}, cambio mediano ${pct(c.invierno.mediana)}.`;
+        grid.append(card);
+      }
+      box.append(grid);
+      const fig = document.createElement("figure");
+      fig.className = "grafico";
+      fig.innerHTML = `<svg id="svg-reg" role="img"></svg><figcaption></figcaption>`;
+      box.append(fig);
+      const cap = fig.querySelector("figcaption")!;
+      cap.innerHTML = `<span class="ley cand0"></span> <span></span> <span class="ley cand1"></span> <span></span> <span class="ley inv"></span> Ventanas de invierno`;
+      const spans = cap.querySelectorAll("span:not(.ley)");
+      spans[0].textContent = reg.candidatos[0];
+      spans[1].textContent = reg.candidatos[1] ?? "";
+      drawWindows(mine, reg.candidatos);
+      const c = document.createElement("div");
+      c.className = "comando";
+      c.innerHTML = "<code></code>";
+      (c.firstChild as HTMLElement).textContent = cmdFor(reg.candidatos[reg.candidatos.length - 1]);
+      box.append(c);
+    }
+    const tally = reg.candidatos.map((m) => {
+      const v = reg!.establecimientos.map((e) => e.candidatos[m]?.veredicto);
+      const k = (x: string) => v.filter((y) => y === x).length;
+      return `${m}: mejora en ${k("mejora")}, empeora en ${k("empeora")}, sin diferencia clara en ${k("sin diferencia clara")}`;
+    });
+    $("reg-red").textContent =
+      `En los ${reg.establecimientos.length} establecimientos con más atenciones. ${tally.join("; ")}. ` +
+      `Con tantos establecimientos, cerca de uno de cada veinte sale "mejora" o "empeora" solo por azar: ` +
+      `un regresor útil debería mejorar en muchos, no en unos pocos.`;
+  }
+
+  function axes(s: SVGSVGElement, W: number, H: number, m: { t: number; r: number; b: number; l: number },
+                x0: number, x1: number, y0: number, y1: number, fmt: (v: number) => string) {
+    const X = (t: number) => m.l + ((t - x0) / (x1 - x0)) * (W - m.l - m.r);
+    const Y = (v: number) => H - m.b - ((v - y0) / (y1 - y0)) * (H - m.t - m.b);
+    const step = niceStep((y1 - y0) / 4);
+    for (let v = Math.ceil(y0 / step) * step; v <= y1 + 1e-9; v += step) {
+      el("line", { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v), stroke: "var(--sl-color-hairline)" }, s);
+      el("text", { x: m.l - 6, y: Y(v) + 4, "text-anchor": "end" }, s).textContent = fmt(v);
+    }
+    const narrow = W < 560;
+    for (let t = new Date(x0); +t <= x1; t.setMonth(t.getMonth() + 1)) {
+      if (t.getDate() > 7 || ![0, 6].includes(t.getMonth())) continue;
+      if (narrow && t.getMonth() !== 0) continue;
+      el("text", { x: X(+t), y: H - 8, "text-anchor": "middle" }, s).textContent =
+        narrow ? String(t.getFullYear()) : `${MESES[t.getMonth()]} ${t.getFullYear()}`;
+    }
+    return { X, Y };
+  }
+
+  function drawPositivity(r: Reg) {
+    const s = document.getElementById("svg-pos") as unknown as SVGSVGElement;
+    const W = Math.max(300, Math.round(s.parentElement!.clientWidth || 760));
+    const H = W < 560 ? 200 : 240, m = { t: 12, r: 10, b: 26, l: 40 };
+    s.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    s.querySelectorAll(":scope > :not(title)").forEach((n) => n.remove());
+    const pos = r.positividad, pr = r.proyeccion;
+    const x0 = +new Date(pos[0][0]), x1 = +new Date(pr[pr.length - 1][0]);
+    const hi = Math.max(...pos.map((p) => Math.max(p[1], p[2])), ...pr.map((p) => Math.max(p[1], p[2])));
+    const { X, Y } = axes(s, W, H, m, x0, x1, 0, hi * 1.08, (v) => `${v} %`);
+    const path = (rows: [number, number][]) => rows.map(([t, v], i) => `${i ? "L" : "M"}${X(t).toFixed(1)},${Y(v).toFixed(1)}`).join("");
+    const last = pos[pos.length - 1];
+    for (const [i, color] of [[1, "var(--sl-color-blue)"], [2, "var(--sl-color-orange)"]] as [number, string][]) {
+      el("path", { d: path(pos.map((p) => [+new Date(p[0]), p[i]])), fill: "none", stroke: color, "stroke-width": 2, "stroke-linejoin": "round" }, s);
+      el("path", { d: path([[+new Date(last[0]), last[i]], ...pr.map((p) => [+new Date(p[0]), p[i]] as [number, number])]), fill: "none", stroke: color, "stroke-width": 2, "stroke-dasharray": "4 4" }, s);
+    }
+    el("line", { x1: X(+new Date(last[0])), x2: X(+new Date(last[0])), y1: m.t, y2: H - m.b, stroke: "var(--sl-color-gray-4)", "stroke-dasharray": "3 4" }, s);
+  }
+
+  function drawWindows(e: RegEntry, cands: string[]) {
+    const s = document.getElementById("svg-reg") as unknown as SVGSVGElement;
+    const W = Math.max(300, Math.round(s.parentElement!.clientWidth || 760));
+    const H = W < 560 ? 200 : 230, m = { t: 12, r: 10, b: 26, l: 46 };
+    s.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    s.setAttribute("aria-label", "Cambio de la pérdida P80 por ventana, con regresor frente al Armónico");
+    const rows = e.ventanas.map((w) => ({
+      t: +new Date(w[0]), winter: w[1], vals: cands.map((_, i) => {
+        const v = w[3 + i] as number | null;
+        return v == null || !w[2] ? null : 100 * (v / w[2] - 1);
+      }),
+    }));
+    const all = rows.flatMap((r) => r.vals).filter((v): v is number => v != null);
+    const lim = Math.min(80, Math.max(10, ...all.map(Math.abs)) * 1.1);
+    const wk = 7 * 864e5;
+    const x0 = rows[0].t - 2 * wk, x1 = rows[rows.length - 1].t + 2 * wk;
+    const X0 = (t: number) => m.l + ((t - x0) / (x1 - x0)) * (W - m.l - m.r);
+    for (const r of rows.filter((r) => r.winter))
+      el("rect", { x: X0(r.t - 2 * wk), y: m.t, width: X0(r.t + 2 * wk) - X0(r.t - 2 * wk), height: H - m.t - m.b, fill: "var(--sl-color-blue)", "fill-opacity": 0.1 }, s);
+    const { X, Y } = axes(s, W, H, m, x0, x1, -lim, lim, (v) => `${v > 0 ? "+" : ""}${v} %`);
+    el("line", { x1: m.l, x2: W - m.r, y1: Y(0), y2: Y(0), stroke: "var(--sl-color-gray-3)" }, s);
+    const colors = ["var(--sl-color-gray-3)", "var(--sl-color-accent)"];
+    rows.forEach((r) => r.vals.forEach((v, i) => {
+      if (v == null) return;
+      const c = Math.max(-lim, Math.min(lim, v));
+      el("circle", { cx: X(r.t) + (i ? 3 : -3), cy: Y(c), r: 3.5, fill: colors[i] ?? colors[1] }, s);
+    }));
   }
 
   const NS = "http://www.w3.org/2000/svg";

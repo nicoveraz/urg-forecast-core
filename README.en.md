@@ -180,7 +180,7 @@ The value is in what you add. That is the point of the next two sections.
 
 ## Models
 
-Four are compared by default and the best one is used. Five more are available
+Four are compared by default and the best one is used. Six more are available
 for experimenting with `-m`:
 
 | Model | Default | In short |
@@ -194,6 +194,7 @@ for experimenting with `-m`:
 | Ensamble | | median of AutoARIMA, Armónico and MSTL |
 | ArmónicoFeriados | | Armónico + Chilean weekday holidays |
 | ArmónicoFluNet | | Armónico + viral circulation (WHO FluNet); external-data example |
+| ArmónicoFluNetProy | | same, but projects viral circulation instead of using its seasonal average |
 
 Names ignore case and accents (`-m armonicoferiados` works). Details, when each
 one helps and how to add your own (in Spanish):

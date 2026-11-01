@@ -51,6 +51,11 @@ jobs:
       - name: Precompute demo forecasts
         run: uv run python scripts/construir_datos.py demo salida --workers 4
 
+      - name: Regressor example for the demo (FluNet; never blocks the publish)
+        continue-on-error: true
+        timeout-minutes: 50
+        run: uv run python scripts/construir_datos.py regresor salida --workers 4
+
       - name: Publish to the datos branch
         run: |
           cp scripts/LEEME_datos.md salida/README.md
