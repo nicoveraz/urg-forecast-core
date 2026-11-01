@@ -396,13 +396,19 @@ SECTIONS = [
                     ("length", "semanas de cada ventana"),
                     ("origins, step", "número de ventanas y semanas entre ellas"),
                 ],
-                returns="`Backtest`: `windows`, `scores()`, `failed`, `pairs(modelo)`.",
+                returns="`Backtest`: `windows`, `scores()`, `failed`, `pairs(modelo)`. "
+                "`scores()` trae `mae`, la pérdida de cada cuantil (`qloss_80`, …), sus dos "
+                "partes (`qloss_80_short`: semanas sobre el P80, a 0,8 por atención; "
+                "`qloss_80_excess`: bajo él, a 0,2), el ancho `width_80` (P80 menos P50) y "
+                "`covered` de `n` semanas bajo el P80. `compare_scores` hace la comparación de "
+                "`compare_models` sobre una corrida ya hecha.",
                 example=(
                     "from urgencias_core import backtest\n\n"
                     'dos = {"Armónico": modelos["Armónico"], "UltimoAnio": UltimoAnio}\n'
                     "corrida = backtest(semanal, dos, length=4, origins=6, step=8)\n"
                     "errores = corrida.scores()\n"
-                    'print(errores.groupby("model")[["mae", "qloss_80"]].mean())'
+                    'cols = ["mae", "width_80", "qloss_80_short", "qloss_80_excess", "qloss_80"]\n'
+                    'print(errores.groupby("model")[cols].mean().round(1))'
                 ),
             ),
             Entry(

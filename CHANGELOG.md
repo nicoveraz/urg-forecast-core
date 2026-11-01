@@ -28,12 +28,25 @@ API puede cambiar entre versiones menores).
   regenera la página para desarrolladores, corre los tests y deja una rama para revisar en
   un PR. El script se niega a escribir un snapshot que pierda datos, y `publish` avisa si
   el snapshot tiene más de 90 días.
+- **Por qué un intervalo más angosto o más bajo puede ser peor** (demo y Regresores). Para
+  los 40 establecimientos evaluados, el backtest del regresor ventana por ventana: el P80
+  de cada modelo frente a lo que pasó, la cuenta semana a semana de la pérdida P80
+  (0,8 por atención sobre el P80, 0,2 bajo él) y una tabla con el ancho del intervalo, las
+  semanas sobre el P80 y las dos partes de la pérdida.
+- `score()` (y `Backtest.scores()`) separa la pérdida P80 en `qloss_80_short` y
+  `qloss_80_excess` y agrega el ancho `width_80`. `compare_scores()` compara modelos desde
+  una corrida de `backtest` ya hecha.
 - **Hoja de ruta revisada:** sin los puntos ya resueltos (backtest con varias ventanas,
   variables exógenas, análisis), ordenada por impacto, con por qué importa cada punto,
   por dónde empezar y cuáles sirven como primera contribución.
 - **Página "Regresores"** (`docs/regresores.md`, en el sitio bajo Modelos): cómo se
   agregan sin hacer trampa, los incluidos, qué mostraron con datos reales, cómo probarlos
   y cómo sumar uno propio.
+
+### Corregido
+
+- Los gráficos de la demo a veces no mostraban las fechas del eje horizontal (dependía del
+  día del mes en que empezaba la serie).
 
 ## [0.4.0] - 2026-11-01
 
