@@ -13,6 +13,16 @@ API puede cambiar entre versiones menores).
   botones para agregar al pronóstico los feriados o la circulación viral (con promedio
   histórico o proyectada) y comparar el Armónico con y sin ese regresor, con lo que el
   modelo supuso para cada semana y el veredicto del backtest cuando existe.
+- **Página "Para desarrolladores"** en el sitio: cada función pública, con su
+  explicación y parámetros a la izquierda y, a la derecha, un ejemplo y su salida real,
+  ejecutados con el snapshot incluido (`scripts/construir_api.py`). Un test ejecuta los
+  ejemplos y avisa si una firma documentada cambió sin regenerar la página.
+- **Códigos de establecimiento explicados** (Uso y demo): las formas `SS-NNN`, `1SSNNN` y
+  el código de 6 dígitos, los prefijos por Servicio de Salud y los tipos (Hospital, SAPU,
+  SAR, SUR).
+- **Demo más clara y reproducible:** cómo leer P50/P80/P95, qué es el backtest y cuánto se
+  ensancharon las bandas; el comando de reproducción fija la versión del paquete y dice con
+  qué datos se calculó, y hay una versión en Python.
 - **Página "Regresores"** (`docs/regresores.md`, en el sitio bajo Modelos): cómo se
   agregan sin hacer trampa, los incluidos, qué mostraron con datos reales, cómo probarlos
   y cómo sumar uno propio.

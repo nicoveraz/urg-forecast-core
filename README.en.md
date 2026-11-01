@@ -129,6 +129,16 @@ was no data (unknown code, too little history, no connection) or no search
 match, `2` for invalid arguments or model. A forecast needs at least
 `backtest + 104` complete weeks: 130 weeks with the default 26-week horizon.
 
+### Establishment codes
+
+Each establishment is identified by the code DEIS uses in its emergency-attendance data
+(the first column of `urg-forecast buscar`). Older establishments have the form `SS-NNN`
+(e.g. `24-105`, Hospital de Puerto Montt): the first two digits are the health service
+(Servicio de Salud), the last three number the establishment within it; DEIS also publishes
+them as `1SSNNN` (`124105`) and both forms are accepted. Establishments created in recent
+years (mostly SAPU, SAR and SUR) only have a 6-digit number with no structure (`201067`).
+The table of health-service prefixes is in the Spanish README.
+
 ## How it works
 
 1. Reads the establishment's daily totals from the repository's weekly copy (or,

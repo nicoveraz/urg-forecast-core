@@ -37,6 +37,7 @@ export default defineConfig({
             { label: "API y recetas", slug: "extender" },
             { label: "Ejemplos", slug: "ejemplos" },
             { label: "Arquitectura", slug: "arquitectura" },
+            { label: "Para desarrolladores (API)", link: "/desarrolladores/" },
           ],
         },
         { label: "Hoja de ruta", slug: "roadmap" },

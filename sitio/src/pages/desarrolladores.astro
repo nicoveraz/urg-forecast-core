@@ -1,0 +1,151 @@
+---
+import StarlightPage from "@astrojs/starlight/components/StarlightPage.astro";
+import { Code } from "@astrojs/starlight/components";
+import api from "../data/api.json";
+
+const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
+const REPO = "https://github.com/nicoveraz/urg-forecast-core/blob/main/";
+
+// Inline markdown used in the descriptions: `code` and **bold**, nothing else.
+const escape = (s: string) =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const md = (s: string) =>
+  escape(s)
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+const sourceUrl = (path: string) => (path ? REPO + path : "");
+---
+
+<StarlightPage
+  frontmatter={{
+    title: "Para desarrolladores",
+    description:
+      "La API de urgencias_core: cada función con su explicación y un ejemplo que se ejecuta con los datos incluidos.",
+    tableOfContents: false,
+  }}
+>
+  <div class="api not-content">
+    <p class="api-intro">
+      Las funciones del paquete <code>urgencias_core</code>, ordenadas por pregunta. A la
+      izquierda, qué hace cada una y sus parámetros; a la derecha, un ejemplo y su salida. Los
+      ejemplos se ejecutan en orden, con el snapshot del DEIS que trae el paquete, al generar
+      esta página: puedes copiarlos y obtener lo mismo. El mapa del paquete está en{" "}
+      <a href={base + "arquitectura/"}>Arquitectura</a> y hay scripts completos en{" "}
+      <a href={base + "ejemplos/"}>Ejemplos</a>.
+    </p>
+
+    <nav class="api-indice" aria-label="Secciones">
+      {api.sections.map((s) => <a href={`#${s.id}`}>{s.title}</a>)}
+    </nav>
+
+    {
+      api.sections.map((s) => (
+        <section class="api-seccion" id={s.id}>
+          <h2>{s.title}</h2>
+          <p class="api-seccion-texto" set:html={md(s.text)} />
+          {s.entries.map((e) => (
+            <article class="api-entrada" id={e.id}>
+              <div class="api-doc">
+                <h3>
+                  <a href={`#${e.id}`} class="ancla">
+                    {e.title}
+                  </a>
+                </h3>
+                {e.signature && (
+                  <pre class="firma"><code>{e.signature}</code></pre>
+                )}
+                {e.module && (
+                  <p class="modulo">
+                    <code>{e.module}</code>
+                    {e.source && (
+                      <>
+                        {" · "}
+                        <a href={sourceUrl(e.source)} target="_blank" rel="noopener">
+                          ver el código
+                        </a>
+                      </>
+                    )}
+                  </p>
+                )}
+                <p set:html={md(e.text)} />
+                {e.params.length > 0 && (
+                  <dl class="params">
+                    {e.params.map(([name, desc]) => (
+                      <>
+                        <dt>
+                          <code>{name}</code>
+                        </dt>
+                        <dd set:html={md(desc)} />
+                      </>
+                    ))}
+                  </dl>
+                )}
+                {e.returns && <p class="devuelve" set:html={"<strong>Devuelve:</strong> " + md(e.returns)} />}
+              </div>
+              <div class="api-codigo">
+                {e.example && <Code code={e.example} lang="python" />}
+                {e.example && e.run && e.output && <Code code={e.output} lang="text" title="Salida" />}
+                {e.example && !e.run && (
+                  <p class="sin-salida">Este ejemplo necesita red, así que no se ejecuta al generar la página.</p>
+                )}
+              </div>
+            </article>
+          ))}
+        </section>
+      ))
+    }
+
+    <p class="api-pie">
+      Generada con <a href={REPO + "scripts/construir_api.py"}>scripts/construir_api.py</a> y
+      urg-forecast-core {api.version}. La CI ejecuta todos los ejemplos y falla si una firma
+      cambia sin regenerar la página.
+    </p>
+  </div>
+</StarlightPage>
+
+<style is:global>
+  /* This page needs room for two columns. */
+  :root { --sl-content-width: 78rem; }
+  .api { margin-top: 1rem; }
+  .api code { font-family: var(--sl-font-mono); font-size: 0.88em; }
+  .api p code, .api dd code, .api .modulo code, .api dt code {
+    background: var(--sl-color-gray-6); padding: 0.05rem 0.3rem; border-radius: 0.25rem;
+  }
+  .api-intro { max-width: 46rem; color: var(--sl-color-gray-2); line-height: var(--sl-line-height); }
+  .api-indice { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 1.25rem 0 0.5rem; }
+  .api-indice a {
+    padding: 0.25rem 0.75rem; border: 1px solid var(--sl-color-gray-5); border-radius: 999px;
+    font-size: var(--sl-text-sm); color: var(--sl-color-gray-2); text-decoration: none;
+  }
+  .api-indice a:hover { border-color: var(--sl-color-accent); color: var(--sl-color-white); }
+  .api h2 { font-size: var(--sl-text-3xl); color: var(--sl-color-white); margin: 3rem 0 0.5rem; }
+  .api-seccion-texto { max-width: 46rem; color: var(--sl-color-gray-2); line-height: var(--sl-line-height); }
+  .api-entrada {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 2rem;
+    padding: 2rem 0; border-top: 1px solid var(--sl-color-hairline); margin-top: 1.5rem;
+  }
+  @media (max-width: 62rem) { .api-entrada { grid-template-columns: minmax(0, 1fr); gap: 1rem; } }
+  .api-doc { line-height: var(--sl-line-height); }
+  .api-doc h3 { font-size: var(--sl-text-xl); margin: 0 0 0.5rem; }
+  .api-doc h3 .ancla { color: var(--sl-color-white); text-decoration: none; }
+  .api-doc h3 .ancla:hover { text-decoration: underline; }
+  .api .firma {
+    margin: 0 0 0.5rem; padding: 0.6rem 0.8rem; border-radius: 0.4rem; white-space: pre; overflow-x: auto;
+    background: var(--sl-color-gray-6); color: var(--sl-color-white); font-size: var(--sl-text-sm);
+  }
+  .api .firma code { background: none; padding: 0; font-size: inherit; }
+  .api .modulo { font-size: var(--sl-text-xs); color: var(--sl-color-gray-3); margin: 0 0 0.75rem; }
+  .api-doc p { margin: 0 0 0.75rem; color: var(--sl-color-gray-2); }
+  .api .params {
+    display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 0.35rem 0.9rem;
+    margin: 0.5rem 0 0.75rem; font-size: var(--sl-text-sm);
+  }
+  .api .params dt { margin: 0; }
+  .api .params dd { margin: 0; color: var(--sl-color-gray-2); }
+  .api .devuelve { font-size: var(--sl-text-sm); }
+  .api-codigo { min-width: 0; }
+  @media (min-width: 62rem) { .api-codigo { position: sticky; top: calc(var(--sl-nav-height) + 1rem); align-self: start; } }
+  .api-codigo .expressive-code + .expressive-code { margin-top: 0.75rem; }
+  .api .sin-salida { font-size: var(--sl-text-sm); color: var(--sl-color-gray-3); margin-top: 0.5rem; }
+  .api-pie { margin-top: 3rem; font-size: var(--sl-text-sm); color: var(--sl-color-gray-3); }
+</style>

@@ -411,7 +411,10 @@ def main() -> int:
             if i % 25 == 0 or i == len(codes):
                 print(f"{i}/{len(codes)}", flush=True)
     index.sort(key=lambda e: (e.get("r") or "~", e.get("n") or ""))
+    from urgencias_core import __version__
+
     meta = json.loads((args.salida / META_FILE).read_text())
+    meta |= {"version": __version__, "calculado": pd.Timestamp.now(tz="UTC").strftime("%Y-%m-%d")}
     payload = {"meta": meta, "horizonte": HORIZON, "establecimientos": index}
     (args.salida / "demo" / "indice.json").write_text(
         json.dumps(payload, ensure_ascii=False, separators=(",", ":"))

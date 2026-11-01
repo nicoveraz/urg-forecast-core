@@ -114,6 +114,12 @@ Ejemplo: `examples/05_analisis.py`.
 **Un comando.** Un subcomando en `cli.py` con su ayuda y ejemplos en español, que llame a
 funciones del paquete (la lógica no vive en la CLI), y una prueba en `tests/test_cli.py`.
 
+**Una función pública.** Además de su docstring, una entrada en
+`scripts/construir_api.py` (explicación, parámetros y un ejemplo que corra con el
+snapshot), y `uv run python scripts/construir_api.py` para regenerar la página
+[Para desarrolladores](https://nicoveraz.github.io/urg-forecast-core/desarrolladores/). La
+CI ejecuta los ejemplos y avisa si una firma documentada cambió sin regenerarla.
+
 **Un ejemplo.** `examples/NN_nombre.py` con `main(argv)` y una línea en
 `tests/test_examples.py`; ver [`examples/README.md`](https://github.com/nicoveraz/urg-forecast-core/blob/main/examples/README.md).
 

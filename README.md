@@ -137,6 +137,51 @@ hubo coincidencias en la búsqueda, `2` si los argumentos o el modelo son
 inválidos. El pronóstico necesita al menos `backtest + 104` semanas completas:
 130 semanas con el horizonte por defecto de 26.
 
+### Códigos de establecimiento
+
+Cada establecimiento se identifica con el código que usa el DEIS en sus datos de atenciones
+de urgencia. Es lo que reciben `pronosticar`, `analizar` y `comparar`, y lo que muestra la
+primera columna de `urg-forecast buscar` (y el buscador de la
+[demo](https://nicoveraz.github.io/urg-forecast-core/demo/)).
+
+- **Código antiguo, `SS-NNN`** (por ejemplo `24-105`, Hospital de Puerto Montt). Los dos
+  primeros dígitos corresponden al Servicio de Salud y los tres siguientes numeran los
+  establecimientos dentro de él. Según el diccionario de datos del DEIS, esa estructura
+  tuvo significado hasta 2013. El DEIS también publica estos establecimientos como
+  `1SSNNN` (`124105`); el comando acepta las dos formas.
+- **Código de 6 dígitos sin estructura** (por ejemplo `201067`, SAR Ancud). Lo tienen los
+  establecimientos creados en los últimos años, sobre todo SAPU, SAR y SUR. Es un número
+  correlativo, único y que no se reutiliza.
+
+Los tipos que aparecen en el listado son los del DEIS: **Hospital** (unidad de emergencia
+hospitalaria), **SAPU** (Servicio de Atención Primaria de Urgencia), **SAR** (SAPU de Alta
+Resolutividad), **SUR** (Servicio de Urgencia Rural) y otros, como **CEAR** o centros de
+salud familiar con atención de urgencia.
+
+Los prefijos de los códigos antiguos y su Servicio de Salud, según el listado actual:
+
+| Código | Servicio de Salud | Código | Servicio de Salud |
+|---|---|---|---|
+| `01` | Arica y Parinacota | `16` | Maule |
+| `02` | Tarapacá | `17` | Ñuble |
+| `03` | Antofagasta | `18` | Concepción |
+| `04` | Atacama | `19` | Talcahuano |
+| `05` | Coquimbo | `20` | Biobío |
+| `06` | Valparaíso San Antonio | `21` | Araucanía Sur |
+| `07` | Viña del Mar Quillota | `22` | Los Ríos |
+| `08` | Aconcagua | `23` | Osorno |
+| `09` | Metropolitano Norte | `24` | Reloncaví |
+| `10` | Metropolitano Occidente | `25` | Aysén |
+| `11` | Metropolitano Central | `26` | Magallanes |
+| `12` | Metropolitano Oriente | `28` | Arauco |
+| `13` | Metropolitano Sur | `29` | Araucanía Norte |
+| `14` | Metropolitano Sur Oriente | `33` | Chiloé |
+| `15` | O'Higgins |  | |
+
+Fuentes: diccionario de datos de establecimientos del DEIS
+([datos.gob.cl](https://datos.gob.cl/dataset/3bf4cf7c-f638-4735-9a01-f65faae4beca/resource/7127fc99-b858-4e74-8971-51413e484fb1/download/diccionario-de-datos.pdf))
+y MINSAL, [tipos de servicios de urgencia](https://www.minsal.cl/servicios-de-urgencia-cuando-asistir-a-un-recinto-de-atencion-primaria-o-a-un-hospital/).
+
 ## Cómo funciona
 
 1. Lee los totales diarios del establecimiento desde la copia semanal del
@@ -220,9 +265,11 @@ Por qué esos cuatro van por defecto, en
 
 Hay ejemplos que se pueden ejecutar en
 [`examples/`](https://github.com/nicoveraz/urg-forecast-core/tree/main/examples) (pronóstico,
-backtest, modelo propio, regresor externo, análisis), y el mapa del paquete, con dónde va cada
+backtest, modelo propio, regresor externo, análisis), el mapa del paquete, con dónde va cada
 cosa nueva, en
-[`docs/arquitectura.md`](https://github.com/nicoveraz/urg-forecast-core/blob/main/docs/arquitectura.md).
+[`docs/arquitectura.md`](https://github.com/nicoveraz/urg-forecast-core/blob/main/docs/arquitectura.md),
+y cada función con su explicación y un ejemplo ejecutado en
+[Para desarrolladores](https://nicoveraz.github.io/urg-forecast-core/desarrolladores/).
 
 Todo lo que hace el comando son unas pocas funciones sobre DataFrames:
 

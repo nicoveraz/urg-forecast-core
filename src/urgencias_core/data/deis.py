@@ -498,7 +498,7 @@ def facility_code_variants(code: str) -> set[str]:
     antiguo, ``SS-NNN``) and as ``"124105"`` (código nuevo). Given either form,
     this returns both, plus any explicit alias in :data:`HOSPITAL_CODE_ALIASES`.
     The ``SS-NNN`` ↔ ``1SSNNN`` mapping is a heuristic that holds for the demo
-    hospitals; check ``urgencias-demo-deis --list-facilities`` when in doubt.
+    hospitals; check ``urg-forecast buscar`` when in doubt.
     """
     code = str(code).strip()
     out = {code}

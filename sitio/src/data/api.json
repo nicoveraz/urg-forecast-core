@@ -1,0 +1,497 @@
+{
+ "version": "0.4.0",
+ "sections": [
+  {
+   "id": "inicio",
+   "title": "Primeros pasos",
+   "text": "Todo el paquete trabaja con DataFrames de pandas. Los ejemplos de esta página se ejecutan tal cual, en orden, con el snapshot del DEIS que trae el paquete (`offline=True`: Hospital de Puerto Montt y Hospital de Frutillar), así que puedes copiarlos y obtener lo mismo. Sin `offline=True` leen la copia semanal del repositorio, con cualquier establecimiento.",
+   "entries": [
+    {
+     "id": "instalar",
+     "title": "Instalar",
+     "signature": "",
+     "module": "",
+     "source": "",
+     "text": "Python 3.11 o 3.12. Instala el paquete desde PyPI; trae el comando `urg-forecast` y la biblioteca `urgencias_core`. Las funciones de uso común se importan directo desde `urgencias_core`.",
+     "params": [],
+     "returns": "",
+     "example": "# pip install urg-forecast-core\nimport urgencias_core\nprint(urgencias_core.__version__)",
+     "output": "0.4.0",
+     "run": true
+    },
+    {
+     "id": "serie",
+     "title": "La serie semanal",
+     "signature": "",
+     "module": "",
+     "source": "",
+     "text": "Casi todo recibe la misma entrada: un DataFrame con `timestamp` (el lunes que cierra cada semana DEIS: los 7 días que terminan ese lunes) y `count` (atenciones). Solo semanas completas; 2020 y 2021 quedan fuera por la pandemia. Si traes tus propios datos, arma ese mismo DataFrame y todo lo demás funciona igual.",
+     "params": [],
+     "returns": "",
+     "example": "from urgencias_core import load_deis, weekly_series\n\ndf = load_deis([\"24-105\"], offline=True)\nsemanal = weekly_series(df, \"24-105\")\nprint(semanal.tail(3))",
+     "output": "     timestamp  count\n218 2026-03-16   1922\n219 2026-03-23   2081\n220 2026-03-30   2146",
+     "run": true
+    }
+   ]
+  },
+  {
+   "id": "datos",
+   "title": "Datos",
+   "text": "De dónde vienen las series: el DEIS (copia semanal del repositorio, archivos completos o snapshot incluido) y el listado de establecimientos.",
+   "entries": [
+    {
+     "id": "load_deis",
+     "title": "load_deis",
+     "signature": "load_deis(\n    codes: list[str],\n    start_year: int = 2022,\n    offline: bool = False,\n    fallback_to_snapshot: bool = False,\n    cache_dir: Path | str = Path(\"data/external/deis_cache\"),\n    source: str = \"repo\",\n)",
+     "module": "urgencias_core.data.series",
+     "source": "src/urgencias_core/data/series.py",
+     "text": "Filas DEIS (diarias, por causa y grupo de edad) de uno o más establecimientos. Acepta el código en cualquiera de sus formas (`24-105` o `124105`). La fuente usada queda en `df.attrs['source']`.",
+     "params": [
+      [
+       "codes",
+       "lista de códigos DEIS"
+      ],
+      [
+       "start_year",
+       "primer año (por defecto 2022; 2020-2021 siempre se excluyen)"
+      ],
+      [
+       "offline",
+       "usar el snapshot incluido, sin red"
+      ],
+      [
+       "source",
+       "`\"repo\"` (copia semanal, liviana) o `\"deis\"` (archivos completos)"
+      ],
+      [
+       "cache_dir",
+       "dónde guardar las descargas"
+      ]
+     ],
+     "returns": "DataFrame con `date`, `facility_code`, `facility_name`, `cause_group`, `age_group`, `count`. Lanza `NoDataError` si no hay datos.",
+     "example": "df = load_deis([\"24-105\"], offline=True)\nprint(df.attrs[\"source\"])\nprint(len(df), \"filas\", list(df.columns))",
+     "output": "snapshot DEIS incluido en el paquete\n62478 filas ['year', 'date', 'facility_code', 'facility_name', 'cause_id', 'cause_group', 'age_group', 'count']",
+     "run": true
+    },
+    {
+     "id": "weekly_series",
+     "title": "weekly_series",
+     "signature": "weekly_series(df: pd.DataFrame, code: str)",
+     "module": "urgencias_core.data.series",
+     "source": "src/urgencias_core/data/series.py",
+     "text": "Las atenciones totales de un establecimiento por semana DEIS. Recorta las semanas incompletas de los extremos: la última semana suele llegar con días faltantes y parecería una caída.",
+     "params": [
+      [
+       "df",
+       "salida de `load_deis`"
+      ],
+      [
+       "code",
+       "código DEIS"
+      ]
+     ],
+     "returns": "DataFrame `timestamp, count`.",
+     "example": "semanal = weekly_series(df, \"24-105\")\nprint(len(semanal), \"semanas\")",
+     "output": "221 semanas",
+     "run": true
+    },
+    {
+     "id": "daily_series",
+     "title": "daily_series",
+     "signature": "daily_series(df: pd.DataFrame, code: str)",
+     "module": "urgencias_core.data.series",
+     "source": "src/urgencias_core/data/series.py",
+     "text": "Lo mismo por día. Sirve para el perfil por día de la semana.",
+     "params": [
+      [
+       "df",
+       "salida de `load_deis`"
+      ],
+      [
+       "code",
+       "código DEIS"
+      ]
+     ],
+     "returns": "DataFrame `timestamp, count`.",
+     "example": "from urgencias_core.data.series import daily_series\n\ndiaria = daily_series(df, \"24-105\")\nprint(diaria.tail(2))",
+     "output": "      timestamp  count\n1557 2026-04-09    309\n1558 2026-04-10    356",
+     "run": true
+    },
+    {
+     "id": "codigos",
+     "title": "facility_code_variants",
+     "signature": "facility_code_variants(code: str)",
+     "module": "urgencias_core.data.deis",
+     "source": "src/urgencias_core/data/deis.py",
+     "text": "Las formas de un mismo código. El DEIS publica los establecimientos más antiguos con el código `SS-NNN` (los dos primeros dígitos indicaban el Servicio de Salud) y también como `1SSNNN`; los creados después tienen solo un código de 6 dígitos. Todas las funciones aceptan cualquiera de las formas.",
+     "params": [
+      [
+       "code",
+       "código DEIS"
+      ]
+     ],
+     "returns": "conjunto de formas equivalentes.",
+     "example": "from urgencias_core.data.deis import facility_code_variants\n\nprint(sorted(facility_code_variants(\"24-105\")))",
+     "output": "['124105', '24-105']",
+     "run": true
+    },
+    {
+     "id": "mirror_facilities",
+     "title": "mirror_facilities",
+     "signature": "mirror_facilities(\n    cache_dir: Path | str = Path(\"data/external/deis_cache\"),\n    base_url: str = \"https://raw.githubusercontent.com/nicoveraz/urg-forecast-core/datos/\",\n    max_age_hours: float = 12,\n)",
+     "module": "urgencias_core.data.mirror",
+     "source": "src/urgencias_core/data/mirror.py",
+     "text": "El listado de establecimientos de la copia semanal: código, nombre, tipo (Hospital, SAPU, SAR, SUR…), región, comuna, servicio de salud y fechas con datos. Es lo que usa `urg-forecast buscar`. Necesita red.",
+     "params": [],
+     "returns": "DataFrame con una fila por establecimiento.",
+     "example": "from urgencias_core.data.mirror import mirror_facilities\n\nest = mirror_facilities()\nprint(est[est[\"comuna\"] == \"Puerto Montt\"][[\"codigo\", \"nombre\", \"tipo\"]])",
+     "output": "",
+     "run": false
+    }
+   ]
+  },
+  {
+   "id": "analisis",
+   "title": "Análisis",
+   "text": "Cómo ha sido la demanda, antes de pronosticar. Funciones puras: reciben la serie semanal y devuelven un DataFrame. Es lo que hace `urg-forecast analizar`.",
+   "entries": [
+    {
+     "id": "yearly_summary",
+     "title": "yearly_summary",
+     "signature": "yearly_summary(weekly: pd.DataFrame)",
+     "module": "urgencias_core.analysis",
+     "source": "src/urgencias_core/analysis/descriptive.py",
+     "text": "Una fila por año. El cambio compara las **mismas semanas** del año anterior, así un año incompleto (enero a marzo) se compara con enero a marzo y no con un año completo.",
+     "params": [
+      [
+       "weekly",
+       "serie semanal"
+      ]
+     ],
+     "returns": "semanas, `complete`, total, promedio semanal, `change_pct`, semana más alta.",
+     "example": "from urgencias_core.analysis import yearly_summary\n\nprint(yearly_summary(semanal)[[\"weeks\", \"weekly_mean\", \"change_pct\"]])",
+     "output": "      weeks  weekly_mean  change_pct\nyear                                \n2022     51       1308.1         NaN\n2023     52       1557.1        19.6\n2024     53       1601.1         3.0\n2025     52       1640.1         2.2\n2026     13       1631.4        12.5",
+     "run": true
+    },
+    {
+     "id": "seasonal_profile",
+     "title": "seasonal_profile",
+     "signature": "seasonal_profile(\n    weekly: pd.DataFrame,\n    years: int | None = None,\n)",
+     "module": "urgencias_core.analysis",
+     "source": "src/urgencias_core/analysis/descriptive.py",
+     "text": "El año típico: para cada semana del año, el promedio y el rango entre años, y `index`: cuánto se aleja esa semana del nivel de **su propio año** (1,15 = 15 % sobre el nivel). Así el crecimiento de un año a otro no se confunde con la estación.",
+     "params": [
+      [
+       "weekly",
+       "serie semanal"
+      ],
+      [
+       "years",
+       "usar solo los últimos años"
+      ]
+     ],
+     "returns": "una fila por semana: `mean`, `low`, `high`, `years`, `index`.",
+     "example": "from urgencias_core.analysis import seasonal_profile\n\nperfil = seasonal_profile(semanal)\naltas = perfil.sort_values(\"index\", ascending=False).head(3)\nprint(altas.to_string(float_format=\"%.2f\"))",
+     "output": "        mean     low    high  years  index\nweek                                      \n17   1752.50 1379.00 1949.00      4   1.19\n16   1706.75 1441.00 1841.00      4   1.14\n21   1699.00 1473.00 1790.00      4   1.12",
+     "run": true
+    },
+    {
+     "id": "level",
+     "title": "level y year_over_year",
+     "signature": "level(weekly: pd.DataFrame, window: int = 52)",
+     "module": "urgencias_core.analysis",
+     "source": "src/urgencias_core/analysis/descriptive.py",
+     "text": "`level` es el promedio de las últimas 52 semanas: al promediar un año completo desaparece la estación y queda la tendencia. `year_over_year` compara cada semana con la misma de un año antes (sumas de 4 semanas).",
+     "params": [
+      [
+       "weekly",
+       "serie semanal"
+      ],
+      [
+       "window",
+       "semanas del promedio (52)"
+      ]
+     ],
+     "returns": "`timestamp, count, level, change_pct`.",
+     "example": "from urgencias_core.analysis import level, year_over_year\n\nprint(level(semanal).tail(2))\nprint(year_over_year(semanal)[[\"timestamp\", \"change_pct\"]].tail(2))",
+     "output": "     timestamp   count   level  change_pct\n219 2026-03-23  2081.0  1677.9         6.1\n220 2026-03-30  2146.0  1685.5         6.4\n     timestamp  change_pct\n219 2026-03-23        25.8\n220 2026-03-30        21.7",
+     "run": true
+    },
+    {
+     "id": "analysis_text",
+     "title": "write_analysis",
+     "signature": "write_analysis(\n    weekly: pd.DataFrame,\n    out: Path,\n    name: str,\n    code: str,\n    source: str = \"\",\n    daily: pd.DataFrame | None = None,\n)",
+     "module": "urgencias_core.analysis.report",
+     "source": "src/urgencias_core/analysis/report.py",
+     "text": "El informe completo: texto en español, una figura y las tablas en CSV, en una carpeta. `analysis_text` devuelve solo el texto.",
+     "params": [
+      [
+       "weekly",
+       "serie semanal"
+      ],
+      [
+       "out",
+       "carpeta de salida"
+      ],
+      [
+       "name, code",
+       "para los títulos"
+      ],
+      [
+       "daily",
+       "serie diaria, para el perfil por día de la semana"
+      ]
+     ],
+     "returns": "lista de archivos escritos.",
+     "example": "from pathlib import Path\nfrom urgencias_core.analysis.report import write_analysis\n\narchivos = write_analysis(\n    semanal, Path(\"salida\"), \"Hospital de Puerto Montt\", \"24-105\"\n)\nprint([a.name for a in archivos])",
+     "output": "['analisis.txt', 'analisis.png', 'analisis_anual.csv', 'analisis_ano_tipico.csv', 'analisis_nivel_interanual.csv']",
+     "run": true
+    }
+   ]
+  },
+  {
+   "id": "pronostico",
+   "title": "Pronóstico",
+   "text": "Comparar modelos en el pasado, elegir el mejor y pronosticar. Es lo que hace `urg-forecast pronosticar`.",
+   "entries": [
+    {
+     "id": "run_forecast",
+     "title": "run_forecast",
+     "signature": "run_forecast(\n    history: pd.DataFrame,\n    horizon_weeks: int,\n    code: str = \"\",\n    name: str = \"\",\n    models: dict[str, Callable[[], Forecaster]] | None = None,\n    source: str = \"DEIS MINSAL (descarga actualizada)\",\n    origins: int = 3,\n    step: int = 8,\n    calibrate: bool = True,\n)",
+     "module": "urgencias_core.forecast",
+     "source": "src/urgencias_core/forecast.py",
+     "text": "Cada modelo pronostica semanas pasadas que ya se conocen (ventanas tan largas como el horizonte, hasta 26 semanas); se elige el de menor pérdida P80, se reajusta con toda la historia y se pronostica. Con `calibrate=True` las bandas se ensanchan según el error que tuvo en esas ventanas.",
+     "params": [
+      [
+       "history",
+       "serie semanal"
+      ],
+      [
+       "horizon_weeks",
+       "semanas a pronosticar"
+      ],
+      [
+       "models",
+       "nombre → fábrica; por defecto los cuatro de `default_models()`"
+      ],
+      [
+       "origins, step",
+       "número de ventanas y semanas entre ellas"
+      ],
+      [
+       "calibrate",
+       "ensanchar los intervalos según el backtest"
+      ]
+     ],
+     "returns": "`ForecastResult`: `best`, `backtest` (error por modelo), `forecast` (`timestamp, q50, q80, q90, q95`), `coverage80`, `interval_scale`.",
+     "example": "from urgencias_core import run_forecast\n\nnombre = \"Hospital de Puerto Montt\"\nres = run_forecast(semanal, 12, code=\"24-105\", name=nombre)\nprint(res.best)\nprint(res.backtest[[\"mae\", \"qloss_80\"]])\nprint(res.forecast[[\"timestamp\", \"q50\", \"q80\"]].head(3))",
+     "output": "Armónico\n                 mae  qloss_80\nmodel                         \nArmónico       110.7      41.3\nAutoARIMA      118.3      51.0\nMSTL           121.6      50.3\nSeasonalNaive  153.3      84.7\n   timestamp     q50     q80\n0 2026-04-06  2109.6  2183.7\n1 2026-04-13  2087.8  2178.1\n2 2026-04-20  2070.6  2167.8",
+     "run": true
+    },
+    {
+     "id": "quantiles",
+     "title": "Cómo leer los cuantiles",
+     "signature": "",
+     "module": "",
+     "source": "",
+     "text": "`q50` es el valor central: la mitad de las veces el real queda bajo él. `q80` y `q95` son los valores que, con 80 % y 95 % de probabilidad, no se superan; sirven para planificar con margen. La **pérdida P80** (pinball) mide el error de `q80` castigando más quedarse corto que pasarse; menor es mejor. `coverage80` cuenta en cuántas semanas del backtest el real quedó bajo `q80` (lo esperable es cerca de 80 %).",
+     "params": [],
+     "returns": "",
+     "example": "cubiertas, total = res.coverage80\nprint(f\"bajo P80 en {cubiertas} de {total} semanas\")\n# cuánto se ensanchó cada banda (1 = nada)\nprint({k: round(v, 2) for k, v in res.interval_scale.items()})",
+     "output": "bajo P80 en 30 de 36 semanas\n{'q80': 1.0, 'q90': 1.01, 'q95': 1.0}",
+     "run": true
+    },
+    {
+     "id": "summary_text",
+     "title": "summary_text y write_outputs",
+     "signature": "write_outputs(\n    result: ForecastResult,\n    base: Path,\n    today: date | None = None,\n)",
+     "module": "urgencias_core.report",
+     "source": "src/urgencias_core/report.py",
+     "text": "El mismo resumen que imprime el comando (`summary_text`) y los CSV y figuras que guarda (`write_outputs`).",
+     "params": [
+      [
+       "result",
+       "un `ForecastResult`"
+      ],
+      [
+       "base",
+       "carpeta de salida"
+      ]
+     ],
+     "returns": "lista de archivos escritos.",
+     "example": "from urgencias_core.report import summary_text, write_outputs\n\nprint(summary_text(res).splitlines()[0])\nprint([a.name for a in write_outputs(res, Path(\"salida\"))])",
+     "output": "Hospital de Puerto Montt (24-105)\n['resumen.txt', 'pronostico.csv', 'backtest.csv', 'historia_semanal.csv', 'pronostico.png', 'backtest.png']",
+     "run": true
+    }
+   ]
+  },
+  {
+   "id": "modelos",
+   "title": "Modelos",
+   "text": "Un modelo es cualquier clase con `fit` y `predict`. Los incluidos se piden por nombre; uno propio se pasa como fábrica.",
+   "entries": [
+    {
+     "id": "forecaster",
+     "title": "Forecaster (contrato)",
+     "signature": "class Forecaster(Protocol)",
+     "module": "urgencias_core.models.protocol",
+     "source": "src/urgencias_core/models/protocol.py",
+     "text": "`fit(history, target_col)` aprende de la serie semanal. `predict(horizon)` devuelve `horizon.length` filas con `timestamp, q50, q80, q90, q95`, ordenadas. El constructor no debe exigir argumentos (o se registra una función que lo construya). Las fechas futuras salen de `future_index`.",
+     "params": [],
+     "returns": "",
+     "example": "import numpy as np\nfrom urgencias_core.models.protocol import HorizonSpec, future_index\n\nclass UltimoAnio:\n    \"\"\"Cada semana = la misma semana del año pasado, ± su variación.\"\"\"\n    def fit(self, history, target_col):\n        self.s = history.set_index(\"timestamp\")[target_col]\n    def predict(self, horizon):\n        fechas = future_index(self.s.index[-1], horizon)\n        hace_un_anio = fechas - pd.Timedelta(weeks=52)\n        centro = self.s.reindex(hace_un_anio).ffill().bfill().to_numpy()\n        d = self.s.diff(52).dropna()\n        out = pd.DataFrame({\"timestamp\": fechas})\n        for q, col in zip(horizon.quantiles, horizon.quantile_columns):\n            out[col] = centro + max(np.quantile(d, q), 0) * (q > 0.5)\n        return out\n\nm = UltimoAnio()\nm.fit(semanal, \"count\")\nprint(m.predict(HorizonSpec(grain=\"W-MON\", length=2)))",
+     "output": "   timestamp     q50     q80     q90     q95\n0 2026-04-06  1827.0  2097.0  2164.0  2226.2\n1 2026-04-13  1773.0  2043.0  2110.0  2172.2",
+     "run": true
+    },
+    {
+     "id": "registry",
+     "title": "default_models, available_models, resolve_models",
+     "signature": "resolve_models(names: list[str] | None)",
+     "module": "urgencias_core.models.registry",
+     "source": "src/urgencias_core/models/registry.py",
+     "text": "Los modelos por nombre. `default_models()` son los cuatro que se comparan por defecto; `available_models()` suma los opcionales; `resolve_models` acepta nombres sin tildes ni mayúsculas, o `'archivo:Clase'` para uno propio.",
+     "params": [
+      [
+       "names",
+       "lista de nombres; `None` = los cuatro por defecto"
+      ]
+     ],
+     "returns": "dict nombre → fábrica (una instancia nueva por ajuste).",
+     "example": "from urgencias_core import available_models, default_models\nfrom urgencias_core.models.registry import resolve_models\n\nprint(list(default_models()))\nprint(list(resolve_models([\"armonicoferiados\", \"mstl\"])))\nmodelos = default_models() | {\"UltimoAnio\": UltimoAnio}",
+     "output": "['SeasonalNaive', 'AutoARIMA', 'Armónico', 'MSTL']\n['ArmónicoFeriados', 'MSTL']",
+     "run": true
+    }
+   ]
+  },
+  {
+   "id": "evaluacion",
+   "title": "Evaluación",
+   "text": "Qué tan bien funciona un modelo, y si un cambio ayuda de verdad o es ruido. Todo usa el mismo motor de backtest: ninguna ventana ve el futuro de otra.",
+   "entries": [
+    {
+     "id": "backtest",
+     "title": "backtest",
+     "signature": "backtest(\n    history: pd.DataFrame,\n    models: dict[str, Callable[[], Forecaster]],\n    length: int,\n    origins: int,\n    step: int,\n    min_train_weeks: int = 104,\n    quantiles: tuple[float, ...] = (0.5, 0.8, 0.9, 0.95),\n    target_col: str = \"count\",\n    stop_failed: bool = False,\n)",
+     "module": "urgencias_core.eval.backtest",
+     "source": "src/urgencias_core/eval/backtest.py",
+     "text": "Ajusta cada modelo desde cero en ventanas que van hacia atrás desde el final y guarda lo que predijo. `scores()` da una fila por ventana y modelo.",
+     "params": [
+      [
+       "history",
+       "serie semanal"
+      ],
+      [
+       "models",
+       "nombre → fábrica"
+      ],
+      [
+       "length",
+       "semanas de cada ventana"
+      ],
+      [
+       "origins, step",
+       "número de ventanas y semanas entre ellas"
+      ]
+     ],
+     "returns": "`Backtest`: `windows`, `scores()`, `failed`, `pairs(modelo)`.",
+     "example": "from urgencias_core import backtest\n\ndos = {\"Armónico\": modelos[\"Armónico\"], \"UltimoAnio\": UltimoAnio}\ncorrida = backtest(semanal, dos, length=4, origins=6, step=8)\nerrores = corrida.scores()\nprint(errores.groupby(\"model\")[[\"mae\", \"qloss_80\"]].mean())",
+     "output": "              mae  qloss_80\nmodel                      \nArmónico     90.6      34.2\nUltimoAnio  157.1      45.6",
+     "run": true
+    },
+    {
+     "id": "compare_models",
+     "title": "compare_models",
+     "signature": "compare_models(\n    history: pd.DataFrame,\n    base: tuple[str, Callable[[], Forecaster]],\n    candidate: tuple[str, Callable[[], Forecaster]],\n    horizon_weeks: int = 4,\n    origins: int = 36,\n    step: int = 4,\n    min_train_weeks: int = 104,\n    alpha: float = 0.05,\n)",
+     "module": "urgencias_core.eval.compare",
+     "source": "src/urgencias_core/eval/compare.py",
+     "text": "¿El candidato le gana a la base de forma consistente? Ajusta ambos en las mismas ventanas (36 de 4 semanas por defecto), cuenta en cuántas gana, aplica una prueba de signos y separa invierno del resto. Es `urg-forecast comparar`.",
+     "params": [
+      [
+       "history",
+       "serie semanal"
+      ],
+      [
+       "base, candidate",
+       "pares `(nombre, fábrica)`"
+      ],
+      [
+       "horizon_weeks, origins, step",
+       "ventanas (4, 36, 4)"
+      ]
+     ],
+     "returns": "`Comparison`: `verdict` (`mejora`, `empeora`, `sin diferencia clara`), `text()`, `summary()`, `windows`.",
+     "example": "from urgencias_core import compare_models\nfrom urgencias_core.models.harmonic import HarmonicRegression\n\ncmp = compare_models(semanal, (\"Armónico\", HarmonicRegression),\n                     (\"UltimoAnio\", UltimoAnio), origins=8)\nprint(cmp.text())",
+     "output": "UltimoAnio frente a Armónico, 8 ventanas de 4 semanas: gana 1, pierde 7 (p = 0.07); cambio mediano de la pérdida P80 +39.3 %. Veredicto: sin diferencia clara.",
+     "run": true
+    }
+   ]
+  },
+  {
+   "id": "regresores",
+   "title": "Regresores",
+   "text": "Variables externas al DEIS (feriados, virus, clima) con las reglas de su fuente. Explicación y resultados en la página Regresores.",
+   "entries": [
+    {
+     "id": "regressor",
+     "title": "Regressor",
+     "signature": "Regressor(\n    name: str,\n    load: Callable[[], pd.DataFrame],\n    columns: tuple[str, ...],\n    report_delay_weeks: int = 0,\n    known_future: bool = False,\n    description: str = \"\",\n)",
+     "module": "urgencias_core.regressors",
+     "source": "src/urgencias_core/regressors.py",
+     "text": "Una tabla semanal (`timestamp` + una columna por variable) y las reglas de su fuente: cuántas semanas tarda en publicarse y si su futuro se conoce. Vienen `calendar()` (feriados, interferiados, vacaciones escolares; futuro conocido) y `flunet()` (positividad de influenza y VRS; 2 semanas de atraso).",
+     "params": [
+      [
+       "load",
+       "función que devuelve la tabla"
+      ],
+      [
+       "columns",
+       "columnas que usa el modelo"
+      ],
+      [
+       "report_delay_weeks",
+       "atraso de publicación"
+      ],
+      [
+       "known_future",
+       "si los valores futuros se conocen"
+      ]
+     ],
+     "returns": "",
+     "example": "from urgencias_core.regressors import calendar\n\ncal = calendar()\nprint(cal.columns, cal.known_future)\ncols = [\"timestamp\", \"holidays\", \"bridge_days\", \"school_holiday\"]\ntabla = cal.table()[cols]\nprint(tabla.query(\"timestamp >= '2026-09-14'\").head(3))",
+     "output": "('holidays', 'bridge_days', 'school_holiday') True\n     timestamp  holidays  bridge_days  school_holiday\n975 2026-09-14       0.0          0.0             0.0\n976 2026-09-21       1.0          1.0             0.6\n977 2026-09-28       0.0          0.0             0.0",
+     "run": true
+    },
+    {
+     "id": "from_regressor",
+     "title": "HarmonicExogenous.from_regressor",
+     "signature": "HarmonicExogenous.from_regressor(\n    regressor: Regressor,\n    columns: Sequence[str] | None = None,\n    lag_weeks: int = 0,\n    future: str = \"climatology\",\n    **kwargs,\n)",
+     "module": "urgencias_core.models.exogenous",
+     "source": "src/urgencias_core/models/exogenous.py",
+     "text": "El Armónico más un regresor. En cada ventana solo usa lo que estaba publicado en esa fecha; lo que falta lo rellena con el promedio histórico (`\"climatology\"`) o con una proyección de la serie (`\"forecast\"`). `regressor_path` muestra qué supuso para las semanas pronosticadas.",
+     "params": [
+      [
+       "regressor",
+       "un `Regressor`"
+      ],
+      [
+       "columns",
+       "subconjunto de columnas (por defecto todas)"
+      ],
+      [
+       "lag_weeks",
+       "la semana t usa el valor de t − rezago"
+      ],
+      [
+       "future",
+       "`\"climatology\"` o `\"forecast\"`"
+      ]
+     ],
+     "returns": "un modelo que cumple el contrato `Forecaster`.",
+     "example": "from urgencias_core.models.exogenous import HarmonicExogenous\n\nferiados = lambda: HarmonicExogenous.from_regressor(cal, [\"holidays\"])\nm = feriados()\nm.fit(semanal, \"count\")\nprint(m.regressor_path(HorizonSpec(grain=\"W-MON\", length=3)))\ncmp = compare_models(semanal, (\"Armónico\", HarmonicRegression),\n                     (\"Feriados\", feriados), origins=8)\nprint(cmp.verdict)",
+     "output": "   timestamp  holidays\n0 2026-04-06       1.0\n1 2026-04-13       0.0\n2 2026-04-20       0.0\nsin diferencia clara",
+     "run": true
+    }
+   ]
+  }
+ ]
+}
