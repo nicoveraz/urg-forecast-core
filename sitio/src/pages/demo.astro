@@ -427,6 +427,8 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
   #demo .ley.punto { width: 0.6rem; height: 0.6rem; border-radius: 50%; margin-right: 0; }
   #demo .ley.inv { background: color-mix(in srgb, var(--sl-color-gray-3) 22%, transparent); }
   #demo #btr[hidden] { display: none; }
+  #demo .ley-item { display: inline-flex; align-items: center; gap: 0.35rem; max-width: 100%; }
+  #demo .ley-item .ley { flex: none; margin-right: 0; }
   #demo #btr h4 { margin-top: 2rem; }
   #demo #btr h5 { margin-top: 1.5rem; font-size: var(--sl-text-base); }
   #demo #svg-btr { width: 100%; height: auto; display: block; overflow: visible; }
@@ -1038,11 +1040,14 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
       ["punto ambos-corto", "Sobre ambos"],
     ];
     for (const [cls, label] of items) {
+      const item = document.createElement("span"); // key and label never split across lines
+      item.className = "ley-item";
       const k = document.createElement("span");
       k.className = `ley ${cls}`;
       const t = document.createElement("span");
       t.textContent = label;
-      cap.append(k, " ", t, " ");
+      item.append(k, t);
+      cap.append(item);
     }
 
     drawBacktest(det, base, m, (i) => { btSel = i; renderBacktest(e, det); });
@@ -1133,7 +1138,7 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
     table.innerHTML = "";
     const head = document.createElement("thead");
     const hr = document.createElement("tr");
-    for (const h of ["Modelo", "Ancho P50 a P80", "Semanas sobre el P80 (se espera 20 %)", "Por quedarse corto (0,8)", "Por pasarse (0,2)", "Pérdida P80"]) {
+    for (const h of ["Modelo", "Ancho P50 a P80", "Sobre el P80 (se espera 20 %)", "Por quedarse corto (0,8)", "Por pasarse (0,2)", "Pérdida P80"]) {
       const th = document.createElement("th");
       th.textContent = h;
       hr.append(th);
