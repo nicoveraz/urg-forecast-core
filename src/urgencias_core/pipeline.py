@@ -39,7 +39,8 @@ from urgencias_core.eval.baselines import (
 )
 from urgencias_core.eval.harness import quantile_loss
 from urgencias_core.models.ensemble import MedianEnsemble
-from urgencias_core.models.harmonic import HarmonicFluNet, HarmonicRegression
+from urgencias_core.models.exogenous import HarmonicFluNet
+from urgencias_core.models.harmonic import HarmonicRegression
 from urgencias_core.models.protocol import Forecaster, HorizonSpec
 
 COVID_EXCLUDE_YEARS = frozenset({2020, 2021})
@@ -277,6 +278,11 @@ def _ensemble() -> Forecaster:
     return MedianEnsemble({k: core[k] for k in ("AutoARIMA", "Armónico", "MSTL")})
 
 
+# ArmónicoFluNetProy: the positivity is projected instead of filled with climatology, so
+# a shorter lag can be used (see models.exogenous).
+FLUNET_PROY = {"future": "forecast", "lag_weeks": 1}
+
+
 def extra_models() -> dict[str, Callable[[], Forecaster]]:
     """Opt-in models for experimenting (``-m NAME``); not compared by default."""
     return {
@@ -285,6 +291,7 @@ def extra_models() -> dict[str, Callable[[], Forecaster]]:
         "Ensamble": _ensemble,
         "ArmónicoFeriados": lambda: HarmonicRegression(holidays=True),
         "ArmónicoFluNet": HarmonicFluNet,
+        "ArmónicoFluNetProy": lambda: HarmonicFluNet(**FLUNET_PROY),
     }
 
 
@@ -301,6 +308,10 @@ MODEL_INFO = {
     "ArmónicoFluNet": (
         "Armónico + positividad nacional de influenza y VRS (OMS FluNet); "
         "ejemplo de regresor externo"
+    ),
+    "ArmónicoFluNetProy": (
+        "como ArmónicoFluNet, pero proyecta la positividad en vez de usar su promedio "
+        "histórico; rezago de 1 semana"
     ),
 }
 
@@ -550,6 +561,7 @@ __all__ = [
     "resolve_models",
     "available_models",
     "extra_models",
+    "FLUNET_PROY",
     "MODEL_INFO",
     "calibration_factors",
     "apply_calibration",

@@ -101,71 +101,13 @@ class HarmonicRegression:
         return out
 
 
-class HarmonicFluNet(HarmonicRegression):
-    """Example of an external regressor: :class:`HarmonicRegression` plus national viral
-    positivity (influenza, RSV) from WHO FluNet, lagged ``lag_weeks``.
+def __getattr__(name: str):
+    # HarmonicFluNet moved to models.exogenous; keep the old import path working.
+    if name == "HarmonicFluNet":
+        from urgencias_core.models.exogenous import HarmonicFluNet
 
-    Honest by construction, so the backtest does not peek at the future:
-
-    - At an origin (last week of history) only FluNet weeks published by then are used:
-      those ending at least ``report_delay_weeks`` before it.
-    - Lagged positivity is real data while it is published; beyond that, each week gets its
-      climatology (mean of the same ISO week in past seasons, 2020-2021 excluded), computed
-      from data published by the origin.
-
-    So the real signal reaches only the first ``lag_weeks - report_delay_weeks`` weeks of the
-    forecast; further out the regressor is a seasonal average, already close to what the
-    Fourier terms model. The value is in the short horizon, and the backtest says whether
-    there is any. Positivity is national; it does not distinguish one region from another.
-    """
-
-    def __init__(
-        self,
-        positivity: pd.DataFrame | None = None,
-        viruses: tuple[str, ...] = ("flu", "rsv"),
-        lag_weeks: int = 3,
-        report_delay_weeks: int = 2,
-        **kwargs,
-    ) -> None:
-        super().__init__(**kwargs)
-        if lag_weeks < report_delay_weeks:
-            raise ValueError("lag_weeks must be >= report_delay_weeks")
-        self.positivity = positivity
-        self.viruses = tuple(viruses)
-        self.lag_weeks = lag_weeks
-        self.report_delay_weeks = report_delay_weeks
-
-    def _load(self) -> pd.DataFrame:
-        if self.positivity is None:
-            from urgencias_core.data.flunet import load_flunet, weekly_positivity
-
-            self.positivity = weekly_positivity(load_flunet())
-        return self.positivity
-
-    def _exog(self, ts: pd.Series) -> np.ndarray:
-        pos = self._load()
-        published = pos[
-            pos["timestamp"] <= self._origin - pd.Timedelta(weeks=self.report_delay_weeks)
-        ]
-        if published.empty:
-            raise ValueError("no FluNet data published before the forecast origin")
-        hist = published[~published["timestamp"].dt.year.isin([2020, 2021])]
-        week_of = hist["timestamp"].dt.isocalendar().week
-        lagged = pd.to_datetime(ts).reset_index(drop=True) - pd.Timedelta(weeks=self.lag_weeks)
-        cols = []
-        for v in self.viruses:
-            clim = hist.groupby(week_of)[v].mean()
-            actual = lagged.map(published.set_index("timestamp")[v])
-            fill = lagged.dt.isocalendar().week.map(clim).fillna(hist[v].mean())
-            cols.append(actual.fillna(fill).to_numpy(dtype=float))
-        return np.column_stack(cols)
-
-    def _design(self, t: np.ndarray, ts: pd.Series | None = None) -> np.ndarray:
-        return np.column_stack([super()._design(t, ts), self._exog(ts)])
-
-    def fit(self, history: pd.DataFrame, target_col: str) -> None:
-        self._origin = pd.to_datetime(history["timestamp"]).iloc[-1]
-        super().fit(history, target_col)
+        return HarmonicFluNet
+    raise AttributeError(name)
 
 
-__all__ = ["HarmonicFluNet", "HarmonicRegression", "holidays_per_week"]
+__all__ = ["HarmonicRegression", "holidays_per_week"]
