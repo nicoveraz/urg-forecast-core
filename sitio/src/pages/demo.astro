@@ -163,6 +163,42 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
           la proyecta desde la temporada en curso (la línea punteada).
         </p>
         <div id="reg-propio"></div>
+        <div id="btr" hidden>
+          <h4>Por qué un intervalo más angosto o más bajo puede ser peor</h4>
+          <p>
+            El P80 es el valor que las atenciones no deberían superar en 4 de cada 5 semanas.
+            La pérdida P80 cobra <strong>0,8 por cada atención sobre el P80</strong> y{" "}
+            <strong>0,2 por cada atención bajo él</strong>. Bajar el P80 en 10 atenciones
+            ahorra 2 en cada semana que sigue bajo él y cuesta 8 en cada semana que queda sobre
+            él. Por eso un intervalo más angosto conviene solo si lo real lo sigue superando en
+            menos de 1 de cada 5 semanas; no es mejor por sí solo. Y como la pérdida solo mira
+            dónde queda el P80, un intervalo más angosto pero corrido hacia arriba también
+            puede salir peor.
+          </p>
+          <p>
+            El gráfico muestra el backtest de este establecimiento: cada tramo es un pronóstico
+            de 4 semanas hecho con lo que se sabía en su fecha, frente a lo que pasó. Toca un
+            tramo (o elige una ventana en la lista) para ver la cuenta semana a semana.
+          </p>
+          <div class="regs" id="btr-sel" role="group" aria-label="Regresor que se compara con el Armónico"></div>
+          <figure class="grafico">
+            <svg id="svg-btr" role="img" aria-labelledby="btr-titulo"><title id="btr-titulo">P80 de cada ventana del backtest frente a lo que pasó</title></svg>
+            <figcaption id="btr-leyenda"></figcaption>
+          </figure>
+          <label class="btr-ventana">
+            Ventana <select id="btr-ventana"></select>
+          </label>
+          <p id="btr-ej"></p>
+          <div class="tabla"><table id="btr-semanas"></table></div>
+          <p class="nota">
+            Pérdida de cada semana: 0,8 × lo que lo real superó al P80, o 0,2 × lo que quedó
+            bajo él. La de la ventana es el promedio de sus semanas. Modelos sin calibrar, como
+            en la comparación de arriba.
+          </p>
+          <h5 id="btr-titulo-resumen"></h5>
+          <div class="tabla"><table id="btr-resumen"></table></div>
+          <p id="btr-texto"></p>
+        </div>
         <p id="reg-red" class="detalle"></p>
         <h4>La receta, con tus propios datos</h4>
         <pre class="receta"><code>from urgencias_core.models.exogenous import HarmonicExogenous
@@ -390,6 +426,24 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
   #demo .ley.conreg-banda { background: color-mix(in srgb, var(--reg-color, var(--sl-color-accent)) 25%, transparent); }
   #demo .ley.punto { width: 0.6rem; height: 0.6rem; border-radius: 50%; margin-right: 0; }
   #demo .ley.inv { background: color-mix(in srgb, var(--sl-color-gray-3) 22%, transparent); }
+  #demo #btr[hidden] { display: none; }
+  #demo #btr h4 { margin-top: 2rem; }
+  #demo #btr h5 { margin-top: 1.5rem; font-size: var(--sl-text-base); }
+  #demo #svg-btr { width: 100%; height: auto; display: block; overflow: visible; }
+  #demo #svg-btr text { fill: var(--sl-color-gray-3); font-size: 11px; font-family: var(--sl-font); }
+  #demo #svg-btr .hit { cursor: pointer; }
+  #demo .btr-ventana { display: flex; flex-wrap: wrap; gap: 0.35rem 0.5rem; align-items: center; margin-top: 1rem; font-size: var(--sl-text-sm); color: var(--sl-color-gray-2); }
+  #demo .btr-ventana select { min-width: 0; max-width: 100%; }
+  #demo #btr-semanas td { white-space: nowrap; }
+  #demo #btr-semanas td:not(:first-child), #demo #btr-semanas th:not(:first-child),
+  #demo #btr-resumen td:not(:first-child), #demo #btr-resumen th:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
+  #demo #btr-semanas .cuenta { display: block; font-size: var(--sl-text-xs); color: var(--sl-color-gray-3); }
+  #demo #btr-semanas .corto { color: var(--sl-color-red-high); font-weight: 600; }
+  #demo #btr-semanas tr.total td, #demo #btr-resumen tr.sel td { font-weight: 600; color: var(--sl-color-white); }
+  #demo .ley.ambos { background: var(--sl-color-gray-3); }
+  #demo .ley.ambos-corto { background: var(--sl-color-gray-1, var(--sl-color-white)); }
+  #demo .ley.solo-reg { background: var(--sl-color-red); }
+  #demo .ley.solo-base { background: transparent; border: 2px solid var(--reg-color); box-sizing: border-box; }
   #demo .veredictos { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 0.75rem; margin-top: 1rem; }
   #demo .veredicto { border: 1px solid var(--sl-color-hairline); border-radius: 0.5rem; padding: 0.75rem 0.9rem; }
   #demo .veredicto .m { font-weight: 600; color: var(--sl-color-white); }
@@ -424,7 +478,14 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
 
   type RegStats = { n: number; gana: number; pierde: number; p: number; mediana: number | null; total: number | null };
   type RegCand = { veredicto: string; todas: RegStats; invierno: RegStats; resto: RegStats };
-  type RegEntry = { c: string; n: string; candidatos: Record<string, RegCand>; ventanas: [string, boolean, number, ...(number | null)[]][] };
+  type RegSummary = { ventanas: number; ancho: number; sobre: number; corto: number; exceso: number; perdida: number };
+  type RegEntry = {
+    c: string; n: string; candidatos: Record<string, RegCand>; ventanas: [string, boolean, number, ...(number | null)[]][];
+    resumen?: Record<string, RegSummary>;
+  };
+  // demo/regresor/<code>.json: every backtest window, what happened and each model's P50 and P80
+  type BtWindow = { origen: string; semanas: string[]; real: number[]; modelos: Record<string, [number[], number[]] | null> };
+  type BtDetail = { c: string; n: string; ventanas: BtWindow[] };
   type Reg = {
     base: string; candidatos: string[]; horizonte: number; ventanas: number; paso: number; flunet_hasta: string;
     positividad: [string, number, number][]; proyeccion: [string, number, number][]; establecimientos: RegEntry[];
@@ -666,6 +727,17 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
       ? `En el backtest de este establecimiento: ${ev.veredicto} (gana ${ev.todas.gana} de ${ev.todas.n} ventanas).`
       : "Este establecimiento no está entre los evaluados en el backtest de abajo.";
     txt.textContent = t;
+    const mine = reg?.establecimientos.find((e) => e.c === d.c);
+    if (ev && mine?.resumen) {
+      const a = document.createElement("a");
+      a.href = "#btr";
+      a.textContent = "Ver su backtest semana a semana.";
+      a.addEventListener("click", (event) => {
+        event.preventDefault(); // the hash holds the establishment code
+        $("btr").scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+      txt.append(" ", a);
+    }
     txt.hidden = false;
   }
 
@@ -825,6 +897,8 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
       (c.firstChild as HTMLElement).textContent = cmdFor(reg.candidatos[0]);
       box.append(c);
     }
+    if (mine?.resumen) loadBacktest(mine);
+    else $("btr").hidden = true;
     const tally = reg.candidatos.map((m) => {
       const v = reg!.establecimientos.map((e) => e.candidatos[m]?.veredicto);
       const k = (x: string) => v.filter((y) => y === x).length;
@@ -834,6 +908,315 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
       `En los ${reg.establecimientos.length} establecimientos con más atenciones. ${tally.join("; ")}. ` +
       `Con tantos establecimientos, cerca de uno de cada veinte sale "mejora" o "empeora" solo por azar: ` +
       `un regresor útil debería mejorar en muchos, no en unos pocos.`;
+  }
+
+  // --- Why a narrower band can be worse: the regressor backtest, week by week ---
+  const REG_SHORT: Record<string, string> = {
+    ArmónicoFeriados: "Feriados",
+    ArmónicoFluNet: "Virus respiratorios",
+    ArmónicoFluNetProy: "Virus proyectados",
+  };
+  const btCache = new Map<string, BtDetail | null>();
+  let btReg = "ArmónicoFluNet";
+  let btSel = -1; // selected window; -1 = pick the most telling one
+  let btFor = "";
+  const dec = (v: number) => (Math.round(v * 10) / 10).toFixed(1).replace(".", ",");
+  const lossAt = (y: number, q: number) => (y > q ? 0.8 * (y - q) : 0.2 * (q - y));
+  const mean = (a: number[]) => a.reduce((s, v) => s + v, 0) / a.length;
+  const regLabel = (m: string) => (m === reg?.base ? m : `Armónico ${REG_NAME[m] ?? m}`);
+  const regColor = (m: string) => REG_COLOR[m] ?? candColor(reg?.candidatos.indexOf(m) ?? 0);
+
+  type WinStats = {
+    wb: number; wr: number; // mean P50-to-P80 width
+    sb: number; sr: number; // P80 loss from weeks above the P80 (0.8 per attendance)
+    eb: number; er: number; // P80 loss from weeks below the P80 (0.2 per attendance)
+    lb: number; lr: number; // P80 loss of the window
+    ab: number; ar: number; n: number; // weeks above the P80
+    pb: number; pr: number; // mean P80
+  };
+  function winStats(w: BtWindow, base: string, m: string): WinStats | null {
+    const B = w.modelos[base], R = w.modelos[m];
+    if (!B || !R) return null;
+    const y = w.real;
+    const short = (q: number[]) => mean(y.map((v, i) => (v > q[i] ? 0.8 * (v - q[i]) : 0)));
+    const excess = (q: number[]) => mean(y.map((v, i) => (v > q[i] ? 0 : 0.2 * (q[i] - v))));
+    const s = {
+      wb: mean(B[1].map((v, i) => v - B[0][i])), wr: mean(R[1].map((v, i) => v - R[0][i])),
+      sb: short(B[1]), sr: short(R[1]), eb: excess(B[1]), er: excess(R[1]),
+      ab: y.filter((v, i) => v > B[1][i]).length, ar: y.filter((v, i) => v > R[1][i]).length, n: y.length,
+      pb: mean(B[1]), pr: mean(R[1]),
+    };
+    return { ...s, lb: s.sb + s.eb, lr: s.sr + s.er };
+  }
+  // the regressor lowered the P80 and lost: the case this section explains
+  const lowerWorse = (s: WinStats) => s.pr < s.pb && s.lr > s.lb;
+
+  function defaultWindow(stats: (WinStats | null)[]) {
+    // Most telling first: the lower P80 saved on the weeks below it but lost more on the weeks
+    // above it; then any lower-and-worse window; then the largest difference.
+    const tiers: ((s: WinStats) => boolean)[] = [
+      (s) => lowerWorse(s) && s.er < s.eb && s.sr > s.sb,
+      lowerWorse,
+      () => true,
+    ];
+    for (const ok of tiers) {
+      let best = -1, score = -Infinity;
+      stats.forEach((s, i) => {
+        if (s && ok(s) && Math.abs(s.lr - s.lb) > score) { best = i; score = Math.abs(s.lr - s.lb); }
+      });
+      if (best >= 0) return best;
+    }
+    return -1;
+  }
+
+  async function loadBacktest(e: RegEntry) {
+    if (!btCache.has(e.c)) {
+      let det: BtDetail | null = null;
+      try {
+        const r = await fetch(BASE + "regresor/" + encodeURIComponent(e.c) + ".json");
+        if (r.ok) det = (await r.json()) as BtDetail;
+      } catch {
+        /* data published before this section existed: the section stays hidden */
+      }
+      btCache.set(e.c, det);
+    }
+    if (current?.c !== e.c) return; // another establishment was chosen meanwhile
+    const det = btCache.get(e.c);
+    if (!det || !e.resumen || !reg) { $("btr").hidden = true; return; }
+    if (btFor !== e.c) { btFor = e.c; btSel = -1; }
+    $("btr").hidden = false;
+    renderBacktest(e, det);
+  }
+
+  // "baja de 3,1 a 2,4", "sube de 2,0 a 2,6", "se mantiene en 1,2"
+  const change = (a: number, b: number) =>
+    dec(a) === dec(b) ? `se mantiene en ${dec(a)}` : `${b < a ? "baja" : "sube"} de ${dec(a)} a ${dec(b)}`;
+
+  function renderBacktest(e: RegEntry, det: BtDetail) {
+    const base = reg!.base;
+    const cands = reg!.candidatos.filter((m) => e.resumen![m]);
+    if (!cands.length || !e.resumen![base]) { $("btr").hidden = true; return; }
+    if (!cands.includes(btReg)) btReg = cands.includes("ArmónicoFluNet") ? "ArmónicoFluNet" : cands[0];
+    const m = btReg;
+    const sel = $("btr-sel");
+    sel.innerHTML = "";
+    for (const c of cands) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = REG_SHORT[c] ?? c;
+      b.style.setProperty("--reg-color", regColor(c));
+      b.setAttribute("aria-pressed", String(c === m));
+      b.addEventListener("click", () => { btReg = c; btSel = -1; renderBacktest(e, det); });
+      sel.append(b);
+    }
+    const stats = det.ventanas.map((w) => winStats(w, base, m));
+    if (btSel < 0 || !stats[btSel]) btSel = defaultWindow(stats);
+    if (btSel < 0) { $("btr").hidden = true; return; }
+
+    const ws = $<HTMLSelectElement>("btr-ventana");
+    ws.innerHTML = "";
+    det.ventanas.forEach((w, i) => {
+      const s = stats[i];
+      if (!s) return;
+      const tag = lowerWorse(s) ? " · P80 más bajo y peor" : "";
+      ws.add(new Option(`${fecha(w.semanas[0])} – ${fecha(w.semanas[w.semanas.length - 1])}${tag}`, String(i)));
+    });
+    ws.value = String(btSel);
+    ws.onchange = () => { btSel = Number(ws.value); renderBacktest(e, det); };
+
+    const cap = $("btr-leyenda");
+    cap.style.setProperty("--reg-color", regColor(m));
+    cap.innerHTML = "";
+    const short = REG_NAME[m] ?? m;
+    const items: [string, string][] = [
+      ["base", `P80 ${base}`],
+      ["conreg", `P80 ${short}`],
+      ["conreg-banda", `P50 a P80 ${short}`],
+      ["punto ambos", "Bajo ambos P80"],
+      ["punto solo-reg", `Sobre el P80 ${short}, bajo el del ${base}`],
+      ["punto solo-base", `Sobre el P80 del ${base}, bajo el P80 ${short}`],
+      ["punto ambos-corto", "Sobre ambos"],
+    ];
+    for (const [cls, label] of items) {
+      const k = document.createElement("span");
+      k.className = `ley ${cls}`;
+      const t = document.createElement("span");
+      t.textContent = label;
+      cap.append(k, " ", t, " ");
+    }
+
+    drawBacktest(det, base, m, (i) => { btSel = i; renderBacktest(e, det); });
+    renderWindow(det.ventanas[btSel], stats[btSel]!, base, m);
+    // mean P80 shift over the windows where every model forecast (as in the summary table)
+    const all = det.ventanas.filter((w) => reg!.candidatos.concat(base).every((c) => !e.resumen![c] || w.modelos[c]));
+    const shifts = all.map((w) => winStats(w, base, m)).filter((x): x is WinStats => !!x).map((x) => x.pr - x.pb);
+    renderBtSummary(e, base, m, shifts.length ? mean(shifts) : 0);
+  }
+
+  const cap = (x: string) => x[0].toUpperCase() + x.slice(1);
+  // "su P80 quedó en promedio 7,8 atenciones más abajo"
+  const where = (shift: number) =>
+    dec(Math.abs(shift)) === "0,0" ? "su P80 quedó prácticamente en el mismo lugar"
+      : `su P80 quedó en promedio ${dec(Math.abs(shift))} atenciones más ${shift < 0 ? "abajo" : "arriba"}`;
+  // Why the total moved, from its two parts (short: 0.8 per attendance, excess: 0.2).
+  function balance(dS: number, dE: number, dT: number) {
+    const z = (v: number) => Math.abs(v) < 0.05;
+    if (z(dS) || z(dE)) return "";
+    if (dS > 0 && dE < 0)
+      return dT > 0
+        ? ` Se pasó menos (−${dec(-dE)}), pero se quedó corto más (+${dec(dS)}), y quedarse corto cuesta cuatro veces más: en total, peor.`
+        : ` Se quedó corto algo más (+${dec(dS)}), pero se pasó bastante menos (−${dec(-dE)}): en total, mejor.`;
+    if (dS < 0 && dE > 0)
+      return dT > 0
+        ? ` Se quedó corto menos (−${dec(-dS)}), pero se pasó más (+${dec(dE)}): en total, peor.`
+        : ` Se pasó algo más (+${dec(dE)}), pero se quedó corto menos (−${dec(-dS)}), y eso pesa más: en total, mejor.`;
+    return dS > 0 ? " Empeoró en las dos partes." : " Mejoró en las dos partes.";
+  }
+
+  function renderWindow(w: BtWindow, s: WinStats, base: string, m: string) {
+    const short = REG_NAME[m] ?? m;
+    const first = w.semanas[0], last = w.semanas[w.semanas.length - 1];
+    const width = s.wb ? pct((100 * (s.wr - s.wb)) / s.wb) : "–";
+    const t =
+      `Ventana del ${fecha(first)} al ${fecha(last)}. ${cap(short)}, el intervalo P50 a P80 midió ` +
+      `${dec(s.wr)} atenciones en promedio, frente a ${dec(s.wb)} del ${base} (${width}), y ${where(s.pr - s.pb)}. ` +
+      `Lo real superó su P80 en ${s.ar} de ${s.n} semanas (el del ${base}, en ${s.ab}). ` +
+      `La pérdida por pasarse ${change(s.eb, s.er)} y la por quedarse corto ${change(s.sb, s.sr)}: ` +
+      `en total ${change(s.lb, s.lr)} (${pct(s.lb ? (100 * (s.lr - s.lb)) / s.lb : null)}).` +
+      balance(s.sr - s.sb, s.er - s.eb, s.lr - s.lb);
+    $("btr-ej").textContent = t;
+
+    const table = $("btr-semanas");
+    table.innerHTML = "";
+    const tr = (cells: (string | Node)[], tag = "td", cls = "") => {
+      const row = document.createElement("tr");
+      if (cls) row.className = cls;
+      for (const c of cells) {
+        const cell = document.createElement(tag);
+        cell.append(c);
+        row.append(cell);
+      }
+      return row;
+    };
+    const thead = document.createElement("thead");
+    thead.append(tr(["Semana", "Real", `P80 ${base}`, "Pérdida", `P80 ${REG_SHORT[m] ?? m}`, "Pérdida"], "th"));
+    const tbody = document.createElement("tbody");
+    const B = w.modelos[base]!, R = w.modelos[m]!;
+    const p80 = (y: number, q: number) => {
+      const span = document.createElement("span");
+      span.textContent = nf.format(q);
+      if (y > q) { span.className = "corto"; span.title = "Lo real superó este P80"; }
+      return span;
+    };
+    const loss = (y: number, q: number) => {
+      const frag = document.createDocumentFragment();
+      frag.append(dec(lossAt(y, q)));
+      const how = document.createElement("span");
+      how.className = "cuenta";
+      how.textContent = y > q ? `0,8 × ${dec(y - q)}` : `0,2 × ${dec(q - y)}`;
+      frag.append(how);
+      return frag;
+    };
+    w.semanas.forEach((d, i) => {
+      const y = w.real[i];
+      tbody.append(tr([fecha(d), nf.format(y), p80(y, B[1][i]), loss(y, B[1][i]), p80(y, R[1][i]), loss(y, R[1][i])]));
+    });
+    tbody.append(tr(["Pérdida P80 de la ventana", "", "", dec(s.lb), "", dec(s.lr)], "td", "total"));
+    table.append(thead, tbody);
+  }
+
+  function renderBtSummary(e: RegEntry, base: string, m: string, shift: number) {
+    const R = e.resumen!;
+    const b = R[base], r = R[m];
+    $("btr-titulo-resumen").textContent = `En las ${b.ventanas} ventanas del backtest`;
+    const table = $("btr-resumen");
+    table.innerHTML = "";
+    const head = document.createElement("thead");
+    const hr = document.createElement("tr");
+    for (const h of ["Modelo", "Ancho P50 a P80", "Semanas sobre el P80 (se espera 20 %)", "Por quedarse corto (0,8)", "Por pasarse (0,2)", "Pérdida P80"]) {
+      const th = document.createElement("th");
+      th.textContent = h;
+      hr.append(th);
+    }
+    head.append(hr);
+    const body = document.createElement("tbody");
+    for (const name of [base, ...reg!.candidatos.filter((c) => R[c])]) {
+      const v = R[name];
+      const row = document.createElement("tr");
+      if (name === m) row.className = "sel";
+      for (const c of [regLabel(name), dec(v.ancho), `${Math.round(v.sobre)} %`, dec(v.corto), dec(v.exceso), dec(v.perdida)]) {
+        const td = document.createElement("td");
+        td.textContent = c;
+        row.append(td);
+      }
+      body.append(row);
+    }
+    table.append(head, body);
+    const short = REG_NAME[m] ?? m;
+    const dw = b.ancho ? (100 * (r.ancho - b.ancho)) / b.ancho : 0;
+    const t =
+      `${cap(short)}, el intervalo P50 a P80 es ${dec(Math.abs(dw))} % ` +
+      `${dw < 0 ? "más angosto" : "más ancho"} que el del ${base} y ${where(shift)}. Lo real superó ese P80 en el ` +
+      `${Math.round(r.sobre)} % de las semanas (${base}: ${Math.round(b.sobre)} %). ` +
+      `La pérdida por pasarse ${change(b.exceso, r.exceso)} y la por quedarse corto ${change(b.corto, r.corto)}: ` +
+      `en total ${change(b.perdida, r.perdida)}.` +
+      balance(r.corto - b.corto, r.exceso - b.exceso, r.perdida - b.perdida);
+    $("btr-texto").textContent = t;
+  }
+
+  function drawBacktest(det: BtDetail, base: string, m: string, pick: (i: number) => void) {
+    const s = document.getElementById("svg-btr") as unknown as SVGSVGElement;
+    const W = Math.max(300, Math.round(s.parentElement!.clientWidth || 760));
+    const H = W < 560 ? 220 : 280, mg = { t: 12, r: 10, b: 26, l: 46 };
+    s.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    s.querySelectorAll(":scope > :not(title)").forEach((n) => n.remove());
+    const wk = 7 * 864e5;
+    const wins = det.ventanas
+      .map((w, i) => ({ i, w, t: w.semanas.map((d) => +new Date(d)), B: w.modelos[base], R: w.modelos[m] }))
+      .filter((x): x is { i: number; w: BtWindow; t: number[]; B: [number[], number[]]; R: [number[], number[]] } => !!x.B && !!x.R);
+    if (!wins.length) return;
+    const vals = wins.flatMap((x) => [...x.w.real, ...x.B[1], ...x.R[1], ...x.R[0]]);
+    const lo = Math.min(...vals), hi = Math.max(...vals), pad = (hi - lo) * 0.06 || 1;
+    const x0 = wins[0].t[0] - wk, x1 = wins[wins.length - 1].t.slice(-1)[0] + wk;
+    const { X, Y } = axes(s, W, H, mg, x0, x1, Math.max(0, lo - pad), hi + pad, (v) => nf.format(v));
+    const color = regColor(m);
+    const line = (t: number[], v: number[]) => t.map((x, j) => `${j ? "L" : "M"}${X(x).toFixed(1)},${Y(v[j]).toFixed(1)}`).join("");
+    const sel = wins.find((x) => x.i === btSel);
+    if (sel)
+      el("rect", { x: X(sel.t[0] - wk / 2), y: mg.t, width: X(sel.t[sel.t.length - 1] + wk / 2) - X(sel.t[0] - wk / 2),
+        height: H - mg.t - mg.b, fill: "var(--sl-color-accent)", "fill-opacity": 0.14 }, s);
+    for (const x of wins) {
+      const back = x.t.slice().reverse();
+      const band = line(x.t, x.R[0]) + back.map((t, j) => `L${X(t).toFixed(1)},${Y(x.R[1][x.t.length - 1 - j]).toFixed(1)}`).join("") + "Z";
+      el("path", { d: band, fill: color, "fill-opacity": 0.18 }, s);
+      el("path", { d: line(x.t, x.B[1]), fill: "none", stroke: "var(--sl-color-gray-2)", "stroke-width": 1.6, "stroke-dasharray": "4 3" }, s);
+      el("path", { d: line(x.t, x.R[1]), fill: "none", stroke: color, "stroke-width": 2 }, s);
+    }
+    for (const x of wins) {
+      x.w.real.forEach((y, j) => {
+        const overB = y > x.B[1][j], overR = y > x.R[1][j];
+        const attrs: Record<string, string | number> = { cx: X(x.t[j]), cy: Y(y), r: 3.2 };
+        if (overB && overR) Object.assign(attrs, { fill: "var(--sl-color-gray-1, var(--sl-color-white))" });
+        else if (overR) Object.assign(attrs, { fill: "var(--sl-color-red)", r: 3.6 });
+        else if (overB) Object.assign(attrs, { fill: "var(--sl-color-bg)", stroke: color, "stroke-width": 2, r: 3.4 });
+        else Object.assign(attrs, { fill: "var(--sl-color-gray-3)", r: 2.4 });
+        el("circle", attrs, s);
+      });
+    }
+    for (const x of wins) {
+      const hit = el("rect", { x: X(x.t[0] - wk / 2), y: mg.t, width: X(x.t[x.t.length - 1] + wk / 2) - X(x.t[0] - wk / 2),
+        height: H - mg.t - mg.b, fill: "transparent", class: "hit" }, s);
+      el("title", {}, hit).textContent = `Ventana del ${fecha(x.w.semanas[0])}: ver semana a semana`;
+      hit.addEventListener("click", () => pick(x.i));
+    }
+  }
+
+  // the first day of a month on or after x (labels go on Jan 1 and Jul 1)
+  function firstOfMonth(x: number) {
+    const d = new Date(x);
+    const t = new Date(d.getFullYear(), d.getMonth(), 1);
+    if (+t < x) t.setMonth(t.getMonth() + 1);
+    return t;
   }
 
   function axes(s: SVGSVGElement, W: number, H: number, m: { t: number; r: number; b: number; l: number },
@@ -846,8 +1229,8 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
       el("text", { x: m.l - 6, y: Y(v) + 4, "text-anchor": "end" }, s).textContent = fmt(v);
     }
     const narrow = W < 560;
-    for (let t = new Date(x0); +t <= x1; t.setMonth(t.getMonth() + 1)) {
-      if (t.getDate() > 7 || ![0, 6].includes(t.getMonth())) continue;
+    for (let t = firstOfMonth(x0); +t <= x1; t.setMonth(t.getMonth() + 1)) {
+      if (![0, 6].includes(t.getMonth())) continue;
       if (narrow && t.getMonth() !== 0) continue;
       el("text", { x: X(+t), y: H - 8, "text-anchor": "middle" }, s).textContent =
         narrow ? String(t.getFullYear()) : `${MESES[t.getMonth()]} ${t.getFullYear()}`;
@@ -941,8 +1324,8 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
       el("text", { x: m.l - 6, y: Y(v) + 4, "text-anchor": "end" }).textContent = nf.format(v);
     }
     // x labels: Jan and Jul
-    for (let t = new Date(x0); +t <= x1; t.setMonth(t.getMonth() + 1)) {
-      if (t.getDate() > 7 || ![0, 6].includes(t.getMonth())) continue;
+    for (let t = firstOfMonth(x0); +t <= x1; t.setMonth(t.getMonth() + 1)) {
+      if (![0, 6].includes(t.getMonth())) continue;
       if (narrow && t.getMonth() !== 0) continue;
       const lab = el("text", { x: X(+t), y: H - 8, "text-anchor": "middle" });
       lab.textContent = narrow ? String(t.getFullYear()) : `${MESES[t.getMonth()]} ${t.getFullYear()}`;
@@ -1051,6 +1434,7 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
   document.querySelectorAll<HTMLButtonElement>("#regs button").forEach((b) =>
     b.addEventListener("click", () => {
       activeReg = activeReg === b.dataset.reg ? null : b.dataset.reg!;
+      if (activeReg && activeReg !== btReg) { btReg = activeReg; btSel = -1; } // the backtest below follows
       render();
     }),
   );
