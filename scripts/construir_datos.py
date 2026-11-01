@@ -9,7 +9,8 @@ Run by .github/workflows/datos.yml. Four steps:
 3. ``demo``: run the default forecast for every establishment with enough
    history and write one small JSON per establishment for the site's demo page.
 4. ``regresor``: the worked example of adding an external regressor. For the busiest
-   establishments, compare Armónico with and without FluNet viral positivity over many
+   establishments, compare Armónico with and without external regressors (holidays from
+   the calendar, FluNet viral positivity) over many
    backtest windows (:func:`urgencias_core.eval.compare.compare_models`) and write
    ``demo/regresor.json`` for the demo page. Needs ``flunet`` and ``demo`` first.
 
@@ -41,7 +42,7 @@ MIN_MEDIAN_WEEKLY = 10  # skip establishments with almost no activity
 REG_TOP = 40  # busiest establishments analysed (each takes a few minutes)
 REG_HORIZON, REG_WINDOWS, REG_STEP = 4, 36, 4
 REG_BASE = "Armónico"
-REG_CANDIDATES = ("ArmónicoFluNet", "ArmónicoFluNetProy")
+REG_CANDIDATES = ("ArmónicoFeriados", "ArmónicoFluNet", "ArmónicoFluNetProy")
 POSITIVITY_WEEKS_SHOWN = 156
 
 

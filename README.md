@@ -432,13 +432,16 @@ edad, así que puedes modelar las causas respiratorias o la urgencia pediátrica
 en vez del total.
 
 **Fuentes externas.** Con la receta de [Agregar un regresor externo](#agregar-un-regresor-externo)
-se puede probar clima, vacunación o vigilancia regional con el mismo rigor. El ejemplo de
-FluNet no mejoró el total de atenciones en ningún hospital de forma consistente (detalle en
-`docs/modelos.md`), y eso también es un resultado.
+se puede probar clima, vacunación o vigilancia regional con el mismo rigor. Los dos
+ejemplos incluidos dan resultados opuestos (detalle en `docs/modelos.md`): los feriados
+mejoran el pronóstico en la mayoría de los 40 hospitales con más atenciones
+(`ArmónicoFeriados`), mientras que la circulación viral de FluNet no mejora el total de
+atenciones en ninguno de forma consistente. Las dos cosas son resultados.
 
-**Calendario chileno.** `urgencias_core.features.calendar_features` construye
-variables de feriados, interferiados, calendario escolar y eventos regionales,
-listas para usar como covariables.
+**Calendario chileno.** `urgencias_core.features.calendar_features` (por día) y
+`weekly_calendar` (por semana DEIS) construyen variables de feriados, interferiados,
+calendario escolar y eventos regionales; `regressors.calendar()` las deja listas para
+`HarmonicExogenous`.
 
 Revisa [`docs/roadmap.md`](https://github.com/nicoveraz/urg-forecast-core/blob/main/docs/roadmap.md)
 para ver brechas conocidas que sirven como primeras contribuciones.

@@ -99,12 +99,12 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
       <div class="tabla"><table id="bt"></table></div>
 
       <section id="regresor" hidden>
-        <h3>Agregar un regresor: circulación viral (ejemplo)</h3>
+        <h3>Agregar un regresor: feriados y circulación viral</h3>
         <p>
-          ¿Mejora el pronóstico si el modelo sabe cuántos virus respiratorios circulan? Es el
-          ejemplo de cómo sumar una serie externa y medir si sirve. El regresor es la
-          positividad nacional de influenza y VRS que el ISP reporta a la OMS (FluNet),
-          publicada con unas dos semanas de atraso.
+          ¿Mejora el pronóstico con información externa? Dos ejemplos, medidos de la misma
+          forma y con resultados opuestos: los <strong>feriados</strong> del calendario chileno,
+          que se conocen de antemano, y la <strong>positividad nacional de influenza y VRS</strong>{" "}
+          que el ISP reporta a la OMS (FluNet), publicada con unas dos semanas de atraso.
         </p>
         <figure class="grafico">
           <svg id="svg-pos" role="img" aria-labelledby="pos-titulo"><title id="pos-titulo">Positividad semanal de influenza y VRS en Chile, con proyección</title></svg>
@@ -116,11 +116,11 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
           </figcaption>
         </figure>
         <p>
-          Se comparan dos formas de llenar las semanas que aún no se publican:{" "}
-          <strong>ArmónicoFluNet</strong> usa el promedio histórico de esa semana del año y{" "}
-          <strong>ArmónicoFluNetProy</strong> proyecta la positividad desde la temporada en
-          curso (la línea punteada). Ambos contra el Armónico sin regresor, en las mismas
-          ventanas.
+          Cada variante se compara con el Armónico sin regresor, en las mismas ventanas.{" "}
+          <strong>ArmónicoFeriados</strong> suma los feriados que caen en día hábil cada
+          semana. <strong>ArmónicoFluNet</strong> usa la positividad y llena las semanas que
+          aún no se publican con su promedio histórico. <strong>ArmónicoFluNetProy</strong>{" "}
+          la proyecta desde la temporada en curso (la línea punteada).
         </p>
         <div id="reg-propio"></div>
         <p id="reg-red" class="detalle"></p>
@@ -128,13 +128,18 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
         <pre class="receta"><code>from urgencias_core.models.exogenous import HarmonicExogenous
 from urgencias_core.models.harmonic import HarmonicRegression
 from urgencias_core.eval.compare import compare_models
+from urgencias_core.regressors import Regressor
 
 # timestamp = lunes de cierre de la semana DEIS; una columna por variable
-temperatura = pd.read_csv("temperatura_semanal.csv", parse_dates=["timestamp"])
-con_temp = lambda: HarmonicExogenous(
-    temperatura, ["temp_min"],
-    lag_weeks=0,            # semana objetivo t usa el valor de t
+temperatura = Regressor(
+    name="temperatura",
+    load=lambda: pd.read_csv("temperatura_semanal.csv", parse_dates=["timestamp"]),
+    columns=("temp_min",),
     report_delay_weeks=1,   # se publica con 1 semana de atraso
+)
+con_temp = lambda: HarmonicExogenous.from_regressor(
+    temperatura,
+    lag_weeks=0,            # semana objetivo t usa el valor de t
     future="forecast",      # lo no publicado se proyecta ("climatology": promedio)
 )
 cmp = compare_models(historia, ("Armónico", HarmonicRegression), ("ConTemp", con_temp))
@@ -313,8 +318,7 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
   #demo #svg-pos { width: 100%; height: auto; display: block; overflow: visible; }
   #demo #svg-pos text, #demo #svg-reg text { fill: var(--sl-color-gray-3); font-size: 11px; font-family: var(--sl-font); }
   #demo #svg-reg { width: 100%; height: auto; display: block; overflow: visible; margin-top: 0.5rem; }
-  #demo .ley.cand0 { width: 0.6rem; height: 0.6rem; border-radius: 50%; background: var(--sl-color-gray-3); margin-right: 0; }
-  #demo .ley.cand1 { width: 0.6rem; height: 0.6rem; border-radius: 50%; background: var(--sl-color-accent); margin-right: 0; }
+  #demo .ley.punto { width: 0.6rem; height: 0.6rem; border-radius: 50%; margin-right: 0; }
   #demo .ley.inv { background: color-mix(in srgb, var(--sl-color-blue) 14%, transparent); }
   #demo .veredictos { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 0.75rem; margin-top: 1rem; }
   #demo .veredicto { border: 1px solid var(--sl-color-hairline); border-radius: 0.5rem; padding: 0.75rem 0.9rem; }
@@ -600,6 +604,10 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
     for (const [w, v] of a.actual) el("circle", { cx: X(w), cy: Y(v), r: 2.6, fill: "var(--sl-color-accent)" }, s);
   }
 
+  // Feriados (works) in the accent colour; the FluNet variants in neutral tones.
+  const CAND_COLORS = ["var(--sl-color-accent)", "var(--sl-color-gray-3)", "var(--sl-color-purple)"];
+  const candColor = (i: number) => CAND_COLORS[i % CAND_COLORS.length];
+
   const VEREDICTO: Record<string, string> = { mejora: "mejora", empeora: "empeora", "sin diferencia clara": "neutro" };
   const pct = (v: number | null) => (v == null ? "–" : `${v > 0 ? "+" : ""}${v.toFixed(1).replace(".", ",")} %`);
 
@@ -621,7 +629,7 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
       const c = document.createElement("div");
       c.className = "comando";
       c.innerHTML = "<code></code>";
-      (c.firstChild as HTMLElement).textContent = cmdFor(reg.candidatos[reg.candidatos.length - 1]);
+      (c.firstChild as HTMLElement).textContent = cmdFor(reg.candidatos[0]);
       box.append(p, c);
     } else {
       const intro = document.createElement("p");
@@ -651,15 +659,23 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
       fig.innerHTML = `<svg id="svg-reg" role="img"></svg><figcaption></figcaption>`;
       box.append(fig);
       const cap = fig.querySelector("figcaption")!;
-      cap.innerHTML = `<span class="ley cand0"></span> <span></span> <span class="ley cand1"></span> <span></span> <span class="ley inv"></span> Ventanas de invierno`;
-      const spans = cap.querySelectorAll("span:not(.ley)");
-      spans[0].textContent = reg.candidatos[0];
-      spans[1].textContent = reg.candidatos[1] ?? "";
+      cap.innerHTML = "";
+      reg.candidatos.forEach((m, i) => {
+        const dot = document.createElement("span");
+        dot.className = "ley punto";
+        dot.style.background = candColor(i);
+        const label = document.createElement("span");
+        label.textContent = m;
+        cap.append(dot, " ", label, " ");
+      });
+      const inv = document.createElement("span");
+      inv.className = "ley inv";
+      cap.append(inv, " Ventanas de invierno");
       drawWindows(mine, reg.candidatos);
       const c = document.createElement("div");
       c.className = "comando";
       c.innerHTML = "<code></code>";
-      (c.firstChild as HTMLElement).textContent = cmdFor(reg.candidatos[reg.candidatos.length - 1]);
+      (c.firstChild as HTMLElement).textContent = cmdFor(reg.candidatos[0]);
       box.append(c);
     }
     const tally = reg.candidatos.map((m) => {
@@ -732,11 +748,11 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
       el("rect", { x: X0(r.t - 2 * wk), y: m.t, width: X0(r.t + 2 * wk) - X0(r.t - 2 * wk), height: H - m.t - m.b, fill: "var(--sl-color-blue)", "fill-opacity": 0.1 }, s);
     const { X, Y } = axes(s, W, H, m, x0, x1, -lim, lim, (v) => `${v > 0 ? "+" : ""}${v} %`);
     el("line", { x1: m.l, x2: W - m.r, y1: Y(0), y2: Y(0), stroke: "var(--sl-color-gray-3)" }, s);
-    const colors = ["var(--sl-color-gray-3)", "var(--sl-color-accent)"];
+    const k = cands.length;
     rows.forEach((r) => r.vals.forEach((v, i) => {
       if (v == null) return;
       const c = Math.max(-lim, Math.min(lim, v));
-      el("circle", { cx: X(r.t) + (i ? 3 : -3), cy: Y(c), r: 3.5, fill: colors[i] ?? colors[1] }, s);
+      el("circle", { cx: X(r.t) + (i - (k - 1) / 2) * 4, cy: Y(c), r: 3.2, fill: candColor(i) }, s);
     }));
   }
 
