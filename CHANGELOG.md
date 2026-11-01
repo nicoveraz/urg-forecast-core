@@ -7,42 +7,41 @@ API puede cambiar entre versiones menores).
 
 ## [Sin publicar]
 
+## [0.4.0] - 2026-11-01
+
+La base se ordena en torno a su objetivo: analizar y proyectar las atenciones de urgencia,
+con ejemplos que se pueden ejecutar y una forma estándar de agregar módulos.
+
 ### Agregado
 
-- **Circulación viral como ejemplo de fuente externa.** Modelo opcional
-  `ArmónicoFluNet` (`-m armonicoflunet`): el Armónico más la positividad nacional de
-  influenza y VRS de la OMS (FluNet), con un backtest que en cada ventana usa solo las
-  semanas ya publicadas. El workflow semanal copia la serie de Chile a la rama `datos`.
-  Módulo `urgencias_core.data.flunet`. Sugerencia recibida en LinkedIn.
-- **Forma estándar de agregar un regresor externo y medir si sirve.**
-  `HarmonicExogenous` (`urgencias_core.models.exogenous`) suma cualquier serie semanal al
-  Armónico usando en cada ventana solo lo ya publicado, y rellena lo que falta con el
-  promedio histórico o con una proyección de la propia serie. `compare_models`
-  (`urgencias_core.eval.compare`) y el comando `urg-forecast comparar` lo comparan contra
-  el Armónico en 36 ventanas, con prueba de signos, invierno aparte y un veredicto.
-  Nuevo modelo opcional `ArmónicoFluNetProy`. La demo muestra el ejemplo con FluNet.
-- **Un solo motor de backtest** (`urgencias_core.eval.backtest`): `run_forecast` y
-  `compare_models` lo usan; antes cada uno tenía su propio ciclo. Los resultados no
-  cambian.
-- **Regresores con el mismo formato** (`urgencias_core.regressors`): un `Regressor` es
-  una tabla semanal más las reglas de su fuente (atraso de publicación y si el futuro se
-  conoce). Vienen `flunet()` y `calendar()` (feriados en día hábil, interferiados y
-  vacaciones escolares por semana DEIS, con `features.calendar.weekly_calendar`).
-  `HarmonicExogenous` acepta variables con futuro conocido (`known_future`) y se arma con
-  `HarmonicExogenous.from_regressor`. `ArmónicoFeriados` ahora usa el calendario por esta
-  vía (mismos resultados) y hay un modelo opcional nuevo, `ArmónicoCalendario`.
 - **Análisis descriptivo de la demanda** (`urgencias_core.analysis` y el comando
   `urg-forecast analizar`): resumen por año (comparando las mismas semanas del año
   anterior, así un año incompleto no engaña), nivel de 52 semanas y su cambio, año típico
   con cada semana frente al nivel de su propio año (sin confundir crecimiento con
   estación), comparación interanual de 4 semanas, semanas pico y día de la semana.
-  Escribe `analisis.txt`, `analisis.png` y las tablas en CSV. Ejemplo
-  `examples/05_analisis.py`.
-- **Ejemplos ejecutables** en `examples/` (pronóstico, backtest, modelo propio y
-  regresor externo), probados en la CI, y `docs/arquitectura.md`: cómo está organizado
-  el paquete, sus contratos y dónde va cada cosa nueva. Ambos tienen página en el sitio.
-- Sección Comunidad en el sitio: cómo contribuir, código de conducta y
-  seguridad. El código de conducta ahora está en español.
+  Escribe `analisis.txt`, `analisis.png` y las tablas en CSV. La demo tiene una sección
+  "Cómo ha sido la demanda".
+- **Forma estándar de agregar un regresor y medir si sirve.** Un `Regressor`
+  (`urgencias_core.regressors`) es una tabla semanal más las reglas de su fuente: atraso
+  de publicación y si el futuro se conoce. `HarmonicExogenous.from_regressor` lo suma al
+  Armónico usando en cada ventana solo lo ya publicado, y rellena lo que falta con el
+  promedio histórico o con una proyección de la propia serie. `compare_models` y el
+  comando `urg-forecast comparar` lo comparan con el Armónico en 36 ventanas, con prueba
+  de signos, invierno aparte y un veredicto por establecimiento.
+- **Dos regresores incluidos, con resultados opuestos.** `calendar()`: feriados,
+  interferiados y vacaciones escolares por semana DEIS
+  (`features.calendar.weekly_calendar`); con solo los feriados (`ArmónicoFeriados`), la
+  pérdida P80 baja en 39 de los 40 hospitales con más atenciones y la mejora es
+  significativa en 19. `flunet()`: positividad nacional de influenza y VRS de la OMS,
+  copiada cada semana a la rama `datos`; no mejora el total de atenciones
+  (`ArmónicoFluNet`, `ArmónicoFluNetProy`). Ambos siguen siendo opcionales. La demo
+  compara los tres modelos en los 40 hospitales. Modelo opcional nuevo:
+  `ArmónicoCalendario`. La idea de FluNet llegó como sugerencia en LinkedIn.
+- **Ejemplos ejecutables** en `examples/` (pronóstico, backtest, modelo propio, regresor
+  externo y análisis), probados en la CI, y `docs/arquitectura.md`: el alcance, los
+  contratos y dónde va cada cosa nueva. Ambos tienen página en el sitio, bajo "Extender".
+- Sección Comunidad en el sitio: cómo contribuir, código de conducta y seguridad. El
+  código de conducta ahora está en español.
 
 ### Cambiado
 
@@ -53,10 +52,16 @@ API puede cambiar entre versiones menores).
   `models/baselines.py`. Las rutas antiguas siguen funcionando con un aviso
   (`DeprecationWarning`) y se eliminan en 0.5. Las funciones de uso común se importan
   directo desde `urgencias_core`.
+- **Un solo motor de backtest** (`urgencias_core.eval.backtest`): `run_forecast` y
+  `compare_models` lo usan; antes cada uno tenía su propio ciclo. Los resultados no
+  cambian. `ArmónicoFeriados` ahora usa el regresor de calendario, con resultados
+  idénticos.
 
 ### Obsoleto
 
 - `run_harness` (un único holdout): usa `backtest` o `compare_models`. Se elimina en 0.5.
+- Las rutas `urgencias_core.pipeline` y `urgencias_core.eval.baselines`: se eliminan en
+  0.5.
 
 ## [0.3.0] - 2026-10-06
 
@@ -212,7 +217,8 @@ Primera versión pública: el pipeline de referencia empaquetado para `pip insta
 
 - Formato unificado con `ruff format` (se dejó black).
 
-[Sin publicar]: https://github.com/nicoveraz/urg-forecast-core/compare/v0.3.0...HEAD
+[Sin publicar]: https://github.com/nicoveraz/urg-forecast-core/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/nicoveraz/urg-forecast-core/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/nicoveraz/urg-forecast-core/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/nicoveraz/urg-forecast-core/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/nicoveraz/urg-forecast-core/releases/tag/v0.1.0
