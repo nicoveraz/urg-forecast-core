@@ -45,6 +45,20 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
     </div>
 
     <p id="estado" class="estado">Cargando establecimientos…</p>
+    <details class="codigos">
+      <summary>¿Qué es el código de cada establecimiento?</summary>
+      <p>
+        Es el código con que el DEIS identifica cada establecimiento en sus datos de atenciones de
+        urgencia. Los más antiguos tienen la forma <code>SS-NNN</code>: los dos primeros dígitos
+        corresponden al Servicio de Salud (24 es Reloncaví, 13 Metropolitano Sur) y los tres
+        siguientes numeran los establecimientos dentro de él. También aparecen como{" "}
+        <code>1SSNNN</code>: <code>24-105</code> y <code>124105</code> son el mismo Hospital de
+        Puerto Montt. Los creados en los últimos años, sobre todo SAPU, SAR y SUR, tienen solo un
+        número de 6 dígitos sin estructura (<code>201067</code>). El comando y el buscador aceptan
+        cualquiera de las formas. Más detalle, con la tabla de Servicios de Salud, en{" "}
+        <a href={base + "uso/#códigos-de-establecimiento"}>Uso</a>.
+      </p>
+    </details>
 
     <section id="ficha" hidden>
       <header class="ficha-cab">
@@ -85,6 +99,11 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
         </figcaption>
       </figure>
       <p id="regs-texto" class="regs-texto" hidden></p>
+      <p class="glosario">
+        <strong>Cómo leerlo:</strong> P50 es el valor central (la mitad de las semanas debería
+        quedar bajo él). P80 y P95 son los valores que, con 80 % y 95 % de probabilidad, no se
+        superan: sirven para planificar con margen.
+      </p>
 
       <section id="analisis" hidden>
         <h3>Cómo ha sido la demanda</h3>
@@ -109,7 +128,12 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
         </p>
       </section>
 
-      <h3>Backtest</h3>
+      <h3>Backtest: cómo se eligió el modelo</h3>
+      <p class="detalle">
+        Cada modelo pronosticó semanas pasadas que ya se conocen, como si estuviera en esa fecha,
+        y se comparó con lo que pasó. MAE es el error absoluto medio por semana; la pérdida P80
+        mide el error del P80 castigando más quedarse corto que pasarse. En ambos, menor es mejor.
+      </p>
       <p id="bt-texto" class="detalle"></p>
       <div class="tabla"><table id="bt"></table></div>
 
@@ -163,10 +187,19 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
       </section>
 
       <h3>Reprodúcelo en tu computador</h3>
+      <p class="detalle" id="repro-texto"></p>
       <div class="comando">
         <code id="cmd"></code>
         <button type="button" id="copiar">Copiar</button>
       </div>
+      <details class="repro-python">
+        <summary>Lo mismo en Python</summary>
+        <pre class="receta"><code id="cmd-python"></code></pre>
+        <p class="nota">
+          Más funciones, cada una con su ejemplo, en{" "}
+          <a href={base + "desarrolladores/"}>Para desarrolladores</a>.
+        </p>
+      </details>
       <p class="nota">
         Modelos estadísticos simples, sin ajuste local. Es una ilustración del método, no una
         evaluación del establecimiento ni una herramienta validada para decidir dotación.
@@ -335,6 +368,13 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
   #demo #svg-pos text, #demo #svg-reg text { fill: var(--sl-color-gray-3); font-size: 11px; font-family: var(--sl-font); }
   #demo #svg-reg { width: 100%; height: auto; display: block; overflow: visible; margin-top: 0.5rem; }
   #demo .grafico figcaption[hidden], #demo .regs[hidden] { display: none; }
+  #demo .codigos { margin-top: 0.5rem; font-size: var(--sl-text-sm); color: var(--sl-color-gray-3); }
+  #demo .codigos summary { cursor: pointer; }
+  #demo .codigos p { margin: 0.5rem 0 0; max-width: 46rem; color: var(--sl-color-gray-2); }
+  #demo .codigos code { background: var(--sl-color-gray-6); padding: 0.05rem 0.3rem; border-radius: 0.25rem; }
+  #demo .glosario { font-size: var(--sl-text-sm); color: var(--sl-color-gray-3); margin: 0.5rem 0 0; max-width: 46rem; }
+  #demo .repro-python { margin-top: 0.75rem; font-size: var(--sl-text-sm); }
+  #demo .repro-python summary { cursor: pointer; color: var(--sl-color-gray-2); }
   #demo .regs { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; margin-top: 1.25rem; }
   #demo .regs-label { font-size: var(--sl-text-sm); color: var(--sl-color-gray-3); margin-right: 0.25rem; }
   #demo .regs button {
@@ -390,6 +430,8 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
     positividad: [string, number, number][]; proyeccion: [string, number, number][]; establecimientos: RegEntry[];
   };
   let reg: Reg | null = null;
+  let meta: { ultima_fecha: string; version?: string } | null = null;
+  let HORIZON_CALC = 26; // horizon the demo forecasts were computed with (indice.json)
   let activeReg: string | null = null;
 
   const root = document.getElementById("demo")!;
@@ -430,6 +472,8 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
       return;
     }
     entries = idx.establecimientos;
+    meta = idx.meta;
+    HORIZON_CALC = idx.horizonte ?? 26;
     const ok = entries.filter((e) => e.ok).length;
     estado.textContent = `${nf.format(ok)} establecimientos con pronóstico · datos DEIS hasta el ${fecha(idx.meta.ultima_fecha)}`;
     for (const t of [...new Set(entries.map((e) => e.t).filter(Boolean))].sort())
@@ -544,16 +588,22 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
     cifra(nf.format(avg), "promedio semanal del último año");
 
     const [c, n] = d.cobertura;
+    const esc = (d as Detail & { escala?: Record<string, number> }).escala ?? {};
+    const widened = Object.entries(esc).filter(([, f]) => f >= 1.05)
+      .map(([q, f]) => `P${q.slice(1)} ×${f.toFixed(1).replace(".", ",")}`);
     $("bt-texto").textContent =
-      `${d.ventanas} ventanas de ${d.semanas_backtest} semanas. Se usa ${d.mejor}, el de menor pérdida P80; ` +
-      `el valor real quedó bajo su P80 en ${c} de ${n} semanas.`;
+      `${d.ventanas} ventanas de ${d.semanas_backtest} semanas. Se usa ${d.mejor}, el de menor pérdida P80. ` +
+      `El valor real quedó bajo su P80 en ${c} de ${n} semanas (${Math.round((100 * c) / n)} %; lo esperable es cerca de 80 %). ` +
+      (widened.length
+        ? `Por eso las bandas del pronóstico se ensancharon según ese error: ${widened.join(", ")}.`
+        : "Las bandas del pronóstico no necesitaron ensancharse.");
     const bt = $<HTMLTableElement>("bt");
     bt.innerHTML = "<thead><tr><th>Modelo</th><th>MAE</th><th>MAPE %</th><th>Pérdida P80</th></tr></thead>";
     const tb = document.createElement("tbody");
     for (const m of d.backtest) {
       const tr = document.createElement("tr");
       if (m.modelo === d.mejor) tr.className = "mejor";
-      for (const v of [m.modelo + (m.modelo === d.mejor ? " ✓" : ""), nf.format(m.mae), m.mape.toFixed(1), m.p80.toFixed(1)]) {
+      for (const v of [m.modelo + (m.modelo === d.mejor ? " ✓" : ""), nf.format(m.mae), m.mape.toFixed(1).replace(".", ","), m.p80.toFixed(1).replace(".", ",")]) {
         const td = document.createElement("td");
         td.textContent = v;
         tr.append(td);
@@ -561,7 +611,26 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
       tb.append(tr);
     }
     bt.append(tb);
-    $("cmd").textContent = `urg-forecast analizar ${d.c} && urg-forecast pronosticar ${d.c} -H ${horizon}`;
+    const version = meta?.version;
+    $("cmd").textContent =
+      `pip install ${version ? `urg-forecast-core==${version}` : "urg-forecast-core"} && ` +
+      `urg-forecast analizar ${d.c} && urg-forecast pronosticar ${d.c} -H ${HORIZON_CALC}`;
+    $("repro-texto").textContent =
+      `Esta página se calculó con ${version ? `urg-forecast-core ${version}` : "urg-forecast-core"} y los datos DEIS ` +
+      `al ${meta ? fecha(meta.ultima_fecha) : "último corte"}. El comando lee la copia de datos más reciente, ` +
+      "que se actualiza cada semana: con datos nuevos, tus cifras pueden diferir un poco de las de aquí. " +
+      `El pronóstico se calcula siempre a ${HORIZON_CALC} semanas; la vista de 12 muestra sus primeras 12.`;
+    $("cmd-python").textContent = [
+      "from urgencias_core import load_deis, run_forecast, weekly_series",
+      "from urgencias_core.analysis.report import analysis_text",
+      "",
+      `df = load_deis(["${d.c}"])`,
+      `semanal = weekly_series(df, "${d.c}")`,
+      `print(analysis_text(semanal, "${d.n.replace(/"/g, "'")}", "${d.c}"))`,
+      `res = run_forecast(semanal, ${HORIZON_CALC})`,
+      "print(res.best)",
+      'print(res.forecast[["timestamp", "q50", "q80", "q95"]])',
+    ].join("\n");
     renderRegToggles(d, fc);
     drawChart(d, fc);
     renderAnalysis(d);
@@ -589,7 +658,8 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
     const sum = (rows: [string, number, number][]) => rows.slice(0, n).reduce((a, r) => a + r[1], 0);
     const base = sum(available["Armónico"].pronostico), conReg = sum(available[activeReg].pronostico);
     const diff = conReg - base;
-    let t = `Próximas ${n} semanas: ${nf.format(conReg)} atenciones ${REG_NAME[activeReg]}, ` +
+    let t = `Ambas curvas sin calibrar, para que la única diferencia sea el regresor. ` +
+      `Próximas ${n} semanas: ${nf.format(conReg)} atenciones ${REG_NAME[activeReg]}, ` +
       `${diff >= 0 ? "+" : "−"}${nf.format(Math.abs(diff))} (${pct(base ? (100 * diff) / base : null)}) frente al Armónico solo. `;
     const ev = reg?.establecimientos.find((e) => e.c === d.c)?.candidatos[activeReg];
     t += ev
@@ -685,7 +755,8 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
   };
 
   const VEREDICTO: Record<string, string> = { mejora: "mejora", empeora: "empeora", "sin diferencia clara": "neutro" };
-  const pct = (v: number | null) => (v == null ? "–" : `${v > 0 ? "+" : ""}${v.toFixed(1).replace(".", ",")} %`);
+  const pct = (v: number | null) =>
+    v == null ? "–" : `${v > 0 ? "+" : v < 0 ? "−" : ""}${Math.abs(v).toFixed(1).replace(".", ",")} %`;
 
   function renderRegressor(d: Detail) {
     const sec = $("regresor");
