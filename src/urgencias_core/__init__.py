@@ -3,6 +3,8 @@
 The package is organised by question:
 
 - :mod:`urgencias_core.data` — where the series come from (DEIS, the weekly copy, FluNet).
+- :mod:`urgencias_core.analysis` — what demand looks like (yearly summary, typical year,
+  level, year over year, weekday).
 - :mod:`urgencias_core.models` — how to forecast (the ``Forecaster`` protocol, built-in
   models, external regressors, the registry of names).
 - :mod:`urgencias_core.eval` — how good a forecast is (rolling backtest, metrics,

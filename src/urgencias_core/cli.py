@@ -5,6 +5,7 @@ Subcommands::
     urg-forecast demo                          # two demo hospitals, offline snapshot
     urg-forecast buscar "puerto montt"         # find an establishment's DEIS code
     urg-forecast pronosticar 24-105 -H 6m      # backtest + forecast, any establishment
+    urg-forecast analizar 24-105               # describe demand: level, season, last year
     urg-forecast modelos                       # list built-in models
     urg-forecast comparar 24-105 -m ArmonicoFluNet   # does a regressor help? many windows
 
@@ -40,8 +41,9 @@ EPILOG = f"""\
 flujo típico:
   1. urg-forecast demo                    # ver qué produce, con dos hospitales
   2. urg-forecast buscar "osorno"         # encontrar el código DEIS
-  3. urg-forecast pronosticar <código>    # backtest + pronóstico
-  4. urg-forecast modelos                 # probar otros modelos con -m
+  3. urg-forecast analizar <código>       # cómo ha sido la demanda
+  4. urg-forecast pronosticar <código>    # backtest + pronóstico
+  5. urg-forecast modelos                 # probar otros modelos con -m
 
 Usa "urg-forecast COMANDO -h" para ver las opciones de cada comando.
 
@@ -56,6 +58,20 @@ ejemplos:
   urg-forecast demo                       # intenta DEIS, si no hay red usa el snapshot
   urg-forecast demo --offline             # solo el snapshot incluido, sin red
   urg-forecast demo -H 12 -o demo/        # 12 semanas, resultados en ./demo/
+
+{BASE_NOTE}
+"""
+
+ANALYZE_EPILOG = f"""\
+ejemplos:
+  urg-forecast analizar 24-105                 # Hospital de Puerto Montt
+  urg-forecast analizar 24-105 24-115 -o res/  # varios establecimientos
+  urg-forecast analizar 24-105 --offline       # snapshot incluido, sin red
+
+Describe la serie semanal: nivel y su cambio en el último año, el año típico
+(semanas más altas y más bajas frente al nivel de su año), las últimas semanas
+frente a las mismas del año anterior, un resumen por año y el día de la semana.
+Escribe analisis.txt, analisis.png y las tablas en CSV.
 
 {BASE_NOTE}
 """
@@ -233,6 +249,41 @@ def build_parser() -> argparse.ArgumentParser:
         "--offline", action="store_true", help="usa directamente el snapshot incluido, sin red"
     )
     add_cache_option(p_demo)
+
+    p_an = _spanish(
+        sub.add_parser(
+            "analizar",
+            add_help=False,
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            help="describe la demanda de uno o más establecimientos",
+            description=(
+                "Análisis descriptivo de las atenciones semanales: nivel y tendencia,\n"
+                "estacionalidad, comparación con el año anterior y día de la semana."
+            ),
+            epilog=ANALYZE_EPILOG,
+        )
+    )
+    p_an.add_argument("codigos", nargs="+", metavar="CODIGO", help="código DEIS, p. ej. 24-105")
+    p_an.add_argument(
+        "-o",
+        "--salida",
+        type=Path,
+        default=DEFAULT_OUT,
+        metavar="CARPETA",
+        help=f"carpeta para el informe (por defecto: ./{DEFAULT_OUT}); "
+        "una subcarpeta por establecimiento",
+    )
+    p_an.add_argument(
+        "--desde",
+        type=int,
+        default=2022,
+        metavar="AÑO",
+        help="primer año DEIS a usar (por defecto: 2022; 2020–2021 siempre se excluyen)",
+    )
+    p_an.add_argument(
+        "--offline", action="store_true", help="usa el snapshot incluido (solo 24-105 y 24-115)"
+    )
+    add_cache_option(p_an)
 
     p_search = _spanish(
         sub.add_parser(
@@ -470,6 +521,51 @@ def _search(text: str, year: int, cache_dir: Path | None = None, source: str = "
     return 0
 
 
+def _analyze(args: argparse.Namespace) -> int:
+    from urgencias_core.analysis.report import analysis_text, write_analysis
+    from urgencias_core.data.series import (
+        NoDataError,
+        daily_series,
+        facility_name,
+        load_deis,
+        weekly_series,
+    )
+    from urgencias_core.report import slug
+
+    try:
+        df = load_deis(
+            args.codigos,
+            start_year=args.desde,
+            offline=args.offline,
+            cache_dir=args.cache or _default_cache(),
+            source=args.fuente,
+        )
+    except NoDataError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    done = 0
+    for code in args.codigos:
+        name = facility_name(df, code)
+        weekly = weekly_series(df, code)
+        if len(weekly) < 2 * 52:
+            print(
+                f"error: {name}: se necesitan al menos 104 semanas y hay {len(weekly)}.",
+                file=sys.stderr,
+            )
+            continue
+        daily = daily_series(df, code)
+        print()
+        print(analysis_text(weekly, name, code, df.attrs["source"], daily))
+        out = args.salida / f"{slug(code)}_{slug(name)}"
+        paths = write_analysis(weekly, out, name, code, df.attrs["source"], daily)
+        print()
+        print(f"Archivos en {out}/")
+        for p in paths:
+            print(f"  {p.name}")
+        done += 1
+    return 0 if done else 1
+
+
 def _compare(args: argparse.Namespace) -> int:
     from tabulate import tabulate
 
@@ -515,10 +611,17 @@ def _compare(args: argparse.Namespace) -> int:
         return 1
     s = cmp.summary()
     rows = [
-        [k, int(r["ventanas"]), f"{100 * r['cambio_mediano']:+.1f} %",
-         f"{100 * r['cambio_total']:+.1f} %", int(r["gana"]), int(r["pierde"]), f"{r['p']:.2f}"]
+        [
+            k,
+            int(r["ventanas"]),
+            f"{100 * r['cambio_mediano']:+.1f} %",
+            f"{100 * r['cambio_total']:+.1f} %",
+            int(r["gana"]),
+            int(r["pierde"]),
+            f"{r['p']:.2f}",
+        ]
         for k, r in s.iterrows()
-    ]  # fmt: skip
+    ]
     heads = ["Ventanas", "N", "Cambio mediano", "Cambio total", "Gana", "Pierde", "p"]
     print()
     print(f"{name} ({args.codigo})")
@@ -574,6 +677,8 @@ def main(argv: list[str] | None = None) -> int:
         )
     if args.command == "modelos":
         return _list_models()
+    if args.command == "analizar":
+        return _analyze(args)
     if args.command == "comparar":
         return _compare(args)
     if args.command == "buscar":

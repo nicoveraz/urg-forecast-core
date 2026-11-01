@@ -8,14 +8,15 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
   frontmatter={{
     title: "Demo",
     description:
-      "Pronóstico semanal de atenciones de urgencia para cualquier establecimiento público, con datos del DEIS MINSAL.",
+      "Pronóstico semanal y análisis de la demanda de urgencia para cualquier establecimiento público, con datos del DEIS MINSAL.",
     tableOfContents: false,
   }}
 >
   <p class="intro" style="max-width:46rem">
-    Elige un establecimiento de la red pública y mira su pronóstico semanal. Son los mismos
-    resultados que entrega <code>urg-forecast pronosticar</code>, calculados cada semana con los
-    datos más recientes del DEIS.
+    Elige un establecimiento de la red pública y mira su pronóstico semanal y cómo ha sido su
+    demanda. Son los mismos resultados que entregan <code>urg-forecast pronosticar</code> y{" "}
+    <code>urg-forecast analizar</code>, calculados cada semana con los datos más recientes del
+    DEIS.
   </p>
 
   <div id="demo" class="not-content" data-base={base}>
@@ -69,6 +70,29 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
           <span class="ley banda95"></span> Hasta P95
         </figcaption>
       </figure>
+
+      <section id="analisis" hidden>
+        <h3>Cómo ha sido la demanda</h3>
+        <p class="detalle">
+          Antes de pronosticar, la descripción: el nivel, el año típico y cómo vienen las
+          últimas semanas frente al año anterior. Es lo que entrega{" "}
+          <code>urg-forecast analizar</code>.
+        </p>
+        <div class="cifras" id="an-cifras"></div>
+        <figure class="grafico">
+          <svg id="svg-tipico" role="img" aria-labelledby="tipico-titulo"><title id="tipico-titulo">Año típico por semana</title></svg>
+          <figcaption>
+            <span class="ley tip-banda"></span> Mínimo–máximo de los años
+            <span class="ley tip-media"></span> Promedio
+            <span class="ley p50"></span> <span id="an-anio"></span>
+          </figcaption>
+        </figure>
+        <div class="tabla"><table id="an-anual"></table></div>
+        <p class="nota">
+          * Año incompleto. El cambio de cada año compara las mismas semanas del año anterior,
+          así que un año a medias no se compara con uno completo.
+        </p>
+      </section>
 
       <h3>Backtest</h3>
       <p id="bt-texto" class="detalle"></p>
@@ -276,6 +300,12 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
   #demo .nota { margin-top: 1rem; }
   #demo #regresor p { margin: 0.75rem 0 0; }
   #demo #regresor .veredicto p { margin: 0; }
+  #demo .ley.tip-banda { background: color-mix(in srgb, var(--sl-color-gray-3) 25%, transparent); }
+  #demo .ley.tip-media { height: 2px; background: var(--sl-color-gray-2); }
+  #demo #svg-tipico { width: 100%; height: auto; display: block; overflow: visible; }
+  #demo #svg-tipico text { fill: var(--sl-color-gray-3); font-size: 11px; font-family: var(--sl-font); }
+  #demo #an-anual td:not(:first-child), #demo #an-anual th:not(:first-child) { text-align: right; }
+  #demo #an-anual { font-variant-numeric: tabular-nums; }
   #demo h4 { font-size: var(--sl-text-lg); color: var(--sl-color-white); margin: 1.5rem 0 0.5rem; }
   #demo .ley.flu { height: 3px; background: var(--sl-color-blue); }
   #demo .ley.vrs { height: 3px; background: var(--sl-color-orange); }
@@ -308,6 +338,13 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
     cobertura: [number, number];
     ventanas: number;
     semanas_backtest: number;
+    analisis?: {
+      nivel: number; cambio_nivel: number | null; interanual: number | null; amplitud: number;
+      alta: [number, string]; baja: [number, string];
+      anual: [number, number, number, number | null][];
+      tipico: [number, number, number, number, number | null][];
+      anio: number; actual: [number, number][];
+    };
   };
 
   type RegStats = { n: number; gana: number; pierde: number; p: number; mediana: number | null; total: number | null };
@@ -488,9 +525,79 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
       tb.append(tr);
     }
     bt.append(tb);
-    $("cmd").textContent = `urg-forecast pronosticar ${d.c} -H ${horizon}`;
+    $("cmd").textContent = `urg-forecast analizar ${d.c} && urg-forecast pronosticar ${d.c} -H ${horizon}`;
     drawChart(d, fc);
+    renderAnalysis(d);
     renderRegressor(d);
+  }
+
+  function renderAnalysis(d: Detail) {
+    const sec = $("analisis");
+    const a = d.analisis;
+    if (!a) { sec.hidden = true; return; }
+    sec.hidden = false;
+    const box = $("an-cifras");
+    box.innerHTML = "";
+    const cifra = (v: string, l: string) => {
+      const div = document.createElement("div");
+      div.className = "cifra";
+      div.innerHTML = `<div class="v"></div><div class="l"></div>`;
+      (div.firstChild as HTMLElement).textContent = v;
+      (div.lastChild as HTMLElement).textContent = l;
+      box.append(div);
+    };
+    cifra(nf.format(a.nivel), `atenciones por semana en el último año (${pct(a.cambio_nivel)} frente al anterior)`);
+    if (a.interanual != null) cifra(pct(a.interanual), "últimas 4 semanas frente a las mismas del año anterior");
+    cifra(a.alta[1], `semanas más altas del año típico, ${a.amplitud} % sobre las más bajas (${a.baja[1]})`);
+    $("an-anio").textContent = String(a.anio);
+    const t = $<HTMLTableElement>("an-anual");
+    t.innerHTML = "<thead><tr><th>Año</th><th>Semanas</th><th>Promedio semanal</th><th>Cambio (mismas semanas)</th></tr></thead>";
+    const tb = document.createElement("tbody");
+    for (const [y, w, m, c] of a.anual) {
+      const tr = document.createElement("tr");
+      for (const v of [w < 52 ? `${y}\u00a0*` : String(y), String(w), nf.format(m), pct(c)]) {
+        const td = document.createElement("td");
+        td.textContent = v;
+        tr.append(td);
+      }
+      tb.append(tr);
+    }
+    t.append(tb);
+    drawTypical(a);
+  }
+
+  function drawTypical(a: NonNullable<Detail["analisis"]>) {
+    const s = document.getElementById("svg-tipico") as unknown as SVGSVGElement;
+    const W = Math.max(300, Math.round(s.parentElement!.clientWidth || 760));
+    const H = W < 560 ? 200 : 240, m = { t: 12, r: 10, b: 26, l: 46 };
+    s.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    s.querySelectorAll(":scope > :not(title)").forEach((n) => n.remove());
+    const rows = a.tipico;
+    const vals = [...rows.flatMap((r) => [r[2], r[3]]), ...a.actual.map((r) => r[1])];
+    const lo = Math.min(...vals), hi = Math.max(...vals), pad = (hi - lo) * 0.08 || 1;
+    const y0 = Math.max(0, lo - pad), y1 = hi + pad;
+    const X = (w: number) => m.l + ((w - 1) / 52) * (W - m.l - m.r);
+    const Y = (v: number) => H - m.b - ((v - y0) / (y1 - y0)) * (H - m.t - m.b);
+    const step = niceStep((y1 - y0) / 4);
+    for (let v = Math.ceil(y0 / step) * step; v <= y1; v += step) {
+      el("line", { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v), stroke: "var(--sl-color-hairline)" }, s);
+      el("text", { x: m.l - 6, y: Y(v) + 4, "text-anchor": "end" }, s).textContent = nf.format(v);
+    }
+    // Month labels at the first week whose closing Monday falls in each month (2026 calendar).
+    let prev = -1;
+    for (let w = 1; w <= 53; w++) {
+      const monday = new Date(Date.UTC(2025, 11, 29 + 7 * (w - 1)));
+      const mo = monday.getUTCMonth();
+      if (mo !== prev && monday.getUTCFullYear() === 2026 && (W >= 560 || mo % 3 === 0))
+        el("text", { x: X(w), y: H - 8, "text-anchor": "middle" }, s).textContent = MESES[mo];
+      prev = mo;
+    }
+    const path = (pts: [number, number][]) => pts.map(([w, v], i) => `${i ? "L" : "M"}${X(w).toFixed(1)},${Y(v).toFixed(1)}`).join("");
+    el("path", { d: path(rows.map((r) => [r[0], r[2]])) + rows.slice().reverse().map((r) => `L${X(r[0]).toFixed(1)},${Y(r[3]).toFixed(1)}`).join("") + "Z",
+      fill: "var(--sl-color-gray-3)", "fill-opacity": 0.22 }, s);
+    el("path", { d: path(rows.map((r) => [r[0], r[1]])), fill: "none", stroke: "var(--sl-color-gray-2)", "stroke-width": 2 }, s);
+    el("path", { d: path(a.actual), fill: "none", stroke: "var(--sl-color-accent)", "stroke-width": 2.4, "stroke-linejoin": "round" }, s);
+    for (const [w, v] of a.actual) el("circle", { cx: X(w), cy: Y(v), r: 2.6, fill: "var(--sl-color-accent)" }, s);
   }
 
   const VEREDICTO: Record<string, string> = { mejora: "mejora", empeora: "empeora", "sin diferencia clara": "neutro" };
