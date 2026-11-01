@@ -24,6 +24,9 @@ API puede cambiar entre versiones menores).
 - **Un solo motor de backtest** (`urgencias_core.eval.backtest`): `run_forecast` y
   `compare_models` lo usan; antes cada uno tenía su propio ciclo. Los resultados no
   cambian.
+- **Ejemplos ejecutables** en `examples/` (pronóstico, backtest, modelo propio y
+  regresor externo), probados en la CI, y `docs/arquitectura.md`: cómo está organizado
+  el paquete, sus contratos y dónde va cada cosa nueva. Ambos tienen página en el sitio.
 - Sección Comunidad en el sitio: cómo contribuir, código de conducta y
   seguridad. El código de conducta ahora está en español.
 

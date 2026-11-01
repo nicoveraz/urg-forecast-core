@@ -55,11 +55,13 @@ pre-commit install           # opcional: lint y formato al hacer commit
 ```
 
 El paquete usa estructura `src/` y una sola instalación, sin extras. La idea es
-que siga siendo chico: el alcance es el pronóstico semanal con datos DEIS más lo
-necesario para extenderlo. Los modelos nuevos van en
-`src/urgencias_core/models/` y se registran en `models/registry.py` (`extra_models()` y
-`MODEL_INFO`), con su sección en `docs/modelos.md`. El análisis por atención y la
-simulación quedan fuera de este repositorio.
+que siga siendo chico: el alcance es el análisis y la proyección de las atenciones de
+urgencia agregadas (por establecimiento y semana) con datos públicos, más lo necesario
+para extenderlo. Antes de agregar algo, lee
+[`docs/arquitectura.md`](https://github.com/nicoveraz/urg-forecast-core/blob/main/docs/arquitectura.md):
+explica dónde va cada tipo de módulo (fuente de datos, modelo, regresor, análisis,
+comando, ejemplo) y qué contrato cumple. El análisis por atención y la simulación quedan
+fuera de este repositorio.
 
 ## Publicar una versión
 

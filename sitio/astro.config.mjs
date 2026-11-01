@@ -30,7 +30,14 @@ export default defineConfig({
             { label: "Por qué estos por defecto", slug: "seleccion-de-modelos" },
           ],
         },
-        { label: "Extender", slug: "extender" },
+        {
+          label: "Extender",
+          items: [
+            { label: "API y recetas", slug: "extender" },
+            { label: "Ejemplos", slug: "ejemplos" },
+            { label: "Arquitectura", slug: "arquitectura" },
+          ],
+        },
         { label: "Hoja de ruta", slug: "roadmap" },
         {
           label: "Comunidad",

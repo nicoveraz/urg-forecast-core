@@ -1,0 +1,119 @@
+# Arquitectura
+
+urg-forecast-core es una base para **analizar y proyectar las atenciones de urgencia** de
+la red pública chilena con datos abiertos: series semanales por establecimiento, modelos
+simples, evaluación honesta y ejemplos que se pueden copiar. Este documento explica cómo
+está organizado el paquete y dónde va cada cosa nueva.
+
+**Dentro del alcance:** atenciones agregadas (por establecimiento y semana) de fuentes
+públicas, más variables externas agregadas (virus, calendario, clima).
+**Fuera del alcance:** datos por paciente, simulación de flujo, dotación y cualquier
+herramienta operacional validada. Esas cosas pueden construirse encima, en otro
+repositorio.
+
+## El recorrido de los datos
+
+```text
+data/deis, mirror           data/flunet, calendario
+  │ load_deis                 │
+  ▼ weekly_series             ▼
+serie semanal               tabla de regresores
+(timestamp, count)          (timestamp, columnas)
+  │                           │
+  ▼                           ▼
+models/   Forecaster  ◄────  HarmonicExogenous
+  │       fit, predict; models/registry: nombres
+  ▼
+eval/     backtest: metrics, calibration, compare
+  │
+  ▼
+forecast  run_forecast ──► report, cli, demo
+```
+
+Todo es un `DataFrame` de pandas: no hay clases de datos propias ni base de datos.
+
+## Un módulo por pregunta
+
+| Pregunta | Dónde | Entrada → salida |
+|---|---|---|
+| ¿De dónde vienen las series? | `data/` (`deis.py`, `mirror.py`, `flunet.py`, `series.py`) | código DEIS → filas DEIS → `timestamp, count` |
+| ¿Cómo se proyecta? | `models/` (`protocol.py`, `baselines.py`, `harmonic.py`, `exogenous.py`, `ensemble.py`, `registry.py`) | historia → cuantiles futuros |
+| ¿Qué tan bien funciona? | `eval/` (`backtest.py`, `metrics.py`, `calibration.py`, `compare.py`) | modelos + historia → error por ventana, veredicto |
+| ¿Cuál uso y qué viene? | `forecast.py` | historia → `ForecastResult` |
+| ¿Qué variables de calendario hay? | `features/calendar.py` | fechas → feriados, vacaciones, eventos |
+| ¿Cómo se muestra? | `report.py`, `cli.py` | resultado → tablas, CSV, PNG; comandos en español |
+
+Las funciones de uso común se importan directo: `from urgencias_core import load_deis,
+weekly_series, run_forecast, backtest, compare_models, default_models`.
+
+`experiments/model_comparison.py` es el estudio detrás de
+[`seleccion-de-modelos.md`](seleccion-de-modelos.md); no es parte del paquete.
+
+## Los contratos
+
+Son pocos y cortos; respetarlos es lo que permite combinar piezas.
+
+**Serie semanal.** Un `DataFrame` con `timestamp` (el lunes que cierra cada semana:
+frecuencia `W-MON`, los 7 días que terminan ese lunes) y `count`. Solo semanas completas;
+2020 y 2021 quedan fuera (pandemia). Lo produce `weekly_series` y lo consume todo lo demás.
+
+**Modelo (`Forecaster`).** Una clase con:
+
+- `fit(history, target_col)`: aprende de la serie semanal.
+- `predict(horizon)`: devuelve `horizon.length` filas con `timestamp, q50, q80, q90, q95`,
+  ordenadas (`q50 <= q80 <= q90 <= q95`). Las fechas salen de
+  `models.protocol.future_index(ultima_semana, horizon)`.
+- Un constructor sin argumentos obligatorios. Si el modelo tiene parámetros, se registra
+  una función que lo construye (`lambda: Modelo(k=4)`).
+
+**Regresor externo.** Una tabla con `timestamp` (mismas semanas DEIS) y una columna por
+variable, más dos datos sobre la fuente: cuántas semanas tarda en publicarse
+(`report_delay_weeks`) y qué rezago usa el modelo (`lag_weeks`). Regla: **en cada ventana
+del backtest el modelo solo ve lo que estaba publicado en esa fecha**. Lo implementa
+`models.exogenous.HarmonicExogenous`.
+
+**Evaluación.** `eval.backtest.backtest(historia, modelos, length, origins, step)` ajusta
+cada modelo desde cero en ventanas que van hacia atrás desde el final; ninguna ventana ve
+el futuro de otra. Devuelve las predicciones de cada ventana y `scores()`, una fila por
+ventana y modelo. `run_forecast` y `compare_models` se construyen encima; no escribas otro
+ciclo de backtest.
+
+## Cómo agregar cada cosa
+
+**Una fuente de datos.** Un módulo en `data/` con una función `load_...` que devuelva un
+`DataFrame` (para un regresor: `timestamp` + columnas, ya en semanas DEIS). Si la fuente es
+pública y pesada o lenta, agrega un paso en `scripts/construir_datos.py` que la copie a la
+rama `datos` cada semana, sin bloquear el resto si falla, y su atribución en
+`scripts/LEEME_datos.md`. Ejemplo completo: `data/flunet.py`.
+
+**Un modelo.** La clase en `models/`, su función en `extra_models()` y su línea en
+`MODEL_INFO` (`models/registry.py`), una sección en [`modelos.md`](modelos.md) y una prueba
+que revise la forma de la salida. Antes de proponerlo como modelo por defecto, compáralo con
+`urg-forecast comparar` en varios establecimientos. Ejemplo: `examples/03_modelo_propio.py`.
+
+**Un regresor.** La tabla de la fuente más `HarmonicExogenous(tabla, columnas, lag_weeks=,
+report_delay_weeks=, future=)`, y `compare_models` contra el Armónico. Documenta el
+resultado aunque sea negativo: también le sirve a quien venga después. Ejemplo:
+`examples/04_regresor_externo.py`.
+
+**Un análisis.** *(En preparación: módulo `analysis/`.)* Funciones que reciben la serie
+semanal y devuelven un `DataFrame` o una figura, sin efectos secundarios.
+
+**Un comando.** Un subcomando en `cli.py` con su ayuda y ejemplos en español, que llame a
+funciones del paquete (la lógica no vive en la CLI), y una prueba en `tests/test_cli.py`.
+
+**Un ejemplo.** `examples/NN_nombre.py` con `main(argv)` y una línea en
+`tests/test_examples.py`; ver [`examples/README.md`](https://github.com/nicoveraz/urg-forecast-core/blob/main/examples/README.md).
+
+## Reglas que valen para todo
+
+- **Nada mira el futuro.** Ni modelos, ni regresores, ni calibración usan datos
+  posteriores al origen de cada ventana.
+- **Un resultado negativo también se documenta.**
+- **Interfaz en español, código en inglés.** Mensajes, ayuda y documentos en español; nombres
+  y docstrings en inglés. Los ejemplos usan nombres en español porque son para leerlos.
+- **Dependencias mínimas.** Antes de sumar una biblioteca, abre un issue.
+- **Sin datos de pacientes.** Solo agregados públicos; las pruebas usan datos sintéticos o el
+  snapshot incluido.
+- **Rutas estables.** Si algo cambia de lugar, la ruta antigua sigue funcionando con un aviso
+  durante una versión (`_compat.py`).

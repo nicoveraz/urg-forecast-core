@@ -37,6 +37,7 @@ const PAGES = {
   "CODE_OF_CONDUCT.md": "conducta/",
   "SECURITY.md": "seguridad/",
   "CHANGELOG.md": "cambios/",
+  "examples/README.md": "ejemplos/",
 };
 const BLOB_ROOT = "https://github.com/nicoveraz/urg-forecast-core/blob/main/";
 
@@ -114,6 +115,11 @@ write("modelos", { title: "Modelos", description: "Los modelos incluidos, cuánd
   stripH1(read("docs/modelos.md")));
 write("seleccion-de-modelos", { title: "Por qué estos modelos", description: "La comparación con datos DEIS en vivo detrás de los modelos por defecto." },
   stripH1(read("docs/seleccion-de-modelos.md")));
+write("arquitectura", { title: "Arquitectura", description: "Cómo está organizado el paquete, sus contratos y dónde va cada cosa nueva." },
+  stripH1(read("docs/arquitectura.md")));
+write("ejemplos", { title: "Ejemplos", description: "Scripts que se pueden ejecutar: pronóstico, backtest, modelo propio y regresor externo." },
+  stripH1(read("examples/README.md")).replace(/\]\((\d\d_[\w]+\.py)\)/g, `](${BLOB_ROOT}examples/$1)`)
+    .replace("](../docs/arquitectura.md)", `](${BASE}/arquitectura/)`));
 write("roadmap", { title: "Hoja de ruta", description: "Brechas conocidas y primeras contribuciones." },
   stripH1(read("docs/roadmap.md")));
 write("cambios", { title: "Registro de cambios", description: "Cambios de cada versión." },
