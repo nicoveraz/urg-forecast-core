@@ -23,6 +23,11 @@ API puede cambiar entre versiones menores).
 - **Demo más clara y reproducible:** cómo leer P50/P80/P95, qué es el backtest y cuánto se
   ensancharon las bandas; el comando de reproducción fija la versión del paquete y dice con
   qué datos se calculó, y hay una versión en Python.
+- **El snapshot incluido se regenera antes de cada versión.** El workflow `snapshot`
+  (manual) lo reconstruye desde los archivos del DEIS con `scripts/construir_snapshot.py`,
+  regenera la página para desarrolladores, corre los tests y deja una rama para revisar en
+  un PR. El script se niega a escribir un snapshot que pierda datos, y `publish` avisa si
+  el snapshot tiene más de 90 días.
 - **Hoja de ruta revisada:** sin los puntos ya resueltos (backtest con varias ventanas,
   variables exógenas, análisis), ordenada por impacto, con por qué importa cada punto,
   por dónde empezar y cuáles sirven como primera contribución.

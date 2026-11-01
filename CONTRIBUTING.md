@@ -82,6 +82,14 @@ Configuración única:
 
 En cada versión:
 
+0. Actualiza el snapshot del DEIS que trae el paquete (el que usan `--offline`, los
+   tests, los ejemplos y la página para desarrolladores): en Actions, abre el workflow
+   `snapshot` y usa "Run workflow". Deja una rama `snapshot/AAAA-MM-DD` con el snapshot
+   nuevo y la página para desarrolladores regenerada; el resumen de la ejecución trae el
+   enlace para abrir el pull request. Fusiónalo cuando pase la CI. Si el DEIS no tiene
+   datos nuevos, el workflow no deja rama. El script se niega a escribir un snapshot que
+   pierda datos (un hospital, semanas o filas). Si te olvidas, el workflow `publish`
+   avisa cuando el snapshot tiene más de 90 días.
 1. Sube `version` en `pyproject.toml` (semver) y en `CITATION.cff`.
 2. Mueve las notas de `## [Sin publicar]` en `CHANGELOG.md` a un nuevo
    encabezado `## [X.Y.Z] - AAAA-MM-DD` y actualiza los enlaces de comparación.

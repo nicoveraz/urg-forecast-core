@@ -1,0 +1,67 @@
+name: snapshot
+
+# Regenerates the DEIS snapshot bundled with the package (the two demo hospitals, all
+# causes and age groups) and the developer page, whose examples run on it, then pushes a
+# branch to review in a pull request. Run it before each release:
+# Actions → snapshot → Run workflow. See CONTRIBUTING.md, "Publicar una versión".
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          version: "0.10.11"
+      - run: uv python install 3.12
+      - run: uv sync --python 3.12 --dev
+
+      - name: Restore DEIS downloads (saved each week by datos.yml)
+        uses: actions/cache/restore@v4
+        with:
+          path: data/external/deis_cache
+          key: deis-${{ github.run_id }}
+          restore-keys: deis-
+
+      - name: Drop the years DEIS is still updating
+        run: |
+          y=$(date -u +%Y)
+          rm -f data/external/deis_cache/AtencionesUrgencia${y}.zip
+          rm -f data/external/deis_cache/AtencionesUrgencia$((y-1)).zip
+
+      - name: Rebuild the snapshot (refuses to lose data)
+        run: uv run python scripts/construir_snapshot.py
+
+      - name: Rebuild the developer page (its examples run on the snapshot)
+        run: uv run python scripts/construir_api.py
+
+      - name: Tests on the new snapshot
+        run: uv run pytest -q
+
+      - name: Push a branch to review
+        run: |
+          if git diff --quiet; then
+            echo "El snapshot no cambió; no hay nada que revisar." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          last=$(grep -o 'Datos hasta el \*\*[0-9-]*' src/urgencias_core/data/_fixtures/deis_demo_snapshot.README.md | grep -o '[0-9-]\{10\}')
+          branch="snapshot/$(date -u +%F)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add src/urgencias_core/data/_fixtures sitio/src/data/api.json
+          git commit -qm "Snapshot DEIS de los hospitales de demostración, datos hasta el ${last}"
+          git push -q origin "$branch"
+          url="https://github.com/${GITHUB_REPOSITORY}/compare/main...${branch}?expand=1"
+          {
+            echo "Snapshot con datos hasta el ${last}, en la rama \`${branch}\`."
+            echo ""
+            echo "[Abrir el pull request](${url}): al abrirlo corre la CI; fusiónalo antes de crear el tag."
+          } >> "$GITHUB_STEP_SUMMARY"
