@@ -24,6 +24,13 @@ API puede cambiar entre versiones menores).
 - **Un solo motor de backtest** (`urgencias_core.eval.backtest`): `run_forecast` y
   `compare_models` lo usan; antes cada uno tenía su propio ciclo. Los resultados no
   cambian.
+- **Regresores con el mismo formato** (`urgencias_core.regressors`): un `Regressor` es
+  una tabla semanal más las reglas de su fuente (atraso de publicación y si el futuro se
+  conoce). Vienen `flunet()` y `calendar()` (feriados en día hábil, interferiados y
+  vacaciones escolares por semana DEIS, con `features.calendar.weekly_calendar`).
+  `HarmonicExogenous` acepta variables con futuro conocido (`known_future`) y se arma con
+  `HarmonicExogenous.from_regressor`. `ArmónicoFeriados` ahora usa el calendario por esta
+  vía (mismos resultados) y hay un modelo opcional nuevo, `ArmónicoCalendario`.
 - **Análisis descriptivo de la demanda** (`urgencias_core.analysis` y el comando
   `urg-forecast analizar`): resumen por año (comparando las mismas semanas del año
   anterior, así un año incompleto no engaña), nivel de 52 semanas y su cambio, año típico

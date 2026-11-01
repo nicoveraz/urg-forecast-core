@@ -14,7 +14,7 @@ repositorio.
 ## El recorrido de los datos
 
 ```text
-data/deis, mirror           data/flunet, calendario
+data/deis, mirror           regressors.py (flunet, calendario)
   │ load_deis                 │
   ▼ weekly_series             ▼
 serie semanal ──► analysis/   tabla de regresores
@@ -41,7 +41,7 @@ Todo es un `DataFrame` de pandas: no hay clases de datos propias ni base de dato
 | ¿Cómo se proyecta? | `models/` (`protocol.py`, `baselines.py`, `harmonic.py`, `exogenous.py`, `ensemble.py`, `registry.py`) | historia → cuantiles futuros |
 | ¿Qué tan bien funciona? | `eval/` (`backtest.py`, `metrics.py`, `calibration.py`, `compare.py`) | modelos + historia → error por ventana, veredicto |
 | ¿Cuál uso y qué viene? | `forecast.py` | historia → `ForecastResult` |
-| ¿Qué variables de calendario hay? | `features/calendar.py` | fechas → feriados, vacaciones, eventos |
+| ¿Qué variables externas hay? | `regressors.py` (fuentes), `features/calendar.py` (calendario chileno) | → `Regressor`: tabla semanal + reglas de publicación |
 | ¿Cómo se muestra? | `report.py`, `cli.py` | resultado → tablas, CSV, PNG; comandos en español |
 
 Las funciones de uso común se importan directo: `from urgencias_core import load_deis,
@@ -68,11 +68,13 @@ frecuencia `W-MON`, los 7 días que terminan ese lunes) y `count`. Solo semanas 
 - Un constructor sin argumentos obligatorios. Si el modelo tiene parámetros, se registra
   una función que lo construye (`lambda: Modelo(k=4)`).
 
-**Regresor externo.** Una tabla con `timestamp` (mismas semanas DEIS) y una columna por
-variable, más dos datos sobre la fuente: cuántas semanas tarda en publicarse
-(`report_delay_weeks`) y qué rezago usa el modelo (`lag_weeks`). Regla: **en cada ventana
-del backtest el modelo solo ve lo que estaba publicado en esa fecha**. Lo implementa
-`models.exogenous.HarmonicExogenous`.
+**Regresor externo (`regressors.Regressor`).** Una tabla con `timestamp` (mismas semanas
+DEIS) y una columna por variable, más las reglas de su fuente: cuántas semanas tarda en
+publicarse (`report_delay_weeks`) y si su futuro se conoce (`known_future`: el calendario
+sí, la vigilancia viral no). El modelo elige el rezago (`lag_weeks`) y cómo llenar lo no
+publicado (`future`). Regla: **en cada ventana del backtest el modelo solo ve lo que estaba
+publicado en esa fecha**. Lo implementa `models.exogenous.HarmonicExogenous`
+(`from_regressor`).
 
 **Evaluación.** `eval.backtest.backtest(historia, modelos, length, origins, step)` ajusta
 cada modelo desde cero en ventanas que van hacia atrás desde el final; ninguna ventana ve
@@ -93,9 +95,12 @@ rama `datos` cada semana, sin bloquear el resto si falla, y su atribución en
 que revise la forma de la salida. Antes de proponerlo como modelo por defecto, compáralo con
 `urg-forecast comparar` en varios establecimientos. Ejemplo: `examples/03_modelo_propio.py`.
 
-**Un regresor.** La tabla de la fuente más `HarmonicExogenous(tabla, columnas, lag_weeks=,
-report_delay_weeks=, future=)`, y `compare_models` contra el Armónico. Documenta el
-resultado aunque sea negativo: también le sirve a quien venga después. Ejemplo:
+**Un regresor.** Una función en `regressors.py` que devuelva un `Regressor` (su tabla, sus
+columnas, el atraso de publicación y si el futuro se conoce) y su nombre en
+`available_regressors()`. Para probarlo: `HarmonicExogenous.from_regressor(regresor,
+lag_weeks=, future=)` y `compare_models` contra el Armónico en varios establecimientos. Si
+gana, se registra como modelo (como `ArmónicoCalendario`). Documenta el resultado aunque
+sea negativo: también le sirve a quien venga después. Ejemplo:
 `examples/04_regresor_externo.py`.
 
 **Un análisis.** Una función en `analysis/descriptive.py` (o un módulo nuevo en

@@ -100,6 +100,51 @@ def calendar_features(
     return out
 
 
+def weekly_calendar(
+    start: str | pd.Timestamp,
+    end: str | pd.Timestamp,
+    config: CalendarConfig | None = None,
+) -> pd.DataFrame:
+    """Calendar variables per DEIS week (W-MON: the 7 days ending on each Monday).
+
+    One row per week ending between ``start`` and ``end``:
+
+        timestamp        the Monday that closes the week
+        holidays         public holidays falling on a weekday (Mon-Fri)
+        bridge_days      bridge days (see ``calendar_features``)
+        school_holiday   share of the 7 days within school holidays (0 to 1)
+        <event_name>     share of the 7 days within each regional event (0 to 1)
+
+    The calendar is known in advance, so these columns can be used for future weeks too.
+    """
+    cfg = config or CalendarConfig()
+    first = pd.Timestamp(start).normalize()
+    first = first + pd.Timedelta(days=(0 - first.dayofweek) % 7)  # first closing Monday
+    last = pd.Timestamp(end).normalize()
+    days = pd.Series(pd.date_range(first - pd.Timedelta(days=6), last, freq="D"))
+    feats = calendar_features(days, cfg)
+    week_end = days + pd.to_timedelta((0 - days.dt.dayofweek) % 7, unit="D")
+    frame = pd.DataFrame(
+        {
+            "timestamp": week_end,
+            "holidays": feats["is_holiday"] & (feats["dayofweek"] < 5),
+            "bridge_days": feats["is_bridge_day"],
+            "school_holiday": feats["is_school_holiday"],
+            **{name: feats[f"is_{name}"] for name in cfg.regional_events},
+        }
+    )
+    g = frame.groupby("timestamp")
+    out = pd.DataFrame(
+        {
+            "holidays": g["holidays"].sum().astype(float),
+            "bridge_days": g["bridge_days"].sum().astype(float),
+            "school_holiday": g["school_holiday"].mean(),
+            **{name: g[name].mean() for name in cfg.regional_events},
+        }
+    ).reset_index()
+    return out[out["timestamp"] <= last].reset_index(drop=True)
+
+
 def _is_bridge_day(d: date, holidays_lookup: pyholidays.HolidayBase) -> bool:
     """A bridge day (``puente``) is a weekday workday adjacent to a holiday
     such that taking the day off would produce a 3+ day stretch of consecutive
@@ -169,4 +214,4 @@ def _in_annual_window(
     return pd.Series([md >= start or md <= end for md in month_day], index=ts.index)
 
 
-__all__ = ["calendar_features", "CalendarConfig"]
+__all__ = ["CalendarConfig", "calendar_features", "weekly_calendar"]

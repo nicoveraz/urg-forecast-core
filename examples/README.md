@@ -10,7 +10,7 @@ sin red). La CI los ejecuta en cada cambio, así que funcionan con la versión a
 | [`01_pronostico.py`](01_pronostico.py) | ¿Cuántas atenciones vienen? | Cargar datos, serie semanal, `run_forecast`, leer el resultado y guardar el informe |
 | [`02_backtest.py`](02_backtest.py) | ¿Qué modelo funciona mejor acá? | `backtest` en muchas ventanas: error por ventana, ventanas ganadas, cobertura del P80 |
 | [`03_modelo_propio.py`](03_modelo_propio.py) | ¿Mi modelo le gana a los incluidos? | Escribir un `Forecaster`, probar su contrato y compararlo con `compare_models` |
-| [`04_regresor_externo.py`](04_regresor_externo.py) | ¿Una variable externa mejora el pronóstico? | `HarmonicExogenous` con FluNet: rellenar con promedio histórico o con proyección, y medirlo |
+| [`04_regresor_externo.py`](04_regresor_externo.py) | ¿Una variable externa mejora el pronóstico? | Un `Regressor` (FluNet, calendario o uno propio) con `HarmonicExogenous.from_regressor`, y medirlo con `compare_many` |
 | [`05_analisis.py`](05_analisis.py) | ¿Cómo ha sido la demanda? | Resumen anual, nivel, año típico sin la tendencia, comparación interanual y día de la semana |
 
 ```bash

@@ -17,9 +17,10 @@ from collections.abc import Callable
 from urgencias_core.data.series import SEASON_WEEKS
 from urgencias_core.models.baselines import SeasonalNaiveBaseline, StatsForecastWrapper, auto_arima
 from urgencias_core.models.ensemble import MedianEnsemble
-from urgencias_core.models.exogenous import HarmonicFluNet
+from urgencias_core.models.exogenous import HarmonicExogenous, HarmonicFluNet
 from urgencias_core.models.harmonic import HarmonicRegression
 from urgencias_core.models.protocol import Forecaster
+from urgencias_core.regressors import calendar
 
 # AutoARIMA with a 52-week season is slow with the full search (~20 s per fit).
 # The approximate, bounded search below runs in ~1 s; on live DEIS data for seven
@@ -77,7 +78,8 @@ def extra_models() -> dict[str, Callable[[], Forecaster]]:
         "TBATS": _tbats,
         "Theta": _theta,
         "Ensamble": _ensemble,
-        "ArmónicoFeriados": lambda: HarmonicRegression(holidays=True),
+        "ArmónicoFeriados": lambda: HarmonicExogenous.from_regressor(calendar(), ["holidays"]),
+        "ArmónicoCalendario": lambda: HarmonicExogenous.from_regressor(calendar()),
         "ArmónicoFluNet": HarmonicFluNet,
         "ArmónicoFluNetProy": lambda: HarmonicFluNet(**FLUNET_PROY),
     }
@@ -93,6 +95,9 @@ MODEL_INFO = {
     "Theta": "solo tendencia (no detecta el ciclo anual); sirve de contraste",
     "Ensamble": "mediana, cuantil a cuantil, de AutoARIMA, Armónico y MSTL",
     "ArmónicoFeriados": "Armónico + feriados chilenos en día hábil de cada semana",
+    "ArmónicoCalendario": (
+        "Armónico + feriados, interferiados y vacaciones escolares (calendario chileno)"
+    ),
     "ArmónicoFluNet": (
         "Armónico + positividad nacional de influenza y VRS (OMS FluNet); "
         "ejemplo de regresor externo"

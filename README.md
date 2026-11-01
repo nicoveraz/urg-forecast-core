@@ -192,7 +192,7 @@ El valor está en lo que le agregues. Para eso son las dos secciones que siguen.
 <!-- sitio:modelos -->
 ## Modelos
 
-Por defecto se comparan cuatro y se usa el mejor. Hay otros seis para
+Por defecto se comparan cuatro y se usa el mejor. Hay otros siete para
 experimentar, que se activan con `-m`:
 
 | Modelo | Por defecto | En pocas palabras |
@@ -205,6 +205,7 @@ experimentar, que se activan con `-m`:
 | Theta | | solo tendencia; sirve de contraste |
 | Ensamble | | mediana de AutoARIMA, Armónico y MSTL |
 | ArmónicoFeriados | | Armónico + feriados chilenos en día hábil |
+| ArmónicoCalendario | | Armónico + feriados, interferiados y vacaciones escolares |
 | ArmónicoFluNet | | Armónico + circulación viral (OMS FluNet); ejemplo de fuente externa |
 | ArmónicoFluNetProy | | igual, pero proyecta la circulación viral en vez de usar su promedio histórico |
 
@@ -331,18 +332,26 @@ contaminación, vacunación. La forma estándar de sumarlo tiene dos pasos: **ag
 hacer trampa** y **medir si sirve**. La [demo](https://nicoveraz.github.io/urg-forecast-core/demo/)
 muestra los dos con la circulación viral de FluNet.
 
-**1. Agregarlo.** `HarmonicExogenous` es el Armónico más las columnas de una tabla con
-`timestamp` (el lunes de cierre de cada semana DEIS) y una columna por variable:
+**1. Agregarlo.** Un `Regressor` es una tabla con `timestamp` (el lunes de cierre de cada
+semana DEIS) y una columna por variable, más las reglas de su fuente. Vienen dos:
+`flunet()` (positividad viral, 2 semanas de atraso) y `calendar()` (feriados,
+interferiados y vacaciones escolares, que se conocen de antemano). Uno propio se declara
+igual, y `HarmonicExogenous.from_regressor` lo suma al Armónico:
 
 ```python
 import pandas as pd
 from urgencias_core.models.exogenous import HarmonicExogenous
+from urgencias_core.regressors import Regressor
 
-temperatura = pd.read_csv("temperatura_semanal.csv", parse_dates=["timestamp"])
-con_temp = lambda: HarmonicExogenous(
-    temperatura, ["temp_min"],
-    lag_weeks=0,            # la semana t usa el valor de la semana t - lag
+temperatura = Regressor(
+    name="temperatura",
+    load=lambda: pd.read_csv("temperatura_semanal.csv", parse_dates=["timestamp"]),
+    columns=("temp_min",),
     report_delay_weeks=1,   # cuántas semanas tarda en publicarse cada dato
+)
+con_temp = lambda: HarmonicExogenous.from_regressor(
+    temperatura,
+    lag_weeks=0,            # la semana t usa el valor de la semana t - lag
     future="forecast",      # qué hacer con lo no publicado: "forecast" o "climatology"
 )
 ```
@@ -351,7 +360,9 @@ La regla que lo mantiene honesto: en cada ventana del backtest el modelo solo ve
 datos que ya estaban **publicados** en esa fecha. Lo que falta se rellena con el promedio
 histórico de esa semana del año (`"climatology"`) o con una proyección de la propia serie
 (`"forecast"`: Armónico sin tendencia y ARIMA, que arrastra si la temporada viene
-adelantada o atrasada). 2020 y 2021 quedan fuera de ambos.
+adelantada o atrasada). 2020 y 2021 quedan fuera de ambos. Las variables con futuro
+conocido (`known_future=True`, como el calendario) se usan tal cual, también para las
+semanas que se pronostican.
 
 **2. Medir si sirve.** Tres ventanas alcanzan para elegir modelo, no para saber si un
 regresor ayuda: con pocas, la diferencia es casi siempre ruido. `compare_models` ajusta
@@ -376,8 +387,8 @@ urg-forecast comparar 24-105 -m ArmonicoFluNetProy
 
 El veredicto es `mejora`, `empeora` o `sin diferencia clara`, por establecimiento. Si
 pruebas muchos, cerca de uno de cada veinte saldrá distinto de "sin diferencia" por azar:
-un regresor útil mejora en muchos, no en unos pocos. `HarmonicFluNet`, en
-`src/urgencias_core/models/exogenous.py`, es el ejemplo completo.
+un regresor útil mejora en muchos, no en unos pocos. El ejemplo completo, con FluNet y el
+calendario, está en `examples/04_regresor_externo.py`.
 
 ### Pedirle a una IA que lo extienda
 

@@ -14,17 +14,11 @@ primera contribución. Para ideas de modelos, revisa también la sección final 
   y grupo de edad, pero el pronóstico usa solo el total. Modelar por separado
   las causas respiratorias o la urgencia pediátrica es el paso natural.
 
-## Estructura
-
-El reordenamiento en curso (ver [`arquitectura.md`](arquitectura.md)):
+## Análisis
 
 - **Análisis por causa y edad.** `analysis/` describe el total de atenciones; la copia
   semanal en la rama `datos` guarda solo el total, así que describir las causas
   respiratorias o la urgencia pediátrica exige ampliarla (o usar `--fuente deis`).
-- **Regresores unificados:** el calendario chileno (`features.calendar`) y FluNet con el
-  mismo formato de tabla, distinguiendo variables con futuro conocido (feriados,
-  vacaciones) de las que se publican con atraso (virus). Hoy `ArmónicoFeriados` arma los
-  feriados por su cuenta y `HarmonicExogenous` solo sirve con el Armónico.
 
 ## Modelos
 

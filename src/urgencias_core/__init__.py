@@ -10,7 +10,9 @@ The package is organised by question:
 - :mod:`urgencias_core.eval` — how good a forecast is (rolling backtest, metrics,
   calibration, paired comparison).
 - :mod:`urgencias_core.forecast` — pick the best model and forecast forward.
-- :mod:`urgencias_core.features` — Chilean calendar variables.
+- :mod:`urgencias_core.regressors` — external weekly variables (FluNet, the Chilean
+  calendar) with their publication rules.
+- :mod:`urgencias_core.features` — Chilean calendar variables, daily and weekly.
 
 The names below are the usual entry points.
 """
