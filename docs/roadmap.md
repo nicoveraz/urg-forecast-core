@@ -60,9 +60,6 @@ conocer todo el paquete. Dónde va cada cosa está en [Arquitectura](arquitectur
 
 ## Operación y mantenimiento
 
-- **Snapshot incluido.** El snapshot offline del paquete (dos hospitales) tiene datos hasta
-  abril de 2026 y se actualiza a mano. Debería regenerarse desde la copia semanal en cada
-  versión, como un paso del release. **Primera contribución.**
 - **Quitar las rutas antiguas en 0.5.** `urgencias_core.pipeline`,
   `urgencias_core.eval.baselines` y `run_harness` siguen funcionando con un aviso desde 0.4
   y se eliminan en la próxima versión menor.

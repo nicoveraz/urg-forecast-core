@@ -24,6 +24,15 @@ jobs:
         run: uv sync --dev
       - name: Run tests
         run: uv run pytest -q
+      - name: Warn if the bundled snapshot is old
+        run: |
+          last=$(grep -o 'Datos hasta el \*\*[0-9-]*' src/urgencias_core/data/_fixtures/deis_demo_snapshot.README.md | grep -o '[0-9-]\{10\}' || true)
+          if [ -z "$last" ]; then exit 0; fi
+          iso=$(echo "$last" | awk -F- '{print $3"-"$2"-"$1}')
+          age=$(( ( $(date -u +%s) - $(date -u -d "$iso" +%s) ) / 86400 ))
+          if [ "$age" -gt 90 ]; then
+            echo "::warning::El snapshot incluido tiene datos hasta el $last ($age días). Corre el workflow snapshot antes de publicar."
+          fi
 
   build:
     needs: test
