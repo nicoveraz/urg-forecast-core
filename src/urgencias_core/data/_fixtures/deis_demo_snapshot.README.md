@@ -13,8 +13,8 @@ Los Lagos (Servicio de Salud Reloncaví):
 
 ## Generación
 
-- Generado el **13-04-2026** con `scripts/construir_snapshot.py`, desde los
-  archivos anuales del DEIS. Datos hasta el **11-04-2026**.
+- Generado el **01-11-2026** con `scripts/construir_snapshot.py`, desde los
+  archivos anuales del DEIS. Datos hasta el **31-10-2026**.
 - Se regenera antes de cada versión con el workflow `snapshot` (Actions → snapshot → Run
   workflow), que abre una rama con el cambio para revisarlo en un PR.
 - Origen: `https://repositoriodeis.minsal.cl/SistemaAtencionesUrgencia/AtencionesUrgencia{AÑO}.zip`
@@ -29,9 +29,9 @@ Los Lagos (Servicio de Salud Reloncaví):
 | 2023 | 28.760 | Año completo |
 | 2024 | 28.960 | Año completo |
 | 2025 | 28.749 | Año completo |
-| 2026 | 8.159 | Año parcial, hasta el 11-04-2026 |
+| 2026 | 24.518 | Año parcial, hasta el 31-10-2026 |
 
-Total: 151.108 filas, una por (hospital, fecha, causa, grupo de edad).
+Total: 167.467 filas, una por (hospital, fecha, causa, grupo de edad).
 
 ## Años no incluidos
 

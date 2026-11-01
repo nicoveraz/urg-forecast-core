@@ -29,7 +29,7 @@
      "params": [],
      "returns": "",
      "example": "from urgencias_core import load_deis, weekly_series\n\ndf = load_deis([\"24-105\"], offline=True)\nsemanal = weekly_series(df, \"24-105\")\nprint(semanal.tail(3))",
-     "output": "     timestamp  count\n218 2026-03-16   1922\n219 2026-03-23   2081\n220 2026-03-30   2146",
+     "output": "     timestamp  count\n247 2026-10-05   1966\n248 2026-10-12   1986\n249 2026-10-19   2068",
      "run": true
     }
    ]
@@ -70,7 +70,7 @@
      ],
      "returns": "DataFrame con `date`, `facility_code`, `facility_name`, `cause_group`, `age_group`, `count`. Lanza `NoDataError` si no hay datos.",
      "example": "df = load_deis([\"24-105\"], offline=True)\nprint(df.attrs[\"source\"])\nprint(len(df), \"filas\", list(df.columns))",
-     "output": "snapshot DEIS incluido en el paquete\n62478 filas ['year', 'date', 'facility_code', 'facility_name', 'cause_id', 'cause_group', 'age_group', 'count']",
+     "output": "snapshot DEIS incluido en el paquete\n70760 filas ['year', 'date', 'facility_code', 'facility_name', 'cause_id', 'cause_group', 'age_group', 'count']",
      "run": true
     },
     {
@@ -92,7 +92,7 @@
      ],
      "returns": "DataFrame `timestamp, count`.",
      "example": "semanal = weekly_series(df, \"24-105\")\nprint(len(semanal), \"semanas\")",
-     "output": "221 semanas",
+     "output": "250 semanas",
      "run": true
     },
     {
@@ -114,7 +114,7 @@
      ],
      "returns": "DataFrame `timestamp, count`.",
      "example": "from urgencias_core.data.series import daily_series\n\ndiaria = daily_series(df, \"24-105\")\nprint(diaria.tail(2))",
-     "output": "      timestamp  count\n1557 2026-04-09    309\n1558 2026-04-10    356",
+     "output": "      timestamp  count\n1759 2026-10-28    296\n1760 2026-10-29    297",
      "run": true
     },
     {
@@ -170,7 +170,7 @@
      ],
      "returns": "semanas, `complete`, total, promedio semanal, `change_pct`, semana más alta.",
      "example": "from urgencias_core.analysis import yearly_summary\n\nprint(yearly_summary(semanal)[[\"weeks\", \"weekly_mean\", \"change_pct\"]])",
-     "output": "      weeks  weekly_mean  change_pct\nyear                                \n2022     51       1308.1         NaN\n2023     52       1557.1        19.6\n2024     53       1601.1         3.0\n2025     52       1640.1         2.2\n2026     13       1631.4        12.5",
+     "output": "      weeks  weekly_mean  change_pct\nyear                                \n2022     51       1308.1         NaN\n2023     52       1557.1        19.6\n2024     53       1601.1         3.0\n2025     52       1640.1         2.2\n2026     42       1907.8        17.0",
      "run": true
     },
     {
@@ -192,7 +192,7 @@
      ],
      "returns": "una fila por semana: `mean`, `low`, `high`, `years`, `index`.",
      "example": "from urgencias_core.analysis import seasonal_profile\n\nperfil = seasonal_profile(semanal)\naltas = perfil.sort_values(\"index\", ascending=False).head(3)\nprint(altas.to_string(float_format=\"%.2f\"))",
-     "output": "        mean     low    high  years  index\nweek                                      \n17   1752.50 1379.00 1949.00      4   1.19\n16   1706.75 1441.00 1841.00      4   1.14\n21   1699.00 1473.00 1790.00      4   1.12",
+     "output": "        mean     low    high  years  index\nweek                                      \n17   1840.20 1379.00 2191.00      5   1.19\n16   1829.00 1441.00 2318.00      5   1.17\n21   1795.20 1473.00 2180.00      5   1.12",
      "run": true
     },
     {
@@ -214,7 +214,7 @@
      ],
      "returns": "`timestamp, count, level, change_pct`.",
      "example": "from urgencias_core.analysis import level, year_over_year\n\nprint(level(semanal).tail(2))\nprint(year_over_year(semanal)[[\"timestamp\", \"change_pct\"]].tail(2))",
-     "output": "     timestamp   count   level  change_pct\n219 2026-03-23  2081.0  1677.9         6.1\n220 2026-03-30  2146.0  1685.5         6.4\n     timestamp  change_pct\n219 2026-03-23        25.8\n220 2026-03-30        21.7",
+     "output": "     timestamp   count   level  change_pct\n248 2026-10-12  1986.0  1856.9        15.4\n249 2026-10-19  2068.0  1863.6        15.8\n     timestamp  change_pct\n248 2026-10-12        13.1\n249 2026-10-19        13.9",
      "run": true
     },
     {
@@ -285,7 +285,7 @@
      ],
      "returns": "`ForecastResult`: `best`, `backtest` (error por modelo), `forecast` (`timestamp, q50, q80, q90, q95`), `coverage80`, `interval_scale`.",
      "example": "from urgencias_core import run_forecast\n\nnombre = \"Hospital de Puerto Montt\"\nres = run_forecast(semanal, 12, code=\"24-105\", name=nombre)\nprint(res.best)\nprint(res.backtest[[\"mae\", \"qloss_80\"]])\nprint(res.forecast[[\"timestamp\", \"q50\", \"q80\"]].head(3))",
-     "output": "Armónico\n                 mae  qloss_80\nmodel                         \nArmónico       110.7      41.3\nAutoARIMA      118.3      51.0\nMSTL           121.6      50.3\nSeasonalNaive  153.3      84.7\n   timestamp     q50     q80\n0 2026-04-06  2109.6  2183.7\n1 2026-04-13  2087.8  2178.1\n2 2026-04-20  2070.6  2167.8",
+     "output": "MSTL\n                 mae  qloss_80\nmodel                         \nArmónico       164.0      68.3\nAutoARIMA      168.4      75.5\nMSTL           130.9      53.2\nSeasonalNaive  436.7     280.6\n   timestamp     q50     q80\n0 2026-10-26  1951.5  2076.8\n1 2026-11-02  1913.8  2059.6\n2 2026-11-09  2061.9  2225.7",
      "run": true
     },
     {
@@ -298,7 +298,7 @@
      "params": [],
      "returns": "",
      "example": "cubiertas, total = res.coverage80\nprint(f\"bajo P80 en {cubiertas} de {total} semanas\")\n# cuánto se ensanchó cada banda (1 = nada)\nprint({k: round(v, 2) for k, v in res.interval_scale.items()})",
-     "output": "bajo P80 en 30 de 36 semanas\n{'q80': 1.0, 'q90': 1.01, 'q95': 1.0}",
+     "output": "bajo P80 en 20 de 36 semanas\n{'q80': 1.99, 'q90': 1.77, 'q95': 1.53}",
      "run": true
     },
     {
@@ -340,7 +340,7 @@
      "params": [],
      "returns": "",
      "example": "import numpy as np\nfrom urgencias_core.models.protocol import HorizonSpec, future_index\n\nclass UltimoAnio:\n    \"\"\"Cada semana = la misma semana del año pasado, ± su variación.\"\"\"\n    def fit(self, history, target_col):\n        self.s = history.set_index(\"timestamp\")[target_col]\n    def predict(self, horizon):\n        fechas = future_index(self.s.index[-1], horizon)\n        hace_un_anio = fechas - pd.Timedelta(weeks=52)\n        centro = self.s.reindex(hace_un_anio).ffill().bfill().to_numpy()\n        d = self.s.diff(52).dropna()\n        out = pd.DataFrame({\"timestamp\": fechas})\n        for q, col in zip(horizon.quantiles, horizon.quantile_columns):\n            out[col] = centro + max(np.quantile(d, q), 0) * (q > 0.5)\n        return out\n\nm = UltimoAnio()\nm.fit(semanal, \"count\")\nprint(m.predict(HorizonSpec(grain=\"W-MON\", length=2)))",
-     "output": "   timestamp     q50     q80     q90     q95\n0 2026-04-06  1827.0  2097.0  2164.0  2226.2\n1 2026-04-13  1773.0  2043.0  2110.0  2172.2",
+     "output": "   timestamp     q50     q80     q90     q95\n0 2026-10-26  1729.0  2027.2  2114.6  2173.8\n1 2026-11-02  1695.0  1993.2  2080.6  2139.8",
      "run": true
     },
     {
@@ -395,7 +395,7 @@
      ],
      "returns": "`Backtest`: `windows`, `scores()`, `failed`, `pairs(modelo)`.",
      "example": "from urgencias_core import backtest\n\ndos = {\"Armónico\": modelos[\"Armónico\"], \"UltimoAnio\": UltimoAnio}\ncorrida = backtest(semanal, dos, length=4, origins=6, step=8)\nerrores = corrida.scores()\nprint(errores.groupby(\"model\")[[\"mae\", \"qloss_80\"]].mean())",
-     "output": "              mae  qloss_80\nmodel                      \nArmónico     90.6      34.2\nUltimoAnio  157.1      45.6",
+     "output": "              mae  qloss_80\nmodel                      \nArmónico    135.5      48.2\nUltimoAnio  298.7      86.6",
      "run": true
     },
     {
@@ -421,7 +421,7 @@
      ],
      "returns": "`Comparison`: `verdict` (`mejora`, `empeora`, `sin diferencia clara`), `text()`, `summary()`, `windows`.",
      "example": "from urgencias_core import compare_models\nfrom urgencias_core.models.harmonic import HarmonicRegression\n\ncmp = compare_models(semanal, (\"Armónico\", HarmonicRegression),\n                     (\"UltimoAnio\", UltimoAnio), origins=8)\nprint(cmp.text())",
-     "output": "UltimoAnio frente a Armónico, 8 ventanas de 4 semanas: gana 1, pierde 7 (p = 0.07); cambio mediano de la pérdida P80 +39.3 %. Veredicto: sin diferencia clara.",
+     "output": "UltimoAnio frente a Armónico, 8 ventanas de 4 semanas: gana 3, pierde 5 (p = 0.73); cambio mediano de la pérdida P80 +22.7 %. Veredicto: sin diferencia clara.",
      "run": true
     }
    ]
@@ -488,7 +488,7 @@
      ],
      "returns": "un modelo que cumple el contrato `Forecaster`.",
      "example": "from urgencias_core.models.exogenous import HarmonicExogenous\n\nferiados = lambda: HarmonicExogenous.from_regressor(cal, [\"holidays\"])\nm = feriados()\nm.fit(semanal, \"count\")\nprint(m.regressor_path(HorizonSpec(grain=\"W-MON\", length=3)))\ncmp = compare_models(semanal, (\"Armónico\", HarmonicRegression),\n                     (\"Feriados\", feriados), origins=8)\nprint(cmp.verdict)",
-     "output": "   timestamp  holidays\n0 2026-04-06       1.0\n1 2026-04-13       0.0\n2 2026-04-20       0.0\nsin diferencia clara",
+     "output": "   timestamp  holidays\n0 2026-10-26       0.0\n1 2026-11-02       0.0\n2 2026-11-09       0.0\nsin diferencia clara",
      "run": true
     }
    ]
