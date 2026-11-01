@@ -21,8 +21,25 @@ API puede cambiar entre versiones menores).
   (`urgencias_core.eval.compare`) y el comando `urg-forecast comparar` lo comparan contra
   el Armónico en 36 ventanas, con prueba de signos, invierno aparte y un veredicto.
   Nuevo modelo opcional `ArmónicoFluNetProy`. La demo muestra el ejemplo con FluNet.
+- **Un solo motor de backtest** (`urgencias_core.eval.backtest`): `run_forecast` y
+  `compare_models` lo usan; antes cada uno tenía su propio ciclo. Los resultados no
+  cambian.
 - Sección Comunidad en el sitio: cómo contribuir, código de conducta y
   seguridad. El código de conducta ahora está en español.
+
+### Cambiado
+
+- **El paquete se ordena por pregunta.** `pipeline.py` se dividió en
+  `data/series.py` (`load_deis`, `weekly_series`), `models/registry.py` (nombres de
+  modelos), `forecast.py` (`run_forecast`) y `eval/calibration.py`. Los modelos base
+  (`SeasonalNaiveBaseline`, `auto_arima`, …) pasaron de `eval/baselines.py` a
+  `models/baselines.py`. Las rutas antiguas siguen funcionando con un aviso
+  (`DeprecationWarning`) y se eliminan en 0.5. Las funciones de uso común se importan
+  directo desde `urgencias_core`.
+
+### Obsoleto
+
+- `run_harness` (un único holdout): usa `backtest` o `compare_models`. Se elimina en 0.5.
 
 ## [0.3.0] - 2026-10-06
 

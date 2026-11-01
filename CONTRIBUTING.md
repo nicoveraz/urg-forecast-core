@@ -57,8 +57,8 @@ pre-commit install           # opcional: lint y formato al hacer commit
 El paquete usa estructura `src/` y una sola instalación, sin extras. La idea es
 que siga siendo chico: el alcance es el pronóstico semanal con datos DEIS más lo
 necesario para extenderlo. Los modelos nuevos van en
-`src/urgencias_core/models/` y se registran en `pipeline.extra_models()` y
-`MODEL_INFO`, con su sección en `docs/modelos.md`. El análisis por atención y la
+`src/urgencias_core/models/` y se registran en `models/registry.py` (`extra_models()` y
+`MODEL_INFO`), con su sección en `docs/modelos.md`. El análisis por atención y la
 simulación quedan fuera de este repositorio.
 
 ## Publicar una versión

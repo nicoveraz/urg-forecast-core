@@ -305,7 +305,7 @@ consistente en tu establecimiento, úsalo solo con `-m mi_modelo:PromedioAnual`.
 **Desde Python** es lo mismo: agrega tu clase a los modelos por defecto.
 
 ```python
-from urgencias_core.pipeline import default_models
+from urgencias_core import default_models
 from mi_modelo import PromedioAnual
 
 modelos = default_models() | {"PromedioAnual": PromedioAnual}
