@@ -24,6 +24,13 @@ API puede cambiar entre versiones menores).
 - **Un solo motor de backtest** (`urgencias_core.eval.backtest`): `run_forecast` y
   `compare_models` lo usan; antes cada uno tenía su propio ciclo. Los resultados no
   cambian.
+- **Análisis descriptivo de la demanda** (`urgencias_core.analysis` y el comando
+  `urg-forecast analizar`): resumen por año (comparando las mismas semanas del año
+  anterior, así un año incompleto no engaña), nivel de 52 semanas y su cambio, año típico
+  con cada semana frente al nivel de su propio año (sin confundir crecimiento con
+  estación), comparación interanual de 4 semanas, semanas pico y día de la semana.
+  Escribe `analisis.txt`, `analisis.png` y las tablas en CSV. Ejemplo
+  `examples/05_analisis.py`.
 - **Ejemplos ejecutables** en `examples/` (pronóstico, backtest, modelo propio y
   regresor externo), probados en la CI, y `docs/arquitectura.md`: cómo está organizado
   el paquete, sus contratos y dónde va cada cosa nueva. Ambos tienen página en el sitio.

@@ -9,7 +9,7 @@ repositorio. No la edites a mano: se reemplaza completa en cada actualización.
 | `establecimientos.csv` | código, nombre, tipo, región, comuna y servicio de salud de cada establecimiento, con el rango de fechas disponible |
 | `meta.json` | fecha de generación, años DEIS incluidos y última fecha con datos |
 | `flunet_chl.csv` | vigilancia de laboratorio de virus respiratorios de Chile reportada a la OMS (FluNet): muestras procesadas y detecciones por virus y semana, red centinela y no centinela. La usan los modelos de ejemplo `ArmónicoFluNet` y `ArmónicoFluNetProy` |
-| `demo/` | pronósticos precalculados para la página de demo; `demo/regresor.json` trae el ejemplo de regresor externo (positividad FluNet y su comparación en los establecimientos con más atenciones) |
+| `demo/` | pronósticos y análisis descriptivos precalculados para la página de demo; `demo/regresor.json` trae el ejemplo de regresor externo (positividad FluNet y su comparación en los establecimientos con más atenciones) |
 
 `urg-forecast` lee estos archivos por defecto, para no descargar los archivos
 anuales completos del DEIS en cada uso. Con `--fuente deis` se descargan

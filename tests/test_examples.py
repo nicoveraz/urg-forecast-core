@@ -38,6 +38,7 @@ CASES = {
     ],
     "03_modelo_propio.py": ["--offline", "--ventanas", "2"],
     "04_regresor_externo.py": ["--offline", "--ventanas", "2", "--salida", "OUT"],
+    "05_analisis.py": ["--offline", "--salida", "OUT"],
 }
 
 

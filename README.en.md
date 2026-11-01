@@ -34,6 +34,7 @@ urg-forecast demo                                      # Puerto Montt and Frutil
 urg-forecast buscar "osorno"                           # find your establishment's DEIS code
 urg-forecast pronosticar 24-105                        # backtest + 26-week forecast
 urg-forecast pronosticar 24-105 -H 6m                  # choose the horizon: 12, 12s (weeks) or 6m (months)
+urg-forecast analizar 24-105                           # level, typical year, year over year
 urg-forecast modelos                                   # list available models
 urg-forecast pronosticar 24-105 -m AutoARIMA           # use one model instead of comparing
 urg-forecast pronosticar 24-105 -m Ensamble -m TBATS   # try extra models
@@ -95,6 +96,8 @@ Pronóstico con Armónico: atenciones semanales
 | `urg-forecast buscar [TEXT]` | Lists establishments whose name, code, type (Hospital, SAPU, SAR, SUR), commune, region or health service contains `TEXT` (all if empty). The first column is the code `pronosticar` takes. |
 | `urg-forecast pronosticar CODE [CODE ...]` | Backtest + forecast for one or more establishments. Codes like `24-105` or `124105`. |
 | `urg-forecast modelos` | Lists the available models and which are compared by default. |
+| `urg-forecast analizar CODE [CODE ...]` | Describes demand: level and its change over the last year, the typical year (busiest and quietest weeks against their year's level), the latest weeks against the same weeks a year earlier, a yearly summary and the weekday profile. |
+| `urg-forecast comparar CODE -m MODEL` | Does a regressor or a new model help? Compares it with Armónico on many windows and says whether the difference is consistent or noise. |
 
 | Option | Commands | Meaning |
 |---|---|---|

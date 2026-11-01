@@ -49,6 +49,48 @@ def _round(x: float) -> float:
     return float(round(x, 1))
 
 
+def analysis_block(weekly: pd.DataFrame) -> dict:
+    """Descriptive analysis for the demo page (see urgencias_core.analysis)."""
+    from urgencias_core.analysis import (
+        seasonal_profile,
+        summary,
+        year_over_year,
+        yearly_summary,
+    )
+    from urgencias_core.analysis.report import week_label
+
+    s = summary(weekly)
+    prof = seasonal_profile(weekly)
+    yoy = year_over_year(weekly).dropna(subset=["change_pct"])
+    last_year = weekly["timestamp"].iloc[-1].year
+    cur = weekly[weekly["timestamp"].dt.year == last_year]
+
+    def num(x, digits=1):
+        return None if pd.isna(x) else float(round(float(x), digits))
+
+    return {
+        "nivel": num(s["weekly_mean_last_year"], 0),
+        "cambio_nivel": num(s["level_change_pct"]),
+        "interanual": num(yoy["change_pct"].iloc[-1]) if len(yoy) else None,
+        "amplitud": num(100 * (s["seasonal_amplitude"] - 1), 0),
+        "alta": [s["usual_peak_week"], week_label(s["usual_peak_week"])],
+        "baja": [s["usual_low_week"], week_label(s["usual_low_week"])],
+        "anual": [
+            [int(y), int(r["weeks"]), num(r["weekly_mean"], 0), num(r["change_pct"])]
+            for y, r in yearly_summary(weekly).iterrows()
+        ],
+        "tipico": [
+            [int(w), num(r["mean"], 0), num(r["low"], 0), num(r["high"], 0), num(r["index"], 3)]
+            for w, r in prof.iterrows()
+        ],
+        "anio": last_year,
+        "actual": [
+            [int(t.isocalendar()[1]), int(v)]
+            for t, v in zip(cur["timestamp"], cur["count"], strict=True)
+        ],
+    }
+
+
 def forecast_one(code: str, out_dir: str, cache_dir: str) -> dict:
     """Forecast one establishment from the local mirror; return its index entry."""
     warnings.filterwarnings("ignore")
@@ -105,6 +147,7 @@ def forecast_one(code: str, out_dir: str, cache_dir: str) -> dict:
         "ventanas": res.backtest_origins,
         "semanas_backtest": res.backtest_weeks,
         "escala": {k: _round(v) for k, v in res.interval_scale.items()},
+        "analisis": analysis_block(weekly),
     }
     (Path(out_dir) / "demo" / f"{code}.json").write_text(
         json.dumps(detail, ensure_ascii=False, separators=(",", ":"))

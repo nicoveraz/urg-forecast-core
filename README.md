@@ -10,10 +10,10 @@
 [English](https://github.com/nicoveraz/urg-forecast-core/blob/main/README.en.md)*
 
 <!-- sitio:inicio -->
-**Una base abierta y gratuita para pronosticar la demanda de los servicios de
+**Una base abierta y gratuita para analizar y pronosticar la demanda de los servicios de
 urgencia en Chile con datos públicos del DEIS MINSAL.** Con un solo comando
-obtienes un backtest y un pronóstico semanal para cualquier establecimiento de
-la red pública que reporte al DEIS. Es una aproximación inicial: ajustarla a tu
+obtienes la descripción de la demanda, o un backtest y un pronóstico semanal, para
+cualquier establecimiento de la red pública que reporte al DEIS. Es una aproximación inicial: ajustarla a tu
 realidad es trabajo tuyo, y el código está hecho para eso.
 
 **[Prueba la demo](https://nicoveraz.github.io/urg-forecast-core/demo/)**: elige
@@ -33,6 +33,7 @@ pip install urg-forecast-core                          # Python 3.11 o 3.12
 
 urg-forecast demo                                      # hospitales de Puerto Montt y Frutillar
 urg-forecast buscar "osorno"                           # busca por nombre, comuna, región o tipo
+urg-forecast analizar 24-105                           # nivel, año típico, comparación interanual
 urg-forecast pronosticar 24-105                        # backtest + pronóstico a 26 semanas
 urg-forecast pronosticar 24-105 -H 6m                  # elige el horizonte: 12, 12s (semanas) o 6m (meses)
 urg-forecast modelos                                   # lista los modelos disponibles
@@ -96,6 +97,7 @@ Pronóstico con Armónico: atenciones semanales
 |---|---|
 | `urg-forecast demo` | Pronóstico para el Hospital de Puerto Montt (24-105) y el Hospital de Frutillar (24-115). Si no hay red, usa el snapshot incluido. |
 | `urg-forecast buscar [TEXTO]` | Lista los establecimientos cuyo nombre, código, tipo (Hospital, SAPU, SAR, SUR), comuna, región o servicio de salud contiene `TEXTO` (todos si va vacío). La primera columna es el código que recibe `pronosticar`. |
+| `urg-forecast analizar CODIGO [CODIGO ...]` | Describe la demanda: nivel y su cambio en el último año, el año típico (semanas más altas y más bajas frente al nivel de su año), las últimas semanas frente a las mismas del año anterior, un resumen por año y el día de la semana. Escribe `analisis.txt`, `analisis.png` y las tablas en CSV. |
 | `urg-forecast pronosticar CODIGO [CODIGO ...]` | Backtest + pronóstico para uno o más establecimientos. Códigos como `24-105` o `124105`. |
 | `urg-forecast modelos` | Lista los modelos disponibles y cuáles se comparan por defecto. |
 | `urg-forecast comparar CODIGO -m MODELO` | ¿Sirve un regresor o un modelo nuevo? Lo compara contra el Armónico (o `--base`) en muchas ventanas y dice si la diferencia es consistente o ruido. Ver [Agregar un regresor externo](#agregar-un-regresor-externo). |
@@ -103,15 +105,15 @@ Pronóstico con Armónico: atenciones semanales
 | Opción | Comandos | Significado |
 |---|---|---|
 | `-H`, `--horizonte` | demo, pronosticar | Horizonte: semanas (`12`, `12s`) o meses (`6m`). Por defecto 26 semanas. |
-| `-o`, `--salida` | demo, pronosticar | Carpeta de salida (por defecto `./urg-forecast-salida`); una subcarpeta por establecimiento. |
+| `-o`, `--salida` | demo, analizar, pronosticar | Carpeta de salida (por defecto `./urg-forecast-salida`); una subcarpeta por establecimiento. |
 | `-m`, `--modelo` | demo, pronosticar | Modelo a usar, repetible. Nombre de `urg-forecast modelos` o `archivo:Clase` para uno propio. Ver [Modelos](#modelos). |
 | `--base`, `--ventanas`, `--paso` | comparar | Modelo base (Armónico), número de ventanas (36) y semanas entre ellas (4). Con `comparar`, `-H` es el largo de cada ventana (4 semanas). |
 | `--sin-calibrar` | demo, pronosticar | No ensanchar los intervalos según el error del backtest. |
-| `--desde AÑO` | pronosticar | Primer año DEIS a usar (por defecto 2022). 2020–2021 siempre se excluyen. |
-| `--offline` | demo, pronosticar | Solo el snapshot incluido, sin red. El snapshot trae únicamente los dos hospitales del demo. |
-| `--fuente repo\|deis` | demo, buscar, pronosticar | De dónde leer los datos (ver abajo). Por defecto `repo`. |
+| `--desde AÑO` | analizar, pronosticar | Primer año DEIS a usar (por defecto 2022). 2020–2021 siempre se excluyen. |
+| `--offline` | demo, analizar, pronosticar | Solo el snapshot incluido, sin red. El snapshot trae únicamente los dos hospitales del demo. |
+| `--fuente repo\|deis` | demo, buscar, analizar, pronosticar | De dónde leer los datos (ver abajo). Por defecto `repo`. |
 | `--anio AÑO` | buscar | Con `--fuente deis`: año del archivo DEIS donde buscar (por defecto el actual). |
-| `--cache CARPETA` | demo, buscar, pronosticar | Dónde guardar las descargas (ver abajo). |
+| `--cache CARPETA` | demo, buscar, analizar, pronosticar | Dónde guardar las descargas (ver abajo). |
 | `--version` | — | Muestra la versión. |
 
 **De dónde salen los datos.** Por defecto (`--fuente repo`) el comando lee una
@@ -217,7 +219,7 @@ Por qué esos cuatro van por defecto, en
 
 Hay ejemplos que se pueden ejecutar en
 [`examples/`](https://github.com/nicoveraz/urg-forecast-core/tree/main/examples) (pronóstico,
-backtest, modelo propio, regresor externo), y el mapa del paquete, con dónde va cada
+backtest, modelo propio, regresor externo, análisis), y el mapa del paquete, con dónde va cada
 cosa nueva, en
 [`docs/arquitectura.md`](https://github.com/nicoveraz/urg-forecast-core/blob/main/docs/arquitectura.md).
 

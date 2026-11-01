@@ -164,6 +164,11 @@ def to_weekly(daily: pd.DataFrame, min_days: int = 7) -> pd.DataFrame:
     return agg["sum"].rename("count").reset_index()
 
 
+def daily_series(df: pd.DataFrame, code: str) -> pd.DataFrame:
+    """Daily totals for one establishment (``timestamp``, ``count``), all days present."""
+    return daily_totals(df, facility_code_variants(code))
+
+
 def weekly_series(df: pd.DataFrame, code: str) -> pd.DataFrame:
     """Complete weekly totals for one establishment."""
     return to_weekly(daily_totals(df, facility_code_variants(code)))
@@ -187,6 +192,7 @@ __all__ = [
     "SOURCE_MIRROR",
     "SOURCE_SNAPSHOT",
     "TOTAL_CAUSE_GLOSA",
+    "daily_series",
     "daily_totals",
     "facility_name",
     "load_deis",

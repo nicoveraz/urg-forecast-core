@@ -24,13 +24,16 @@ def test_help_lists_subcommands(capsys) -> None:
         "pronosticar",
         "modelos",
         "comparar",
+        "analizar",
         "flujo típico",
         "aproximación inicial",
     ):
         assert word in out
 
 
-@pytest.mark.parametrize("command", ["demo", "buscar", "pronosticar", "modelos", "comparar"])
+@pytest.mark.parametrize(
+    "command", ["demo", "buscar", "pronosticar", "modelos", "comparar", "analizar"]
+)
 def test_each_subcommand_help_has_examples(command, capsys) -> None:
     with pytest.raises(SystemExit):
         cli.main([command, "--help"])
@@ -173,3 +176,15 @@ def test_comparar_reports_windows_and_writes_csv(tmp_path, monkeypatch, capsys) 
 
 def test_comparar_rejects_same_model(capsys) -> None:
     assert cli.main(["comparar", "24-105", "-m", "armonico"]) == 2
+
+
+def test_analizar_offline_prints_and_writes(tmp_path, capsys) -> None:
+    assert cli.main(["analizar", "24-105", "--offline", "-o", str(tmp_path)]) == 0
+    out = capsys.readouterr().out
+    assert "Año típico" in out and "Día de la semana" in out
+    folder = next(tmp_path.iterdir())
+    assert (folder / "analisis.png").exists() and (folder / "analisis_anual.csv").exists()
+
+
+def test_analizar_unknown_code_offline_fails_cleanly(tmp_path, capsys) -> None:
+    assert cli.main(["analizar", "99-999", "--offline", "-o", str(tmp_path)]) == 1

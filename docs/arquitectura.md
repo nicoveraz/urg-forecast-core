@@ -17,7 +17,7 @@ repositorio.
 data/deis, mirror           data/flunet, calendario
   │ load_deis                 │
   ▼ weekly_series             ▼
-serie semanal               tabla de regresores
+serie semanal ──► analysis/   tabla de regresores
 (timestamp, count)          (timestamp, columnas)
   │                           │
   ▼                           ▼
@@ -37,6 +37,7 @@ Todo es un `DataFrame` de pandas: no hay clases de datos propias ni base de dato
 | Pregunta | Dónde | Entrada → salida |
 |---|---|---|
 | ¿De dónde vienen las series? | `data/` (`deis.py`, `mirror.py`, `flunet.py`, `series.py`) | código DEIS → filas DEIS → `timestamp, count` |
+| ¿Cómo ha sido la demanda? | `analysis/` (`descriptive.py`, `report.py`) | serie semanal → tablas: por año, año típico, nivel, interanual |
 | ¿Cómo se proyecta? | `models/` (`protocol.py`, `baselines.py`, `harmonic.py`, `exogenous.py`, `ensemble.py`, `registry.py`) | historia → cuantiles futuros |
 | ¿Qué tan bien funciona? | `eval/` (`backtest.py`, `metrics.py`, `calibration.py`, `compare.py`) | modelos + historia → error por ventana, veredicto |
 | ¿Cuál uso y qué viene? | `forecast.py` | historia → `ForecastResult` |
@@ -44,7 +45,8 @@ Todo es un `DataFrame` de pandas: no hay clases de datos propias ni base de dato
 | ¿Cómo se muestra? | `report.py`, `cli.py` | resultado → tablas, CSV, PNG; comandos en español |
 
 Las funciones de uso común se importan directo: `from urgencias_core import load_deis,
-weekly_series, run_forecast, backtest, compare_models, default_models`.
+weekly_series, run_forecast, backtest, compare_models, default_models`; las de análisis,
+desde `urgencias_core.analysis`.
 
 `experiments/model_comparison.py` es el estudio detrás de
 [`seleccion-de-modelos.md`](seleccion-de-modelos.md); no es parte del paquete.
@@ -96,8 +98,13 @@ report_delay_weeks=, future=)`, y `compare_models` contra el Armónico. Document
 resultado aunque sea negativo: también le sirve a quien venga después. Ejemplo:
 `examples/04_regresor_externo.py`.
 
-**Un análisis.** *(En preparación: módulo `analysis/`.)* Funciones que reciben la serie
-semanal y devuelven un `DataFrame` o una figura, sin efectos secundarios.
+**Un análisis.** Una función en `analysis/descriptive.py` (o un módulo nuevo en
+`analysis/` si es otro tema) que recibe la serie semanal y devuelve un `DataFrame`, sin
+leer ni escribir archivos y sin graficar; el texto, la figura y los CSV van en
+`analysis/report.py`. Que respete los huecos (2020–2021 no se rellenan) y no confunda
+tendencia con estación: `seasonal_profile` compara cada semana con el nivel de su propio
+año. Pruébala con una serie sintética de forma conocida (`tests/test_analysis.py`).
+Ejemplo: `examples/05_analisis.py`.
 
 **Un comando.** Un subcomando en `cli.py` con su ayuda y ejemplos en español, que llame a
 funciones del paquete (la lógica no vive en la CLI), y una prueba en `tests/test_cli.py`.

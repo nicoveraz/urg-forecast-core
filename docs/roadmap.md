@@ -18,8 +18,9 @@ primera contribución. Para ideas de modelos, revisa también la sección final 
 
 El reordenamiento en curso (ver [`arquitectura.md`](arquitectura.md)):
 
-- **Análisis descriptivo** (`analysis/`): estacionalidad, tendencia, comparación
-  interanual, semanas pico y día de la semana, sobre la misma serie semanal.
+- **Análisis por causa y edad.** `analysis/` describe el total de atenciones; la copia
+  semanal en la rama `datos` guarda solo el total, así que describir las causas
+  respiratorias o la urgencia pediátrica exige ampliarla (o usar `--fuente deis`).
 - **Regresores unificados:** el calendario chileno (`features.calendar`) y FluNet con el
   mismo formato de tabla, distinguiendo variables con futuro conocido (feriados,
   vacaciones) de las que se publican con atraso (virus). Hoy `ArmónicoFeriados` arma los
