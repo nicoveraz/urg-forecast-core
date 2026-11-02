@@ -137,6 +137,8 @@ write("ejemplos", { title: "Ejemplos", description: "Scripts que se pueden ejecu
     .replace("](../docs/arquitectura.md)", `](${BASE}/arquitectura/)`));
 write("roadmap", { title: "Hoja de ruta", description: "Brechas conocidas y primeras contribuciones." },
   stripH1(read("docs/roadmap.md")));
+write("referencias", { title: "Referencias", description: "La literatura detrás de cada decisión de método: modelos, evaluación, calibración y variables externas." },
+  stripH1(read("docs/referencias.md")));
 write("cambios", { title: "Registro de cambios", description: "Cambios de cada versión." },
   stripH1(read("CHANGELOG.md")));
 

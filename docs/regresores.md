@@ -74,7 +74,9 @@ correlación entre inviernos es cercana a cero. El daño se concentra en inviern
 la positividad suma variabilidad sin aportar información que el ciclo anual no tenga.
 Proyectarla reduce los hospitales que empeoran, pero no logra que mejoren. Puede rendir
 más con series más específicas (atenciones respiratorias o pediátricas) o con vigilancia
-regional.
+regional: en la literatura, la circulación viral explica sobre todo las consultas por
+infecciones respiratorias, no el total (Satia y otros, 2020; ver
+[Referencias](referencias.md)).
 
 Las dos conclusiones son útiles: un resultado negativo bien medido le ahorra trabajo a
 quien venga después.
@@ -100,7 +102,9 @@ Quedarse corto cuesta 4 veces más. Un ejemplo, con el P80 10 atenciones más ab
 Bajar el P80 mejora un poco cada semana tranquila y empeora cuatro veces más cada semana
 cargada. Con 4 semanas tranquilas y 1 cargada, queda igual (4 × 2 = 8): por eso el mejor P80
 es el que se supera justo 1 de cada 5 semanas. Si lo real supera el P80 más bajo en más de 1
-de cada 5 semanas, sale peor, aunque se vea más preciso.
+de cada 5 semanas, sale peor, aunque se vea más preciso. Es el principio de buscar el
+intervalo más angosto *siempre que esté calibrado* (Gneiting, Balabdaoui y Raftery, 2007;
+ver [Referencias](referencias.md)).
 
 En los 40 hospitales evaluados, con datos al 31 de octubre de 2026, casi todos los
 regresores angostan el intervalo: los feriados en 37 y la positividad viral en 35. Con los

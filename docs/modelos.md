@@ -28,7 +28,8 @@ estrechos (ver `--sin-calibrar`).
 El P80 es una elección, no un dato: equivale a decir que quedarse corto cuesta 4 veces más
 que pasarse. Quien usa el paquete puede elegir otro con `--criterio` (o `select_by` en
 `run_forecast` y `metric` en `compare_models`). Si quedarse corto cuesta *k* veces más que
-pasarse, el cuantil que corresponde es *k* / (*k* + 1):
+pasarse, el cuantil que corresponde es *k* / (*k* + 1) (Gneiting, 2011; las fuentes de esta
+página están en [Referencias](referencias.md)):
 
 | `--criterio` | Mide | Úsalo si quedarse corto cuesta… |
 |---|---|---|
@@ -79,11 +80,8 @@ con este criterio (su WIS sale vacío).
 importa para planificar con margen, no castiga un piso mal puesto y su valor no se puede
 comparar con el de esos centros.
 
-Referencias: Bracher J, Ray EL, Gneiting T, Reich NG. *Evaluating epidemic forecasts in an
-interval format*. PLoS Comput Biol. 2021;17(2):e1008618,
-<https://doi.org/10.1371/journal.pcbi.1008618>. Mathis SM y otros. *Evaluation of FluSight
-influenza forecasting in the 2021–22 and 2022–23 seasons*. Nat Commun. 2024;15:6289,
-<https://doi.org/10.1038/s41467-024-50601-9>.
+Fuentes: Bracher y otros (2021), que define el WIS, y la evaluación de FluSight (Mathis y
+otros, 2024); citas completas en [Referencias](referencias.md).
 
 Combinar modelos en vez de elegir uno también es posible: agrega `Ensamble` (la mediana de
 AutoARIMA, Armónico y MSTL) a los modelos y compite en el mismo backtest.

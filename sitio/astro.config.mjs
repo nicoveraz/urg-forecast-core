@@ -41,6 +41,7 @@ export default defineConfig({
             { label: "Arquitectura", slug: "arquitectura" },
           ],
         },
+        { label: "Referencias", slug: "referencias" },
         { label: "Hoja de ruta", slug: "roadmap" },
         {
           label: "Comunidad",
