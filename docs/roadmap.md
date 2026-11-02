@@ -65,9 +65,6 @@ conocer todo el paquete. Dónde va cada cosa está en [Arquitectura](arquitectur
 
 ## Operación y mantenimiento
 
-- **Quitar las rutas antiguas en 0.5.** `urgencias_core.pipeline`,
-  `urgencias_core.eval.baselines` y `run_harness` siguen funcionando con un aviso desde 0.4
-  y se eliminan en la próxima versión menor.
 - **Demo.** La comparación de regresores cubre los 40 establecimientos con más atenciones
   (unos 30 minutos por semana en la CI). Si se amplía, conviene guardar los resultados y
   recalcular solo los establecimientos con datos nuevos.

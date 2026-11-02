@@ -137,4 +137,5 @@ CI ejecuta los ejemplos y avisa si una firma documentada cambió sin regenerarla
 - **Sin datos de pacientes.** Solo agregados públicos; las pruebas usan datos sintéticos o el
   snapshot incluido.
 - **Rutas estables.** Si algo cambia de lugar, la ruta antigua sigue funcionando con un aviso
-  durante una versión (`_compat.py`).
+  (`DeprecationWarning`) durante una versión menor, como hizo 0.4 con
+  `urgencias_core.pipeline`, y se elimina en la siguiente.

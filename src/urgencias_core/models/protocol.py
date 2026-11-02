@@ -59,7 +59,7 @@ class HorizonSpec:
 
 
 class Forecaster(Protocol):
-    """Minimal forecaster interface used by the eval harness.
+    """Minimal forecaster interface used by the backtest and the forecast.
 
     Implementations accept a DataFrame with a ``timestamp`` column and one or
     more numeric target columns, and return a DataFrame with ``timestamp`` plus

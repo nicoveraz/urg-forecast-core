@@ -1,4 +1,4 @@
-"""Baselines the eval harness uses to establish the accuracy bar.
+"""Baselines that set the accuracy bar, and the statsforecast wrapper.
 
 - ``SeasonalNaiveBaseline``: empirical quantiles conditional on a seasonal
   key inferred from the grain (``(dow, hour)`` for hourly, ``(month, dow)``

@@ -21,7 +21,6 @@ from __future__ import annotations
 
 from importlib.metadata import PackageNotFoundError, version
 
-from urgencias_core._compat import moved
 from urgencias_core.data.series import load_deis, weekly_series
 from urgencias_core.eval.backtest import backtest
 from urgencias_core.eval.compare import compare_models
@@ -35,8 +34,6 @@ try:
     __version__ = version("urg-forecast-core")
 except PackageNotFoundError:  # running from a source tree without an install
     __version__ = "0.0.0+unknown"
-
-__getattr__ = moved("urgencias_core", {"run_harness": "urgencias_core.eval.harness"})
 
 __all__ = [
     "__version__",
