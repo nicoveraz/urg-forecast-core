@@ -169,7 +169,8 @@ def run_forecast(
     table = scores.drop(columns=["origin", "covered", "n"]).groupby("model").mean()
     table["coverage_80"] = sums["covered"] / sums["n"]
     best = choose_model(table, select_by)
-    table = table.dropna(axis=1, how="all")  # e.g. wis when no lower quantiles were asked for
+    if "wis" in table and table["wis"].isna().all():  # no lower quantiles were asked for
+        table = table.drop(columns="wis")
 
     fc = models[best]()
     fc.fit(history, "count")

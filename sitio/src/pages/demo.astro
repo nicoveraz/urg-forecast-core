@@ -556,7 +556,7 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
     historia: [string, number][];
     pronostico: [string, number, number, number][];
     // p50, p90, p95, media and wis: backtest score of each --criterio (data from 2026-11 on)
-    backtest: ({ modelo: string; mae: number; mape: number; p80: number } & Partial<Record<string, number>>)[];
+    backtest: ({ modelo: string; mae: number; mape: number | null; p80: number } & Partial<Record<string, number>>)[];
     mejor: string;
     cobertura: [number, number];
     ventanas: number;
@@ -858,7 +858,7 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
     }
     head.append(hr);
     const tb = document.createElement("tbody");
-    const dec1 = (v: number) => v.toFixed(1).replace(".", ",");
+    const dec1 = (v: number | null | undefined) => (v == null ? "–" : v.toFixed(1).replace(".", ","));
     for (const m of rows) {
       const tr = document.createElement("tr");
       if (m.modelo === d.mejor) tr.className = "mejor";

@@ -214,7 +214,7 @@ def forecast_one(code: str, out_dir: str, cache_dir: str) -> dict:
             {
                 "modelo": m,
                 "mae": _round(r["mae"]),
-                "mape": _round(100 * r["mape"]),
+                "mape": _round(100 * r["mape"]) if pd.notna(r["mape"]) else None,  # all-zero weeks
                 "p80": _round(r["qloss_80"]),
                 **{k: _round(r[c]) for k, c in CRITERIA_DEMO.items() if pd.notna(r.get(c))},
             }
