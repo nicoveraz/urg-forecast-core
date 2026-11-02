@@ -488,7 +488,12 @@ def main() -> int:
     with ProcessPoolExecutor(max_workers=args.workers) as pool:
         futs = {pool.submit(forecast_one, c, str(args.salida), str(local_cache)): c for c in codes}
         for i, fut in enumerate(as_completed(futs), 1):
-            index.append(fut.result())
+            try:
+                index.append(fut.result())
+            except Exception as exc:  # noqa: BLE001 - one bad series must not stop the batch
+                code = futs[fut]
+                print(f"demo: {code} failed ({str(exc)[:80]})", flush=True)
+                index.append({"c": code, "n": code, "ok": False, "motivo": f"error: {str(exc)[:80]}"})
             if i % 25 == 0 or i == len(codes):
                 print(f"{i}/{len(codes)}", flush=True)
     index.sort(key=lambda e: (e.get("r") or "~", e.get("n") or ""))
