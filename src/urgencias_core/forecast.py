@@ -22,7 +22,7 @@ import pandas as pd
 from urgencias_core.data.series import GRAIN, SEASON_WEEKS, SOURCE_LIVE, NoDataError
 from urgencias_core.eval.backtest import MIN_TRAIN_WEEKS, backtest
 from urgencias_core.eval.calibration import apply_calibration, calibration_factors
-from urgencias_core.eval.metrics import CRITERIA, DEFAULT_CRITERION, QUANTILES, criterion_label
+from urgencias_core.eval.metrics import CRITERIA, DEFAULT_CRITERION, criterion_label, quantiles_for
 from urgencias_core.models.protocol import Forecaster, HorizonSpec
 from urgencias_core.models.registry import default_models
 
@@ -85,7 +85,8 @@ def choose_model(table: pd.DataFrame, select_by: Criterion = DEFAULT_CRITERION) 
     """The model that ``select_by`` prefers in a backtest ``table`` (one row per model).
 
     A string is a column of the table, lower is better: ``"qloss_80"`` (default),
-    ``"qloss_50"``, ``"qloss_90"``, ``"qloss_95"``, ``"qloss_mean"`` or ``"mae"``. A
+    ``"qloss_50"``, ``"qloss_90"``, ``"qloss_95"``, ``"qloss_mean"``, ``"wis"`` or ``"mae"``.
+    Models with a missing score (``wis`` from a model without lower quantiles) are left out. A
     function receives the table, with ``coverage_80`` (share of weeks at or below the P80)
     besides the score columns, and returns a model name. Fix the criterion before looking
     at the results: choosing it afterwards finds a winner by chance.
@@ -99,6 +100,11 @@ def choose_model(table: pd.DataFrame, select_by: Criterion = DEFAULT_CRITERION) 
         raise ValueError(
             f"criterio desconocido: {select_by!r}; usa uno de {', '.join(CRITERIA)} "
             "o una función que reciba la tabla del backtest"
+        )
+    if table[select_by].isna().all():
+        raise ValueError(
+            f"ningún modelo tiene {criterion_label(select_by)}"
+            + (": el WIS necesita los cuantiles q5, q10 y q20" if select_by == "wis" else "")
         )
     return str(table[select_by].idxmin())
 
@@ -122,6 +128,7 @@ def run_forecast(
     step: int = BACKTEST_STEP,
     calibrate: bool = True,
     select_by: Criterion = DEFAULT_CRITERION,
+    quantiles: tuple[float, ...] | None = None,
 ) -> ForecastResult:
     """Rolling backtest of ``models``, then forecast with the best one.
 
@@ -132,11 +139,15 @@ def run_forecast(
     lowest mean P80 quantile loss across windows. A model that fails to fit is
     skipped and reported in ``skipped``.
 
+    ``quantiles`` are the ones the backtest scores and the forecast returns: by default
+    q50, q80, q90 and q95, plus q5, q10 and q20 when ``select_by="wis"``.
+
     With ``calibrate=True`` the forward intervals are widened by
     :func:`calibration_factors`, computed from the chosen model's backtest
     errors. The reported backtest coverage is always the raw, uncalibrated one.
     """
     models = models or default_models()
+    qs = tuple(quantiles) if quantiles else quantiles_for(select_by)
     bt = min(horizon_weeks, MAX_BACKTEST_WEEKS)
     n = len(history)
     if n < bt + MIN_TRAIN_WEEKS:
@@ -145,7 +156,7 @@ def run_forecast(
             f"semanas completas y hay {n}."
         )
     run = backtest(
-        history, models, bt, max(1, origins), step, MIN_TRAIN_WEEKS, QUANTILES, stop_failed=True
+        history, models, bt, max(1, origins), step, MIN_TRAIN_WEEKS, qs, stop_failed=True
     )
     skipped = run.failed
     for model_name, err in skipped.items():
@@ -158,14 +169,16 @@ def run_forecast(
     table = scores.drop(columns=["origin", "covered", "n"]).groupby("model").mean()
     table["coverage_80"] = sums["covered"] / sums["n"]
     best = choose_model(table, select_by)
+    table = table.dropna(axis=1, how="all")  # e.g. wis when no lower quantiles were asked for
 
     fc = models[best]()
     fc.fit(history, "count")
-    forward = fc.predict(HorizonSpec(grain=GRAIN, length=horizon_weeks, quantiles=QUANTILES))
+    forward = fc.predict(HorizonSpec(grain=GRAIN, length=horizon_weeks, quantiles=qs))
     scale: dict[str, float] = {}
     if calibrate:
         pairs = run.pairs(best)
-        scale = calibration_factors([a for a, _ in pairs], [p for _, p in pairs])
+        given = tuple(q for q in qs if f"q{int(round(q * 100))}" in forward.columns)
+        scale = calibration_factors([a for a, _ in pairs], [p for _, p in pairs], given)
         forward = apply_calibration(forward, scale)
 
     return ForecastResult(

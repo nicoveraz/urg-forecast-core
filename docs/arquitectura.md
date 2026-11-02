@@ -59,8 +59,9 @@ frecuencia `W-MON`, los 7 días que terminan ese lunes) y `count`. Solo semanas 
 **Modelo (`Forecaster`).** Una clase con:
 
 - `fit(history, target_col)`: aprende de la serie semanal.
-- `predict(horizon)`: devuelve `horizon.length` filas con `timestamp, q50, q80, q90, q95`,
-  ordenadas (`q50 <= q80 <= q90 <= q95`). Las fechas salen de
+- `predict(horizon)`: devuelve `horizon.length` filas con `timestamp` y una columna por
+  cuantil de `horizon.quantiles`, ordenadas de menor a mayor: `q50, q80, q90, q95` por
+  defecto, y también `q5, q10, q20` cuando se elige por WIS. Las fechas salen de
   `models.protocol.future_index(ultima_semana, horizon)`.
 - Un constructor sin argumentos obligatorios. Si el modelo tiene parámetros, se registra
   una función que lo construye (`lambda: Modelo(k=4)`).

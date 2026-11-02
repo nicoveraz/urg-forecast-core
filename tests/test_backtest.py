@@ -11,7 +11,7 @@ import pytest
 
 from urgencias_core.eval.backtest import backtest, window_cuts
 from urgencias_core.eval.compare import compare_many, compare_scores
-from urgencias_core.eval.metrics import score
+from urgencias_core.eval.metrics import WIS_QUANTILES, score, weighted_interval_score
 from urgencias_core.models.baselines import SeasonalNaiveBaseline
 from urgencias_core.models.harmonic import HarmonicRegression
 
@@ -137,3 +137,43 @@ def test_new_paths_do_not_warn() -> None:
 def test_unknown_name_on_old_module_is_an_attribute_error() -> None:
     with pytest.raises(AttributeError):
         importlib.import_module("urgencias_core.pipeline").no_such_thing  # noqa: B018
+
+
+def test_wis_matches_the_interval_score_formula() -> None:
+    rng = np.random.default_rng(3)
+    y = rng.normal(100, 15, 12)
+    m = np.full(12, 100.0)
+    cols = {"q50": m}
+    for alpha, half in ((0.4, 8.0), (0.2, 15.0), (0.1, 20.0)):  # 60, 80, 90 % intervals
+        lo, hi = round(100 * alpha / 2), round(100 * (1 - alpha / 2))
+        cols[f"q{lo}"], cols[f"q{hi}"] = m - half, m + half
+    pred = pd.DataFrame(cols)
+    total = 0.5 * np.abs(y - m)
+    for alpha in (0.4, 0.2, 0.1):
+        lo = pred[f"q{round(100 * alpha / 2)}"].to_numpy()
+        hi = pred[f"q{round(100 * (1 - alpha / 2))}"].to_numpy()
+        interval = (hi - lo) + 2 / alpha * (lo - y) * (y < lo) + 2 / alpha * (y - hi) * (y > hi)
+        total += alpha / 2 * interval
+    expected = float(np.mean(total / (3 + 0.5)))  # Bracher et al. (2021), K = 3
+    assert weighted_interval_score(y, pred) == pytest.approx(expected)
+    s = score(pd.DataFrame({"count": y}), pred, WIS_QUANTILES)
+    assert s["wis"] == pytest.approx(expected)
+    assert s["qloss_mean"] == pytest.approx(
+        np.mean([s["qloss_50"], s["qloss_80"], s["qloss_90"], s["qloss_95"]])
+    )
+
+
+def test_wis_is_missing_without_lower_quantiles() -> None:
+    actual = pd.DataFrame({"count": [100.0, 120.0]})
+    s = score(actual, _pred([95, 95], [110, 110]))
+    assert np.isnan(s["wis"]) and not np.isnan(s["qloss_mean"])
+
+
+def test_compare_on_wis_asks_the_models_for_lower_quantiles() -> None:
+    h = _history()
+    cmp = compare_many(
+        h, ("H", HarmonicRegression), {"N": SeasonalNaiveBaseline}, 4, 4, 4, metric="wis"
+    )["N"]
+    assert cmp.metric == "wis" and cmp.n == 4
+    assert cmp.windows[["base", "candidate"]].notna().all().all()
+    assert "WIS" in cmp.text()

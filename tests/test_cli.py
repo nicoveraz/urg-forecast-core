@@ -148,6 +148,14 @@ def test_criterio_option_changes_the_choice_and_says_so(tmp_path, capsys) -> Non
     assert "el de menor pérdida P95" in out and "Pérdida P95" in out
 
 
+def test_criterio_wis_writes_lower_quantiles(tmp_path, capsys) -> None:
+    argv = ["demo", "--offline", "-H", "4", "-m", "SeasonalNaive", "-m", "Armonico"]
+    assert cli.main([*argv, "--criterio", "wis", "-o", str(tmp_path)]) == 0
+    assert "el de menor WIS" in capsys.readouterr().out
+    csv = next(tmp_path.glob("24-105_*/pronostico.csv")).read_text().splitlines()[0]
+    assert csv.startswith("timestamp,q5,q10,q20,q50")
+
+
 def test_criterio_rejects_unknown_values(capsys) -> None:
     with pytest.raises(SystemExit):
         cli.main(["demo", "--offline", "--criterio", "p70"])

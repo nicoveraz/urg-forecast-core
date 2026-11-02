@@ -5,7 +5,8 @@ same forecaster class can be used at hourly, daily, weekly, or monthly grain.
 
 Prediction DataFrames conform to a standard shape: one ``timestamp`` column
 plus one column per requested quantile named ``q{int(q*100)}`` (e.g. ``q50``,
-``q80``, ``q90``, ``q95``).
+``q80``, ``q90``, ``q95``; ``q5``, ``q10``, ``q20`` when the weighted interval score is
+the selection criterion). A forecaster must produce the quantiles the horizon asks for.
 """
 
 from __future__ import annotations

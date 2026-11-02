@@ -131,6 +131,34 @@ def test_run_forecast_select_by() -> None:
     assert result.best == "SeasonalNaive" and result.select_by == "siempre_naive"
 
 
+def test_run_forecast_on_wis_adds_lower_quantiles_only_then() -> None:
+    weekly = weekly_series(load_deis(["24-115"], offline=True), "24-115")
+    two = {"SeasonalNaive": SeasonalNaiveBaseline, "Armónico": HarmonicRegression}
+    result = run_forecast(weekly, 8, models=two, select_by="wis")
+    assert result.best == result.backtest["wis"].idxmin()
+    assert {"q5", "q10", "q20"} <= set(result.forecast.columns)
+    default = run_forecast(weekly, 8, models=two)
+    assert "wis" not in default.backtest.columns and "q5" not in default.forecast.columns
+
+
+class _OnlyUpper(SeasonalNaiveBaseline):
+    """A custom model that only gives the default quantiles."""
+
+    def predict(self, horizon):
+        out = super().predict(horizon)
+        return out.drop(columns=[c for c in ("q5", "q10", "q20") if c in out.columns])
+
+
+def test_wis_leaves_out_models_without_lower_quantiles() -> None:
+    weekly = weekly_series(load_deis(["24-115"], offline=True), "24-115")
+    result = run_forecast(
+        weekly, 8, models={"Propio": _OnlyUpper, "Armónico": HarmonicRegression}, select_by="wis"
+    )
+    assert result.best == "Armónico" and np.isnan(result.backtest.loc["Propio", "wis"])
+    with pytest.raises(ValueError, match="q5, q10 y q20"):
+        run_forecast(weekly, 8, models={"Propio": _OnlyUpper}, select_by="wis")
+
+
 def test_backtest_window_is_capped() -> None:
     df = load_deis(["24-115"], offline=True)
     fast = {"SeasonalNaive": SeasonalNaiveBaseline}  # keep this test quick
@@ -235,6 +263,33 @@ def test_calibration_widens_too_narrow_bands() -> None:
     widened = apply_calibration(pred.assign(timestamp=0), f)
     assert np.mean(y <= widened["q80"]) >= 0.78
     assert (widened["q95"] >= widened["q90"]).all() and (widened["q90"] >= widened["q80"]).all()
+
+
+def test_calibration_widens_lower_bands_too() -> None:
+    from urgencias_core.eval.calibration import apply_calibration, calibration_factors
+    from urgencias_core.eval.metrics import WIS_QUANTILES
+
+    rng = np.random.default_rng(2)
+    y = 100 + rng.normal(0, 20, 80)
+    actual = pd.DataFrame({"count": y})
+    pred = pd.DataFrame(
+        {
+            "q5": 96.0,
+            "q10": 97.0,
+            "q20": 98.0,
+            "q50": 100.0,
+            "q80": 102.0,
+            "q90": 103.0,
+            "q95": 104.0,
+        },
+        index=range(80),
+    )
+    f = calibration_factors([actual], [pred], WIS_QUANTILES)
+    assert f["q20"] > 3 and f["q80"] > 3
+    out = apply_calibration(pred.assign(timestamp=0), f)
+    assert np.mean(y < out["q20"]) <= 0.22 and np.mean(y < out["q5"]) <= 0.07
+    assert (out["q5"] <= out["q10"]).all() and (out["q10"] <= out["q20"]).all()
+    assert (out["q20"] <= out["q50"]).all()
 
 
 def test_calibration_never_narrows() -> None:

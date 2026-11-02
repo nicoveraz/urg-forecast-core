@@ -97,6 +97,7 @@ ejemplos:
   urg-forecast pronosticar 24-105 -m Ensamble -m TBATS -m MSTL
   urg-forecast pronosticar 24-105 -m mi_modelo:MiClase -m MSTL
   urg-forecast pronosticar 24-105 --criterio p95   # quedarse corto cuesta 19 veces más
+  urg-forecast pronosticar 24-105 --criterio wis   # pronóstico completo; agrega P5, P10, P20
 
 Horizonte: semanas (12 o 12s) o meses (6m). El backtest usa tres ventanas tan
 largas como el horizonte (máximo 26 semanas) y exige 104 semanas previas de
@@ -132,14 +133,16 @@ CRITERIO = {
     "p90": "qloss_90",
     "p95": "qloss_95",
     "media": "qloss_mean",
+    "wis": "wis",
     "mae": "mae",
 }
 CRITERIO_HELP = (
     "criterio para elegir el modelo en el backtest (por defecto p80). p50, p80, p90 o p95: "
     "pérdida en ese cuantil; elígelo según cuánto peor es quedarse corto que pasarse "
     "(p50: igual; p80: 4 veces; p90: 9; p95: 19). media: promedio de P50 a P95, evalúa el "
-    "valor central y la parte alta juntos. mae: error del valor central. Fíjalo antes de "
-    "mirar los resultados"
+    "valor central y la parte alta juntos. wis: el puntaje de intervalos (WIS) de los "
+    "centros de pronóstico de influenza, evalúa el pronóstico completo con cuantiles de P5 a "
+    "P95. mae: error del valor central. Fíjalo antes de mirar los resultados"
 )
 
 MODELS_EPILOG = """\
