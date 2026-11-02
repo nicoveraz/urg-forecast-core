@@ -257,10 +257,10 @@
     {
      "id": "run_forecast",
      "title": "run_forecast",
-     "signature": "run_forecast(\n    history: pd.DataFrame,\n    horizon_weeks: int,\n    code: str = \"\",\n    name: str = \"\",\n    models: dict[str, Callable[[], Forecaster]] | None = None,\n    source: str = \"DEIS MINSAL (descarga actualizada)\",\n    origins: int = 3,\n    step: int = 8,\n    calibrate: bool = True,\n)",
+     "signature": "run_forecast(\n    history: pd.DataFrame,\n    horizon_weeks: int,\n    code: str = \"\",\n    name: str = \"\",\n    models: dict[str, Callable[[], Forecaster]] | None = None,\n    source: str = \"DEIS MINSAL (descarga actualizada)\",\n    origins: int = 3,\n    step: int = 8,\n    calibrate: bool = True,\n    select_by: Criterion = \"qloss_80\",\n)",
      "module": "urgencias_core.forecast",
      "source": "src/urgencias_core/forecast.py",
-     "text": "Cada modelo pronostica semanas pasadas que ya se conocen (ventanas tan largas como el horizonte, hasta 26 semanas); se elige el de menor pérdida P80, se reajusta con toda la historia y se pronostica. Con `calibrate=True` las bandas se ensanchan según el error que tuvo en esas ventanas.",
+     "text": "Cada modelo pronostica semanas pasadas que ya se conocen (ventanas tan largas como el horizonte, hasta 26 semanas); se elige el mejor, se reajusta con toda la historia y se pronostica. Mejor es, por defecto, el de menor pérdida P80 (quedarse corto cuesta 4 veces más que pasarse); `select_by` cambia el criterio. Con `calibrate=True` las bandas se ensanchan según el error que tuvo en esas ventanas.",
      "params": [
       [
        "history",
@@ -281,6 +281,10 @@
       [
        "calibrate",
        "ensanchar los intervalos según el backtest"
+      ],
+      [
+       "select_by",
+       "columna para elegir: `\"qloss_80\"` (por defecto), `\"qloss_50\"`, `\"qloss_90\"`, `\"qloss_95\"`, `\"qloss_mean\"`, `\"mae\"`, o una función que reciba la tabla del backtest y devuelva un modelo"
       ]
      ],
      "returns": "`ForecastResult`: `best`, `backtest` (error por modelo), `forecast` (`timestamp, q50, q80, q90, q95`), `coverage80`, `interval_scale`.",
@@ -401,7 +405,7 @@
     {
      "id": "compare_models",
      "title": "compare_models",
-     "signature": "compare_models(\n    history: pd.DataFrame,\n    base: tuple[str, Callable[[], Forecaster]],\n    candidate: tuple[str, Callable[[], Forecaster]],\n    horizon_weeks: int = 4,\n    origins: int = 36,\n    step: int = 4,\n    min_train_weeks: int = 104,\n    alpha: float = 0.05,\n)",
+     "signature": "compare_models(\n    history: pd.DataFrame,\n    base: tuple[str, Callable[[], Forecaster]],\n    candidate: tuple[str, Callable[[], Forecaster]],\n    horizon_weeks: int = 4,\n    origins: int = 36,\n    step: int = 4,\n    min_train_weeks: int = 104,\n    alpha: float = 0.05,\n    metric: str = \"qloss_80\",\n)",
      "module": "urgencias_core.eval.compare",
      "source": "src/urgencias_core/eval/compare.py",
      "text": "¿El candidato le gana a la base de forma consistente? Ajusta ambos en las mismas ventanas (36 de 4 semanas por defecto), cuenta en cuántas gana, aplica una prueba de signos y separa invierno del resto. Es `urg-forecast comparar`.",
@@ -417,6 +421,10 @@
       [
        "horizon_weeks, origins, step",
        "ventanas (4, 36, 4)"
+      ],
+      [
+       "metric",
+       "qué se compara en cada ventana (por defecto `\"qloss_80\"`)"
       ]
      ],
      "returns": "`Comparison`: `verdict` (`mejora`, `empeora`, `sin diferencia clara`), `text()`, `summary()`, `windows`.",

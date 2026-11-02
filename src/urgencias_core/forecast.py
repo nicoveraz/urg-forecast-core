@@ -2,8 +2,12 @@
 
 :func:`run_forecast` is what ``urg-forecast pronosticar`` runs: a rolling backtest
 (:mod:`urgencias_core.eval.backtest`) of every model on windows as long as the horizon,
-the model with the lowest mean P80 quantile loss refitted on all history, and its upper
-bands widened by the backtest errors (:mod:`urgencias_core.eval.calibration`).
+the best model refitted on all history, and its upper bands widened by the backtest
+errors (:mod:`urgencias_core.eval.calibration`).
+
+"Best" is a choice, not a fact: by default the lowest mean P80 quantile loss (falling
+short costs four times more than over-planning). ``select_by`` takes any other score
+column (:data:`~urgencias_core.eval.metrics.CRITERIA`) or a function of the backtest table.
 """
 
 from __future__ import annotations
@@ -18,7 +22,7 @@ import pandas as pd
 from urgencias_core.data.series import GRAIN, SEASON_WEEKS, SOURCE_LIVE, NoDataError
 from urgencias_core.eval.backtest import MIN_TRAIN_WEEKS, backtest
 from urgencias_core.eval.calibration import apply_calibration, calibration_factors
-from urgencias_core.eval.metrics import QUANTILES
+from urgencias_core.eval.metrics import CRITERIA, DEFAULT_CRITERION, QUANTILES, criterion_label
 from urgencias_core.models.protocol import Forecaster, HorizonSpec
 from urgencias_core.models.registry import default_models
 
@@ -27,6 +31,10 @@ BACKTEST_ORIGINS = 3  # rolling backtest windows
 BACKTEST_STEP = 8  # weeks between window starts
 
 logger = logging.getLogger(__name__)
+
+# A criterion is a score column (lower is better) or a function that receives the backtest
+# table (one row per model) and returns the name of the model to use.
+Criterion = str | Callable[[pd.DataFrame], str]
 
 
 def parse_horizon(text: str | int) -> int:
@@ -62,6 +70,7 @@ class ForecastResult:
     skipped: dict[str, str] = field(default_factory=dict)  # model -> error
     # Factor applied to each upper band (q - q50) after calibration; 1.0 = unchanged.
     interval_scale: dict[str, float] = field(default_factory=dict)
+    select_by: str = DEFAULT_CRITERION  # score column, or the name of the function used
 
     @property
     def backtest_actual(self) -> pd.DataFrame:
@@ -70,6 +79,35 @@ class ForecastResult:
 
 def min_weeks_needed(horizon_weeks: int) -> int:
     return min(horizon_weeks, MAX_BACKTEST_WEEKS) + MIN_TRAIN_WEEKS
+
+
+def choose_model(table: pd.DataFrame, select_by: Criterion = DEFAULT_CRITERION) -> str:
+    """The model that ``select_by`` prefers in a backtest ``table`` (one row per model).
+
+    A string is a column of the table, lower is better: ``"qloss_80"`` (default),
+    ``"qloss_50"``, ``"qloss_90"``, ``"qloss_95"``, ``"qloss_mean"`` or ``"mae"``. A
+    function receives the table, with ``coverage_80`` (share of weeks at or below the P80)
+    besides the score columns, and returns a model name. Fix the criterion before looking
+    at the results: choosing it afterwards finds a winner by chance.
+    """
+    if callable(select_by):
+        best = select_by(table)
+        if best not in table.index:
+            raise ValueError(f"el criterio devolvió {best!r}, que no está entre los modelos")
+        return str(best)
+    if select_by not in table.columns:
+        raise ValueError(
+            f"criterio desconocido: {select_by!r}; usa uno de {', '.join(CRITERIA)} "
+            "o una función que reciba la tabla del backtest"
+        )
+    return str(table[select_by].idxmin())
+
+
+def criterion_name(select_by: Criterion) -> str:
+    """How a criterion is reported: its Spanish label, or the function's name."""
+    if callable(select_by):
+        return getattr(select_by, "__name__", "criterio propio")
+    return criterion_label(select_by)
 
 
 def run_forecast(
@@ -83,14 +121,16 @@ def run_forecast(
     origins: int = BACKTEST_ORIGINS,
     step: int = BACKTEST_STEP,
     calibrate: bool = True,
+    select_by: Criterion = DEFAULT_CRITERION,
 ) -> ForecastResult:
     """Rolling backtest of ``models``, then forecast with the best one.
 
     Each backtest window is as long as the horizon (capped at 26 weeks). Up to
     ``origins`` windows are used, ``step`` weeks apart, so the choice does not
     hinge on a single season; fewer are used when history is short. The best
-    model has the lowest mean P80 quantile loss across windows. A model that
-    fails to fit is skipped and reported in ``skipped``.
+    model is the one ``select_by`` prefers (:func:`choose_model`); by default the
+    lowest mean P80 quantile loss across windows. A model that fails to fit is
+    skipped and reported in ``skipped``.
 
     With ``calibrate=True`` the forward intervals are widened by
     :func:`calibration_factors`, computed from the chosen model's backtest
@@ -116,7 +156,8 @@ def run_forecast(
         raise NoDataError(f"{name or code}: ningún modelo pudo ajustarse.")
     sums = scores.groupby("model")[["covered", "n"]].sum()
     table = scores.drop(columns=["origin", "covered", "n"]).groupby("model").mean()
-    best = str(table["qloss_80"].idxmin())
+    table["coverage_80"] = sums["covered"] / sums["n"]
+    best = choose_model(table, select_by)
 
     fc = models[best]()
     fc.fit(history, "count")
@@ -142,12 +183,16 @@ def run_forecast(
         coverage80=(int(sums.loc[best, "covered"]), int(sums.loc[best, "n"])),
         skipped=skipped,
         interval_scale=scale,
+        select_by=select_by if isinstance(select_by, str) else criterion_name(select_by),
     )
 
 
 __all__ = [
     "BACKTEST_ORIGINS",
     "BACKTEST_STEP",
+    "Criterion",
+    "choose_model",
+    "criterion_name",
     "ForecastResult",
     "MAX_BACKTEST_WEEKS",
     "min_weeks_needed",

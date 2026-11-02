@@ -13,8 +13,9 @@ from urgencias_core.data.series import (
     to_weekly,
     weekly_series,
 )
-from urgencias_core.forecast import parse_horizon, run_forecast
+from urgencias_core.forecast import choose_model, parse_horizon, run_forecast
 from urgencias_core.models.baselines import SeasonalNaiveBaseline
+from urgencias_core.models.harmonic import HarmonicRegression
 
 
 @pytest.mark.parametrize(
@@ -97,6 +98,37 @@ def test_run_forecast_on_snapshot() -> None:
     assert total == 3 * 8 and 0 <= covered <= total
     assert result.best == result.backtest["qloss_80"].idxmin()
     assert len(result.backtest_pred) == 8
+
+
+def test_choose_model_by_column_or_function() -> None:
+    table = pd.DataFrame(
+        {"qloss_80": [3.0, 2.0], "qloss_95": [1.0, 2.0], "coverage_80": [0.7, 0.9]},
+        index=["A", "B"],
+    )
+    assert choose_model(table) == "B"  # P80 by default
+    assert choose_model(table, "qloss_95") == "A"
+    calibrated = lambda t: t[t["coverage_80"] >= 0.8]["qloss_80"].idxmin()  # noqa: E731
+    assert choose_model(table, calibrated) == "B"
+    with pytest.raises(ValueError, match="criterio desconocido"):
+        choose_model(table, "p80")
+    with pytest.raises(ValueError, match="no está entre los modelos"):
+        choose_model(table, lambda t: "C")
+
+
+def test_run_forecast_select_by() -> None:
+    weekly = weekly_series(load_deis(["24-115"], offline=True), "24-115")
+    two = {"SeasonalNaive": SeasonalNaiveBaseline, "Armónico": HarmonicRegression}
+    for crit in ("qloss_50", "qloss_95", "qloss_mean", "mae"):
+        result = run_forecast(weekly, 8, models=two, select_by=crit)
+        assert result.best == result.backtest[crit].idxmin()
+        assert result.select_by == crit
+    assert {"qloss_mean", "coverage_80"} <= set(result.backtest.columns)
+
+    def siempre_naive(table: pd.DataFrame) -> str:
+        return "SeasonalNaive"
+
+    result = run_forecast(weekly, 8, models=two, select_by=siempre_naive)
+    assert result.best == "SeasonalNaive" and result.select_by == "siempre_naive"
 
 
 def test_backtest_window_is_capped() -> None:

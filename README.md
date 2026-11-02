@@ -109,6 +109,7 @@ Pronóstico con Armónico: atenciones semanales
 | `-m`, `--modelo` | demo, pronosticar | Modelo a usar, repetible. Nombre de `urg-forecast modelos` o `archivo:Clase` para uno propio. Ver [Modelos](#modelos). |
 | `--base`, `--ventanas`, `--paso` | comparar | Modelo base (Armónico), número de ventanas (36) y semanas entre ellas (4). Con `comparar`, `-H` es el largo de cada ventana (4 semanas). |
 | `--sin-calibrar` | demo, pronosticar | No ensanchar los intervalos según el error del backtest. |
+| `--criterio` | demo, pronosticar, comparar | Con qué se elige (o compara) el modelo: `p80` (por defecto), `p50`, `p90`, `p95`, `media` (promedio de P50 a P95) o `mae`. Ver [Modelos](#modelos). |
 | `--desde AÑO` | analizar, pronosticar | Primer año DEIS a usar (por defecto 2022). 2020–2021 siempre se excluyen. |
 | `--offline` | demo, analizar, pronosticar | Solo el snapshot incluido, sin red. El snapshot trae únicamente los dos hospitales del demo. |
 | `--fuente repo\|deis` | demo, buscar, analizar, pronosticar | De dónde leer los datos (ver abajo). Por defecto `repo`. |
@@ -195,7 +196,7 @@ y MINSAL, [tipos de servicios de urgencia](https://www.minsal.cl/servicios-de-ur
 3. Compara cuatro modelos (seasonal naive como referencia, AutoARIMA, una
    regresión armónica y MSTL) en tres ventanas de backtest tan largas como el
    horizonte (máximo 26 semanas), y elige el de menor pérdida por cuantil P80
-   promedio. Con datos en vivo de siete hospitales ningún modelo ganó en todos,
+   promedio (`--criterio` usa otro). Con datos en vivo de siete hospitales ningún modelo ganó en todos,
    así que la elección se hace por establecimiento; ver
    [`docs/seleccion-de-modelos.md`](https://github.com/nicoveraz/urg-forecast-core/blob/main/docs/seleccion-de-modelos.md).
 4. Reajusta ese modelo con toda la historia y pronostica el horizonte pedido.

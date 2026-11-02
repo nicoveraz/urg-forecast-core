@@ -5,7 +5,9 @@ regressor really helps one establishment: with few windows the difference is mos
 :func:`compare_models` fits both models on the same windows (many origins, a few weeks
 apart, spanning several seasons) and reports:
 
-- the median relative change in P80 quantile loss per window (negative = candidate better);
+- the median relative change in P80 quantile loss per window (negative = candidate better),
+  or in any other score column passed as ``metric`` (see
+  :data:`~urgencias_core.eval.metrics.CRITERIA`);
 - how many windows the candidate wins, with an exact two-sided sign test;
 - the same split by season (winter windows, May-September, versus the rest), because a
   respiratory-virus regressor should matter in winter if it matters at all;
@@ -24,6 +26,7 @@ from math import comb
 import pandas as pd
 
 from urgencias_core.eval.backtest import MIN_TRAIN_WEEKS, backtest
+from urgencias_core.eval.metrics import CRITERIA, DEFAULT_CRITERION, criterion_label
 from urgencias_core.models.protocol import Forecaster
 
 WINTER_MONTHS = (5, 6, 7, 8, 9)
@@ -48,14 +51,13 @@ def paired_windows(
 ) -> pd.DataFrame:
     """Per-window scores of each model on the same rolling windows.
 
-    Returns one row per (window, model): ``origin`` (last training week), ``model``,
-    ``qloss_80``, ``mae``. Windows run backwards from the end of ``history``, ``step``
-    weeks apart, while at least ``min_train_weeks`` remain for training. A model that fails
-    on a window is left out of that window.
+    Returns one row per (window, model): ``origin`` (last training week), ``model`` and
+    every :func:`~urgencias_core.eval.metrics.score` column. Windows run backwards from
+    the end of ``history``, ``step`` weeks apart, while at least ``min_train_weeks`` remain
+    for training. A model that fails on a window is left out of that window.
     """
-    cols = ["origin", "model", "qloss_80", "mae"]
     scores = backtest(history, models, horizon_weeks, origins, step, min_train_weeks).scores()
-    return scores[cols] if not scores.empty else pd.DataFrame(columns=cols)
+    return scores if not scores.empty else pd.DataFrame(columns=["origin", "model", *CRITERIA])
 
 
 @dataclass
@@ -67,6 +69,7 @@ class Comparison:
     windows: pd.DataFrame  # origin, base, candidate, rel_change, winter
     horizon_weeks: int
     alpha: float = 0.05
+    metric: str = DEFAULT_CRITERION  # score column compared in each window (lower is better)
 
     @property
     def n(self) -> int:
@@ -105,16 +108,18 @@ class Comparison:
         return (
             f"{self.candidate} frente a {self.base}, {s['ventanas']} ventanas de "
             f"{self.horizon_weeks} semanas: gana {s['gana']}, pierde {s['pierde']} "
-            f"(p = {s['p']:.2f}); cambio mediano de la pérdida P80 "
+            f"(p = {s['p']:.2f}); cambio mediano de la {criterion_label(self.metric)} "
             f"{100 * s['cambio_mediano']:+.1f} %. Veredicto: {self.verdict}."
         )
 
 
 def _comparison(
-    long: pd.DataFrame, bname: str, cname: str, horizon_weeks: int, alpha: float
+    long: pd.DataFrame, bname: str, cname: str, horizon_weeks: int, alpha: float, metric: str
 ) -> Comparison:
+    if metric not in long.columns:
+        raise ValueError(f"métrica desconocida: {metric!r}; usa una de {', '.join(CRITERIA)}")
     sub = long[long["model"].isin([bname, cname])]
-    wide = sub.pivot(index="origin", columns="model", values="qloss_80")
+    wide = sub.pivot(index="origin", columns="model", values=metric)
     wide = wide.reindex(columns=[bname, cname]).dropna()
     wide = wide.rename(columns={bname: "base", cname: "candidate"}).reset_index()
     wide.columns.name = None
@@ -122,7 +127,7 @@ def _comparison(
     first_target = pd.to_datetime(wide["origin"]) + pd.Timedelta(weeks=1)
     wide["winter"] = first_target.dt.month.isin(WINTER_MONTHS)
     wide = wide.sort_values("origin").reset_index(drop=True)
-    return Comparison(bname, cname, wide, horizon_weeks, alpha)
+    return Comparison(bname, cname, wide, horizon_weeks, alpha, metric)
 
 
 def compare_many(
@@ -134,6 +139,7 @@ def compare_many(
     step: int = 4,
     min_train_weeks: int = MIN_TRAIN_WEEKS,
     alpha: float = 0.05,
+    metric: str = DEFAULT_CRITERION,
 ) -> dict[str, Comparison]:
     """Like :func:`compare_models` for several candidates, fitting the base only once."""
     bname, bf = base
@@ -142,7 +148,7 @@ def compare_many(
     long = paired_windows(
         history, {bname: bf, **candidates}, horizon_weeks, origins, step, min_train_weeks
     )
-    return compare_scores(long, bname, list(candidates), horizon_weeks, alpha)
+    return compare_scores(long, bname, list(candidates), horizon_weeks, alpha, metric)
 
 
 def compare_scores(
@@ -151,6 +157,7 @@ def compare_scores(
     candidates: list[str],
     horizon_weeks: int,
     alpha: float = 0.05,
+    metric: str = DEFAULT_CRITERION,
 ) -> dict[str, Comparison]:
     """The comparisons of :func:`compare_many` from a backtest already run.
 
@@ -159,7 +166,7 @@ def compare_scores(
     """
     if base in candidates:
         raise ValueError("base and candidates need different names")
-    return {c: _comparison(scores, base, c, horizon_weeks, alpha) for c in candidates}
+    return {c: _comparison(scores, base, c, horizon_weeks, alpha, metric) for c in candidates}
 
 
 def compare_models(
@@ -171,17 +178,20 @@ def compare_models(
     step: int = 4,
     min_train_weeks: int = MIN_TRAIN_WEEKS,
     alpha: float = 0.05,
+    metric: str = DEFAULT_CRITERION,
 ) -> Comparison:
     """Paired backtest of ``candidate`` against ``base`` (each a ``(name, factory)`` pair).
 
     Defaults: 4-week windows, up to 36 origins 4 weeks apart (about three winters), at least
-    two years of training. Only windows where both models fit are compared.
+    two years of training, compared on the P80 quantile loss (``metric``: any column of
+    :data:`~urgencias_core.eval.metrics.CRITERIA`). Only windows where both models fit are
+    compared.
     """
     cname, cf = candidate
     if base[0] == cname:
         raise ValueError("base and candidate need different names")
     out = compare_many(
-        history, base, {cname: cf}, horizon_weeks, origins, step, min_train_weeks, alpha
+        history, base, {cname: cf}, horizon_weeks, origins, step, min_train_weeks, alpha, metric
     )
     return out[cname]
 

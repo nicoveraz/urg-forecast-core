@@ -23,7 +23,8 @@ repositorio.
    en cada fecha solo lo que ya estaba publicado.
 4. **Evaluación.** `eval/` mide cada modelo en el pasado (`backtest`) y dice si un cambio
    ayuda de verdad (`compare_models`).
-5. **Pronóstico.** `forecast.py` elige el de menor pérdida P80 y pronostica.
+5. **Pronóstico.** `forecast.py` elige el mejor según un criterio (por defecto, la pérdida
+   P80; `select_by` usa otro) y pronostica.
 6. **Resultados.** `report.py`, `cli.py` y la demo muestran el análisis y el pronóstico.
 
 Todo es un `DataFrame` de pandas: no hay clases de datos propias ni base de datos.

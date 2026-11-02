@@ -93,6 +93,19 @@ def test_compare_scores_matches_compare_many() -> None:
     pd.testing.assert_frame_equal(a.windows, b.windows)
     with pytest.raises(ValueError):
         compare_scores(run.scores(), "H", ["H"], 4)
+    by_mae = compare_scores(run.scores(), "H", ["N"], 4, metric="mae")["N"]
+    mae = run.scores().pivot(index="origin", columns="model", values="mae")
+    assert by_mae.metric == "mae" and "MAE" in by_mae.text()
+    assert by_mae.windows["base"].tolist() == mae.sort_index()["H"].tolist()
+    with pytest.raises(ValueError, match="métrica desconocida"):
+        compare_scores(run.scores(), "H", ["N"], 4, metric="p80")
+
+
+def test_qloss_mean_averages_the_quantile_losses() -> None:
+    actual = pd.DataFrame({"count": [100.0, 120.0, 90.0, 110.0]})
+    s = score(actual, _pred([95, 95, 95, 95], [110, 110, 110, 110]))
+    parts = [s["qloss_50"], s["qloss_80"], s["qloss_90"], s["qloss_95"]]
+    assert s["qloss_mean"] == pytest.approx(sum(parts) / 4)
 
 
 @pytest.mark.parametrize(
