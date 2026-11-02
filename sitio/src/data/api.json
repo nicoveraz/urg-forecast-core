@@ -252,15 +252,15 @@
   {
    "id": "pronostico",
    "title": "Pronóstico",
-   "text": "Comparar modelos en el pasado, elegir el mejor y pronosticar. Es lo que hace `urg-forecast pronosticar`.",
+   "text": "Medir modelos en el pasado y pronosticar. Es lo que hace `urg-forecast pronosticar`.",
    "entries": [
     {
      "id": "run_forecast",
      "title": "run_forecast",
-     "signature": "run_forecast(\n    history: pd.DataFrame,\n    horizon_weeks: int,\n    code: str = \"\",\n    name: str = \"\",\n    models: dict[str, Callable[[], Forecaster]] | None = None,\n    source: str = \"DEIS MINSAL (descarga actualizada)\",\n    origins: int = 3,\n    step: int = 8,\n    calibrate: bool = True,\n    select_by: Criterion = \"qloss_80\",\n    quantiles: tuple[float, ...] | None = None,\n)",
+     "signature": "run_forecast(\n    history: pd.DataFrame,\n    horizon_weeks: int,\n    code: str = \"\",\n    name: str = \"\",\n    models: dict[str, Callable[[], Forecaster]] | None = None,\n    source: str = \"DEIS MINSAL (descarga actualizada)\",\n    origins: int = 3,\n    step: int = 8,\n    calibrate: bool = False,\n    select_by: Criterion | None = None,\n    quantiles: tuple[float, ...] | None = None,\n)",
      "module": "urgencias_core.forecast",
      "source": "src/urgencias_core/forecast.py",
-     "text": "Cada modelo pronostica semanas pasadas que ya se conocen (ventanas tan largas como el horizonte, hasta 26 semanas); se elige el mejor, se reajusta con toda la historia y se pronostica. Mejor es, por defecto, el de menor pérdida P80 (quedarse corto cuesta 4 veces más que pasarse); `select_by` cambia el criterio. Con `calibrate=True` las bandas se ensanchan según el error que tuvo en esas ventanas.",
+     "text": "Cada modelo pronostica semanas pasadas que ya se conocen (ventanas tan largas como el horizonte, hasta 26 semanas) y se pronostica con Ensamble, la mediana de AutoARIMA, Armónico y MSTL, reajustado con toda la historia: en 40 hospitales rindió más que elegir el mejor modelo de cada uno. Los demás quedan en `backtest` como referencia. `select_by` elige en cambio el mejor según un criterio, y con `calibrate=True` las bandas se ensanchan según el error que tuvo en esas ventanas.",
      "params": [
       [
        "history",
@@ -272,28 +272,28 @@
       ],
       [
        "models",
-       "nombre → fábrica; por defecto los cuatro de `default_models()`"
+       "nombre → fábrica; por defecto `default_models()`: Ensamble y sus referencias. Sin Ensamble entre ellos, gana el de menor pérdida P80"
       ],
       [
        "origins, step",
-       "número de ventanas (3) y semanas entre ellas (8); más ventanas dan una elección más estable, no más acertada, a cambio de tiempo"
+       "número de ventanas (3) y semanas entre ellas (8); al elegir, más ventanas dan una elección más estable, no más acertada"
       ],
       [
        "calibrate",
-       "ensanchar los intervalos según el backtest"
+       "ensanchar los intervalos según el backtest (`False` por defecto: en 40 hospitales empeoró la pérdida P80 en la mayoría)"
       ],
       [
        "select_by",
-       "columna para elegir: `\"qloss_80\"` (por defecto), `\"qloss_50\"`, `\"qloss_90\"`, `\"qloss_95\"`, `\"qloss_mean\"`, `\"wis\"`, `\"mae\"`, o una función que reciba la tabla del backtest y devuelva un modelo"
+       "`None` (por defecto): Ensamble. Para elegir, una columna: `\"qloss_80\"`, `\"qloss_50\"`, `\"qloss_90\"`, `\"qloss_95\"`, `\"qloss_mean\"`, `\"wis\"`, `\"mae\"`, o una función que reciba la tabla del backtest y devuelva un modelo"
       ],
       [
        "quantiles",
        "cuantiles del backtest y del pronóstico; por defecto P50 a P95, y de P5 a P95 con `select_by=\"wis\"`"
       ]
      ],
-     "returns": "`ForecastResult`: `best`, `backtest` (error por modelo), `forecast` (`timestamp, q50, q80, q90, q95`), `coverage80`, `interval_scale`.",
+     "returns": "`ForecastResult`: `best` (el modelo que pronostica), `backtest` (error por modelo), `forecast` (`timestamp, q50, q80, q90, q95`), `coverage80`, `interval_scale` (vacío si no se calibró).",
      "example": "from urgencias_core import run_forecast\n\nnombre = \"Hospital de Puerto Montt\"\nres = run_forecast(semanal, 12, code=\"24-105\", name=nombre)\nprint(res.best)\nprint(res.backtest[[\"mae\", \"qloss_80\"]])\nprint(res.forecast[[\"timestamp\", \"q50\", \"q80\"]].head(3))",
-     "output": "MSTL\n                 mae  qloss_80\nmodel                         \nArmónico       164.0      68.3\nAutoARIMA      168.4      75.5\nMSTL           130.9      53.2\nSeasonalNaive  436.7     280.6\n   timestamp     q50     q80\n0 2026-10-26  1951.5  2076.8\n1 2026-11-02  1913.8  2059.6\n2 2026-11-09  2061.9  2225.7",
+     "output": "Ensamble\n                 mae  qloss_80\nmodel                         \nArmónico       164.0      68.3\nAutoARIMA      168.4      75.5\nEnsamble       148.2      66.0\nMSTL           130.9      53.2\nSeasonalNaive  436.7     280.6\n   timestamp     q50     q80\n0 2026-10-26  1951.5  2014.4\n1 2026-11-02  1913.8  1987.0\n2 2026-11-09  2011.3  2117.9",
      "run": true
     },
     {
@@ -305,8 +305,8 @@
      "text": "`q50` es el valor central: la mitad de las veces el real queda bajo él. `q80` y `q95` son los valores que, con 80 % y 95 % de probabilidad, no se superan; sirven para planificar con margen. La **pérdida P80** (pinball) mide el error de `q80` castigando más quedarse corto que pasarse; menor es mejor. `coverage80` cuenta en cuántas semanas del backtest el real quedó bajo `q80` (lo esperable es cerca de 80 %).",
      "params": [],
      "returns": "",
-     "example": "cubiertas, total = res.coverage80\nprint(f\"bajo P80 en {cubiertas} de {total} semanas\")\n# cuánto se ensanchó cada banda (1 = nada)\nprint({k: round(v, 2) for k, v in res.interval_scale.items()})",
-     "output": "bajo P80 en 20 de 36 semanas\n{'q80': 1.99, 'q90': 1.77, 'q95': 1.53}",
+     "example": "cubiertas, total = res.coverage80\nprint(f\"bajo P80 en {cubiertas} de {total} semanas\")\n# con calibrate=True, cuánto se ensanchó cada banda (1 = nada)\ncal = run_forecast(semanal, 12, calibrate=True)\nprint({k: round(v, 2) for k, v in cal.interval_scale.items()})",
+     "output": "bajo P80 en 20 de 36 semanas\n{'q80': 2.08, 'q90': 2.27, 'q95': 1.97}",
      "run": true
     },
     {
@@ -357,16 +357,16 @@
      "signature": "resolve_models(names: list[str] | None)",
      "module": "urgencias_core.models.registry",
      "source": "src/urgencias_core/models/registry.py",
-     "text": "Los modelos por nombre. `default_models()` son los cuatro que se comparan por defecto; `available_models()` suma los opcionales; `resolve_models` acepta nombres sin tildes ni mayúsculas, o `'archivo:Clase'` para uno propio.",
+     "text": "Los modelos por nombre. `default_models()` son los que se miden por defecto: Ensamble, que pronostica, y SeasonalNaive, AutoARIMA, Armónico y MSTL como referencia; `available_models()` suma los opcionales; `resolve_models` acepta nombres sin tildes ni mayúsculas, o `'archivo:Clase'` para uno propio.",
      "params": [
       [
        "names",
-       "lista de nombres; `None` = los cuatro por defecto"
+       "lista de nombres; `None` = los de `default_models()`"
       ]
      ],
      "returns": "dict nombre → fábrica (una instancia nueva por ajuste).",
      "example": "from urgencias_core import available_models, default_models\nfrom urgencias_core.models.registry import resolve_models\n\nprint(list(default_models()))\nprint(list(resolve_models([\"armonicoferiados\", \"mstl\"])))\nmodelos = default_models() | {\"UltimoAnio\": UltimoAnio}",
-     "output": "['SeasonalNaive', 'AutoARIMA', 'Armónico', 'MSTL']\n['ArmónicoFeriados', 'MSTL']",
+     "output": "['SeasonalNaive', 'AutoARIMA', 'Armónico', 'MSTL', 'Ensamble']\n['ArmónicoFeriados', 'MSTL']",
      "run": true
     }
    ]

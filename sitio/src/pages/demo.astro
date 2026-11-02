@@ -103,8 +103,8 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
           </div>
         </div>
         <p class="detalle">
-          El pronóstico semanal, con bandas para planificar con margen. Lo hace el modelo que
-          mejor le fue en el backtest de la sección siguiente. Es lo que entrega{" "}
+          El pronóstico semanal, con bandas para planificar con margen, hecho con el modelo
+          marcado ✓ en la sección siguiente. Es lo que entrega{" "}
           <code>urg-forecast pronosticar</code>.
         </p>
         <div class="cifras" id="cifras"></div>
@@ -139,11 +139,12 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
         </p>
         <p id="bt-texto" class="detalle"></p>
         <p class="detalle">
-          Esta página elige el modelo por la pérdida P80, pero es una elección: quien use el
-          paquete puede elegir otro criterio con <code>--criterio</code>, según cuánto le cuesta
-          quedarse corto, o el <strong>WIS</strong>, que evalúa el pronóstico completo (ver{" "}
-          <a href={base + "modelos/#elegir-el-criterio"}>Modelos</a>). Elige uno para ver qué
-          modelo ganaría con él.
+          Quien quiera elegir el modelo con el backtest puede hacerlo con{" "}
+          <code>--criterio</code>, según cuánto le cuesta quedarse corto, o por el{" "}
+          <strong>WIS</strong>, que evalúa el pronóstico completo. Antes conviene saber que, con
+          tan pocas semanas, el ganador es en buena parte azar (ver{" "}
+          <a href={base + "modelos/#combinar-o-elegir"}>Modelos</a>). Elige un criterio para ver
+          qué modelo ganaría con él.
         </p>
         <div class="regs" id="criterios" role="group" aria-label="Criterio para elegir el modelo" hidden></div>
         <p id="criterio-texto" class="regs-texto" hidden></p>
@@ -558,6 +559,8 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
     // p50, p90, p95, media and wis: backtest score of each --criterio (data from 2026-11 on)
     backtest: ({ modelo: string; mae: number; mape: number | null; p80: number } & Partial<Record<string, number>>)[];
     mejor: string;
+    // null: the default model (Ensamble), no choice; absent: older data, chosen by P80
+    criterio?: string | null;
     cobertura: [number, number];
     ventanas: number;
     semanas_backtest: number;
@@ -746,28 +749,43 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
     const esc = (d as Detail & { escala?: Record<string, number> }).escala ?? {};
     const widened = Object.entries(esc).filter(([, f]) => f >= 1.05)
       .map(([q, f]) => `P${q.slice(1)} ×${f.toFixed(1).replace(".", ",")}`);
-    $("bt-texto").textContent =
-      `${d.ventanas} ventanas de ${d.semanas_backtest} semanas. Se usa ${d.mejor}, el de menor pérdida P80. ` +
-      `El valor real quedó bajo su P80 en ${c} de ${n} semanas (${Math.round((100 * c) / n)} %; lo esperable es cerca de 80 %). ` +
-      (widened.length
-        ? `Por eso las bandas del pronóstico se ensancharon según ese error: ${widened.join(", ")}.`
-        : "Las bandas del pronóstico no necesitaron ensancharse.");
+    const nuevo = d.criterio !== undefined;
+    const cobertura = `El valor real quedó bajo su P80 en ${c} de ${n} semanas (${Math.round((100 * c) / n)}\u00a0%; lo esperable es cerca de 80\u00a0%). `;
+    $("bt-texto").textContent = nuevo
+      ? `${d.ventanas} ventanas de ${d.semanas_backtest} semanas. Se usa ${d.mejor} (✓), la mediana de AutoARIMA, ` +
+        "Armónico y MSTL: en 40 hospitales rindió mejor que elegir el modelo con menor pérdida en el backtest. " +
+        "Los demás se muestran como referencia. " + cobertura +
+        "Las bandas son las del modelo, sin calibrar: calibrarlas empeoró la pérdida P80 en la mayoría de esos hospitales." +
+        (c / n < CORTO
+          ? " Aquí, en cambio, el P80 se quedó corto bastante más de lo esperable, lo típico cuando la demanda cambia " +
+            "de nivel; si eso sigue, --calibrar ensancha las bandas según ese error."
+          : "")
+      : `${d.ventanas} ventanas de ${d.semanas_backtest} semanas. Se usa ${d.mejor}, el de menor pérdida P80. ` + cobertura +
+        (widened.length
+          ? `Por eso las bandas del pronóstico se ensancharon según ese error: ${widened.join(", ")}.`
+          : "Las bandas del pronóstico no necesitaron ensancharse.");
     renderBacktestTable(d);
     const version = meta?.version;
-    const fromGit = criterio !== "p80" && !hasCriterio(version);
+    const elegido = criterioDe(d);
+    const flag = elegido && elegido !== (nuevo ? "" : "p80") ? elegido : "";
+    const fromGit = (nuevo || flag !== "") && !hasCriterio(version);
     const install = fromGit
       ? `pip install "git+https://github.com/nicoveraz/urg-forecast-core"`
       : `pip install ${version ? `urg-forecast-core==${version}` : "urg-forecast-core"}`;
     $("cmd").textContent =
       `${install} && urg-forecast analizar ${d.c} && urg-forecast pronosticar ${d.c} -H ${HORIZON_CALC}` +
-      (criterio !== "p80" ? ` --criterio ${criterio}` : "");
+      (flag ? ` --criterio ${flag}` : "");
     $("repro-texto").textContent =
       `Esta página se calculó con ${version ? `urg-forecast-core ${version}` : "urg-forecast-core"} y los datos DEIS ` +
       `al ${meta ? fecha(meta.ultima_fecha) : "último corte"}. El comando lee la copia de datos más reciente, ` +
       "que se actualiza cada semana: con datos nuevos, tus cifras pueden diferir un poco de las de aquí. " +
       `El pronóstico se calcula siempre a ${HORIZON_CALC} semanas; la vista de 12 muestra sus primeras 12.` +
-      (criterio !== "p80" ? ` Incluye --criterio ${criterio}, el que elegiste en «Qué tan confiable es».` : "") +
-      (fromGit ? " Esa opción todavía no está en la versión publicada, así que el comando instala la de GitHub." : "");
+      (flag ? ` Incluye --criterio ${flag}, el que elegiste en «Qué tan confiable es».` : "") +
+      (fromGit
+        ? nuevo
+          ? " Pronosticar con Ensamble sin calibrar todavía no está en la versión publicada, así que el comando instala la de GitHub."
+          : " Esa opción todavía no está en la versión publicada, así que el comando instala la de GitHub."
+        : "");
     $("cmd-python").textContent = [
       "from urgencias_core import load_deis, run_forecast, weekly_series",
       "from urgencias_core.analysis.report import analysis_text",
@@ -814,8 +832,13 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
     { k: "wis", label: "WIS", col: "WIS", desc: "el pronóstico completo, de P5 a P95" },
     { k: "mae", label: "MAE", col: "MAE", desc: "solo el valor central" },
   ];
-  let criterio = "p80";
-  // --criterio first ships in this version; with older data the command installs from GitHub.
+  // Backtest coverage of the P80 below this is far from the 80 % it promises.
+  const CORTO = 0.65;
+  // "" = no criterion: the default model (Ensamble). Older data were chosen by P80.
+  let criterio = "";
+  const criterioDe = (d: Detail) => criterio || (d.criterio !== undefined ? "" : "p80");
+  // --criterio and Ensamble by default first ship in this version; before it, the command
+  // installs from GitHub.
   const CRITERIO_DESDE = [0, 5];
   const hasCriterio = (v?: string) => {
     const [a, b] = (v ?? "0.0").split(".").map(Number);
@@ -823,8 +846,10 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
   };
 
   function renderBacktestTable(d: Detail) {
+    const nuevo = d.criterio !== undefined;
     const usable = CRITERIOS.filter((c) => d.backtest.every((m) => typeof m[c.k] === "number"));
-    if (!usable.some((c) => c.k === criterio)) criterio = "p80";
+    if (criterio && !usable.some((c) => c.k === criterio)) criterio = "";
+    const sel = criterioDe(d);
     const box = $("criterios");
     box.hidden = usable.length <= 2; // older data: only P80 and MAE
     box.innerHTML = "";
@@ -832,20 +857,24 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
     lab.className = "regs-label";
     lab.textContent = "Elegir con";
     box.append(lab);
-    for (const c of usable) {
+    const opciones = [
+      ...(nuevo ? [{ k: "", label: "Sin elegir (Ensamble)", desc: "el pronóstico por defecto" }] : []),
+      ...usable,
+    ];
+    for (const c of opciones) {
       const b = document.createElement("button");
       b.type = "button";
       b.textContent = c.label;
       b.title = c.desc;
       b.style.setProperty("--reg-color", "var(--sl-color-accent)");
-      b.setAttribute("aria-pressed", String(c.k === criterio));
+      b.setAttribute("aria-pressed", String(c.k === sel));
       b.addEventListener("click", () => { criterio = c.k; render(); });
       box.append(b);
     }
-    const crit = CRITERIOS.find((c) => c.k === criterio)!;
+    const crit = CRITERIOS.find((c) => c.k === (sel || "p80"))!;
     const val = (m: Detail["backtest"][number]) => m[crit.k] as number;
     const rows = [...d.backtest].sort((a, b) => val(a) - val(b));
-    const pick = rows[0].modelo;
+    const pick = sel ? rows[0].modelo : d.mejor;
     const extra = crit.k !== "p80" && crit.k !== "mae";
     const bt = $<HTMLTableElement>("bt");
     bt.innerHTML = "";
@@ -862,7 +891,7 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
     for (const m of rows) {
       const tr = document.createElement("tr");
       if (m.modelo === d.mejor) tr.className = "mejor";
-      if (m.modelo === pick && criterio !== "p80") tr.classList.add("elegido");
+      if (m.modelo === pick && m.modelo !== d.mejor) tr.classList.add("elegido");
       const cells = [m.modelo + (m.modelo === d.mejor ? " ✓" : ""), nf.format(m.mae), dec1(m.mape), dec1(m.p80)];
       if (extra) cells.push(dec1(val(m)));
       for (const v of cells) {
@@ -875,8 +904,17 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
     bt.append(head, tb);
     const txt = $("criterio-texto");
     txt.hidden = box.hidden;
-    txt.textContent =
-      criterio === "p80"
+    txt.textContent = nuevo
+      ? sel === ""
+        ? `Sin criterio no se elige: se pronostica con ${d.mejor} (✓)` +
+          (rows[0].modelo === d.mejor
+            ? ", que además tuvo la menor pérdida P80."
+            : `. Por menor pérdida P80 ganaría ${rows[0].modelo}.`)
+        : `Con ${crit.label} (${crit.desc}) ` +
+          (pick === d.mejor
+            ? `gana ${d.mejor}, el mismo que se usa sin elegir.`
+            : `ganaría ${pick}: con --criterio ${crit.k} se pronosticaría con él en vez de ${d.mejor} (✓).`)
+      : sel === "p80"
         ? `Con P80, el criterio por defecto (${crit.desc}), gana ${pick}: el modelo de esta página (✓).`
         : `Con ${crit.label} (${crit.desc}) ganaría ${pick}. ` +
           (pick === d.mejor

@@ -3,7 +3,9 @@
 Windows run backwards from the end of the history: window ``k`` trains on everything up
 to ``n - length - k * step`` weeks and is scored on the next ``length`` weeks. Each model
 is fitted from scratch on each window (``models`` holds factories), so no window sees
-the future of another.
+the future of another. A median ensemble given as ``partial(MedianEnsemble, members)``,
+whose members are all in ``models``, is combined from their predictions instead of
+fitting them again: the same result in a fraction of the time.
 
 :func:`~urgencias_core.forecast.run_forecast` uses it to pick and calibrate a model and
 :func:`~urgencias_core.eval.compare.compare_models` to test whether a change helps.
@@ -13,11 +15,13 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from functools import partial
 
 import pandas as pd
 
 from urgencias_core.data.series import GRAIN, SEASON_WEEKS
 from urgencias_core.eval.metrics import QUANTILES, score
+from urgencias_core.models.ensemble import MedianEnsemble, median_of
 from urgencias_core.models.protocol import Forecaster, HorizonSpec
 
 MIN_TRAIN_WEEKS = 2 * SEASON_WEEKS  # MSTL needs two full seasons
@@ -82,6 +86,17 @@ class Backtest:
         return [(w.actual, w.preds[model]) for w in self.windows if model in w.preds]
 
 
+def _members_in(factory: Callable[[], Forecaster], models: dict) -> tuple[str, ...]:
+    """Member names if ``factory`` is ``partial(MedianEnsemble, members)`` of models in
+    ``models``: the very same factories, not just the same names."""
+    if not (isinstance(factory, partial) and factory.func is MedianEnsemble and factory.args):
+        return ()
+    members = factory.args[0]
+    if all(models.get(name) is f for name, f in members.items()):
+        return tuple(members)
+    return ()
+
+
 def backtest(
     history: pd.DataFrame,
     models: dict[str, Callable[[], Forecaster]],
@@ -101,13 +116,14 @@ def backtest(
     spec = HorizonSpec(grain=GRAIN, length=length, quantiles=quantiles)
     n = len(history)
     dead: set[str] = set()
+    combined = {name: m for name, f in models.items() if (m := _members_in(f, models))}
     windows = []
     for cut in window_cuts(n, length, origins, step, min_train_weeks):
         train = history.iloc[:cut].reset_index(drop=True)
         actual = history.iloc[cut : cut + length].reset_index(drop=True)
         w = Window(origin=pd.Timestamp(train["timestamp"].iloc[-1]), actual=actual)
         for name, factory in models.items():
-            if name in dead:
+            if name in dead or name in combined:
                 continue
             try:
                 fc = factory()
@@ -121,6 +137,12 @@ def backtest(
             # statsforecast can offset weekly stamps slightly; align to actual weeks.
             pred["timestamp"] = actual["timestamp"].to_numpy()[: len(pred)]
             w.preds[name] = pred
+        for name, members in combined.items():  # as MedianEnsemble: drop failed members
+            got = [w.preds[m] for m in members if m in w.preds]
+            if got:
+                w.preds[name] = median_of(got, list(spec.quantile_columns))
+            else:
+                w.errors[name] = "MedianEnsemble: no member could be fitted"
         windows.append(w)
     return Backtest(windows, length, tuple(quantiles), target_col)
 

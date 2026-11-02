@@ -94,16 +94,20 @@ ejemplos:
   urg-forecast pronosticar 124105 -H 6m            # mismo hospital, código numérico; 6 meses
   urg-forecast pronosticar 24-105 24-115 -o res/   # varios establecimientos
   urg-forecast pronosticar 24-105 -m AutoARIMA     # un solo modelo, sin comparar
-  urg-forecast pronosticar 24-105 -m Ensamble -m TBATS -m MSTL
-  urg-forecast pronosticar 24-105 -m mi_modelo:MiClase -m MSTL
-  urg-forecast pronosticar 24-105 --criterio p95   # quedarse corto cuesta 19 veces más
-  urg-forecast pronosticar 24-105 --criterio wis   # pronóstico completo; agrega P5, P10, P20
-  urg-forecast pronosticar 24-105 --ventanas 9     # elige y calibra con 9 ventanas, no 3
+  urg-forecast pronosticar 24-105 -m TBATS -m MSTL # elige entre esos dos (pérdida P80)
+  urg-forecast pronosticar 24-105 -m mi_modelo:MiClase -m Ensamble
+  urg-forecast pronosticar 24-105 --criterio p80   # elige el modelo, en vez de Ensamble
+  urg-forecast pronosticar 24-105 --criterio wis   # elige por WIS; agrega P5, P10, P20
+  urg-forecast pronosticar 24-105 --calibrar       # ensancha los intervalos
+
+Pronostica con Ensamble, la mediana de AutoARIMA, Armónico y MSTL, y muestra el
+backtest de cada modelo como referencia: en 40 hospitales, usar siempre Ensamble
+rindió mejor que elegir un modelo por establecimiento (docs/modelos.md). Con
+--criterio, o con -m sin Ensamble, se usa el de mejor backtest.
 
 Horizonte: semanas (12 o 12s) o meses (6m). El backtest usa tres ventanas
 (--ventanas) tan largas como el horizonte (máximo 26 semanas), cada 8 semanas
-(--paso), y exige 104 semanas previas de historia completa. Los intervalos se
-ensanchan según el error del backtest (--sin-calibrar lo desactiva).
+(--paso), y exige 104 semanas previas de historia completa.
 
 Modelo propio: una clase con fit(history, target_col) y predict(horizon) que
 devuelva timestamp, q50, q80, q90, q95, en un .py de la carpeta actual.
@@ -137,19 +141,22 @@ CRITERIO = {
     "wis": "wis",
     "mae": "mae",
 }
+CRITERIO_KINDS = (
+    "p50, p80, p90 o p95: pérdida en ese cuantil; elígelo según cuánto peor es quedarse "
+    "corto que pasarse (p50: igual; p80: 4 veces; p90: 9; p95: 19). media: promedio de P50 "
+    "a P95, evalúa el valor central y la parte alta juntos. wis: el puntaje de intervalos "
+    "(WIS) de los centros de pronóstico de influenza, evalúa el pronóstico completo con "
+    "cuantiles de P5 a P95. mae: error del valor central. Fíjalo antes de mirar los resultados"
+)
 CRITERIO_HELP = (
-    "criterio para elegir el modelo en el backtest (por defecto p80). p50, p80, p90 o p95: "
-    "pérdida en ese cuantil; elígelo según cuánto peor es quedarse corto que pasarse "
-    "(p50: igual; p80: 4 veces; p90: 9; p95: 19). media: promedio de P50 a P95, evalúa el "
-    "valor central y la parte alta juntos. wis: el puntaje de intervalos (WIS) de los "
-    "centros de pronóstico de influenza, evalúa el pronóstico completo con cuantiles de P5 a "
-    "P95. mae: error del valor central. Fíjalo antes de mirar los resultados"
+    "elegir el modelo con el backtest según este criterio, en vez de pronosticar con "
+    "Ensamble (por defecto no se elige; en 40 hospitales, elegir rindió peor). " + CRITERIO_KINDS
 )
 
 MODELS_EPILOG = """\
 ejemplos:
   urg-forecast modelos
-  urg-forecast pronosticar 24-105 -m Ensamble -m ArmonicoFeriados
+  urg-forecast pronosticar 24-105 -m ArmonicoFeriados -m Armonico
 
 Los nombres no distinguen mayúsculas ni tildes.
 """
@@ -255,23 +262,27 @@ def build_parser() -> argparse.ArgumentParser:
             "--modelo",
             action="append",
             metavar="NOMBRE",
-            help="modelo a usar (repetible): uno de 'urg-forecast modelos' o 'modulo:Clase' "
-            "para uno propio. Por defecto compara SeasonalNaive, AutoARIMA, Armonico y MSTL",
+            help="modelo a comparar en el backtest (repetible): uno de 'urg-forecast modelos' "
+            "o 'modulo:Clase' para uno propio. Por defecto: Ensamble, que pronostica, y "
+            "SeasonalNaive, AutoARIMA, Armonico y MSTL como referencia. Sin Ensamble entre "
+            "ellos, pronostica el de menor pérdida P80",
         )
         p.add_argument(
-            "--sin-calibrar",
+            "--calibrar",
             action="store_true",
-            help="no ensanchar los intervalos según el error del backtest",
+            help="ensanchar los intervalos según el error del backtest. Desactivado por "
+            "defecto: en 40 hospitales empeoró la pérdida P80 en la mayoría",
         )
-        p.add_argument("--criterio", choices=list(CRITERIO), default="p80", help=CRITERIO_HELP)
+        p.add_argument("--sin-calibrar", action="store_true", help=argparse.SUPPRESS)
+        p.add_argument("--criterio", choices=list(CRITERIO), default=None, help=CRITERIO_HELP)
         p.add_argument(
             "--ventanas",
             type=_positive,
             default=None,
             metavar="N",
-            help="ventanas del backtest para elegir el modelo y calibrar los intervalos "
-            "(por defecto 3). Más ventanas dan una elección más estable, no más acertada, "
-            "pero tardan más y miran más atrás; caben las que deje la historia",
+            help="ventanas del backtest (por defecto 3), con que se mide cada modelo y, con "
+            "--criterio o --calibrar, se elige y se calibra. Más ventanas dan una elección "
+            "más estable, no más acertada, pero tardan más; caben las que deje la historia",
         )
         p.add_argument(
             "--paso",
@@ -368,10 +379,9 @@ def build_parser() -> argparse.ArgumentParser:
             formatter_class=argparse.RawDescriptionHelpFormatter,
             help="backtest y pronóstico para uno o más establecimientos",
             description=(
-                "Descarga los datos DEIS de los establecimientos indicados, compara\n"
-                "modelos en un backtest con varias ventanas y pronostica con el de menor\n"
-                "pérdida P80 (--criterio cambia el criterio). Por defecto: SeasonalNaive,\n"
-                "AutoARIMA, Armónico y MSTL."
+                "Descarga los datos DEIS de los establecimientos indicados, mide varios\n"
+                "modelos en un backtest y pronostica con Ensamble (la mediana de AutoARIMA,\n"
+                "Armónico y MSTL). --criterio elige el modelo con el backtest."
             ),
             epilog=FORECAST_EPILOG,
         )
@@ -437,7 +447,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--criterio",
         choices=list(CRITERIO),
         default="p80",
-        help="qué se compara en cada ventana (por defecto p80): " + CRITERIO_HELP.split(": ", 1)[1],
+        help="qué se compara en cada ventana (por defecto p80). " + CRITERIO_KINDS,
     )
     p_cmp.add_argument(
         "--paso", type=_positive, default=4, metavar="SEMANAS", help="semanas entre ventanas (4)"
@@ -484,9 +494,9 @@ def _forecast(
     fallback: bool = False,
     cache_dir: Path | None = None,
     model_names: list[str] | None = None,
-    calibrate: bool = True,
+    calibrate: bool = False,
     source: str = "repo",
-    select_by: str = "qloss_80",
+    select_by: str | None = None,
     origins: int | None = None,
     step: int | None = None,
 ) -> int:
@@ -709,9 +719,18 @@ def _compare(args: argparse.Namespace) -> int:
 def _list_models() -> int:
     from tabulate import tabulate
 
-    from urgencias_core.models.registry import MODEL_INFO, default_models, extra_models
+    from urgencias_core.models.registry import (
+        DEFAULT_MODEL,
+        MODEL_INFO,
+        default_models,
+        extra_models,
+    )
 
-    rows = [[n, "sí", MODEL_INFO.get(n, "")] for n in default_models()]
+    shown = sorted(default_models(), key=lambda n: n != DEFAULT_MODEL)  # Ensamble first
+    rows = [
+        [n, "pronostica" if n == DEFAULT_MODEL else "se compara", MODEL_INFO.get(n, "")]
+        for n in shown
+    ]
     rows += [[n, "", MODEL_INFO.get(n, "")] for n in extra_models()]
     print(tabulate(rows, headers=["Modelo", "Por defecto", "Descripción"], tablefmt="psql"))
     print("Uso: urg-forecast pronosticar <código> -m NOMBRE [-m NOMBRE ...]")
@@ -743,9 +762,9 @@ def main(argv: list[str] | None = None) -> int:
             fallback=True,
             cache_dir=args.cache,
             model_names=args.modelo,
-            calibrate=not args.sin_calibrar,
+            calibrate=args.calibrar and not args.sin_calibrar,
             source=args.fuente,
-            select_by=CRITERIO[args.criterio],
+            select_by=CRITERIO.get(args.criterio),
             origins=args.ventanas,
             step=args.paso,
         )
@@ -765,9 +784,9 @@ def main(argv: list[str] | None = None) -> int:
         args.offline,
         cache_dir=args.cache,
         model_names=args.modelo,
-        calibrate=not args.sin_calibrar,
+        calibrate=args.calibrar and not args.sin_calibrar,
         source=args.fuente,
-        select_by=CRITERIO[args.criterio],
+        select_by=CRITERIO.get(args.criterio),
         origins=args.ventanas,
         step=args.paso,
     )

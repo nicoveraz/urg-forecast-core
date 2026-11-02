@@ -87,6 +87,8 @@ def _backtest_title(result: ForecastResult) -> str:
     w, k = result.backtest_weeks, result.backtest_origins
     windows = f"{k} ventanas de {w} semanas" if k > 1 else f"últimas {w} semanas"
     crit = result.select_by
+    if crit is None:
+        return f"Backtest: {windows}, promedio (* pronostica; los demás, de referencia)"
     how = f"el de menor {criterion_label(crit)}" if crit in CRITERIA else f"según {crit}"
     return f"Backtest: {windows}, promedio (el modelo elegido, {how}, se marca con *)"
 
@@ -97,6 +99,33 @@ def _calibration_line(result: ForecastResult) -> str:
         return ""
     parts = ", ".join(f"P{c[1:]} x{f:.1f}" for c, f in sorted(widened.items()))
     return f"Intervalos del pronóstico ensanchados según ese error: {parts}."
+
+
+LOW_COVERAGE = 0.65  # backtest share of weeks at or below the P80 far from its 80 %
+
+
+def _coverage_line(result: ForecastResult) -> str:
+    covered, n = result.coverage80
+    if result.interval_scale or not n or covered / n >= LOW_COVERAGE:
+        return ""
+    return (
+        "Bastante menos que el 80 % esperable, lo típico cuando la demanda cambia de nivel;\n"
+        "si eso sigue, --calibrar ensancha las bandas según ese error."
+    )
+
+
+def _reference_line(result: ForecastResult) -> str:
+    """When the default model is used and another one scored better in the backtest."""
+    if result.select_by is not None or "qloss_80" not in result.backtest:
+        return ""
+    loss = result.backtest["qloss_80"]
+    if loss.idxmin() == result.best:
+        return ""
+    return (
+        f"{loss.idxmin()} tuvo menor pérdida P80 en estas ventanas; con tan pocas semanas eso\n"
+        "es en buena parte azar. Elegir así rindió peor que Ensamble en 40 hospitales\n"
+        "(docs/modelos.md). Para elegir igual: --criterio p80."
+    )
 
 
 def summary_text(result: ForecastResult, today: date | None = None) -> str:
@@ -126,6 +155,8 @@ def summary_text(result: ForecastResult, today: date | None = None) -> str:
         _backtest_title(result),
         backtest_table(result),
         f"Con {result.best}, el valor real quedó bajo el P80 en {covered} de {n_bt} semanas.",
+        *([_coverage_line(result)] if _coverage_line(result) else []),
+        *([_reference_line(result)] if _reference_line(result) else []),
         *([_calibration_line(result)] if _calibration_line(result) else []),
         *(
             [f"Modelos omitidos por error de ajuste: {', '.join(result.skipped)}."]

@@ -92,12 +92,35 @@ def test_run_forecast_on_snapshot() -> None:
     assert len(result.forecast) == 8
     assert {"q50", "q80", "q90", "q95"} <= set(result.forecast.columns)
     assert (result.forecast["q95"] >= result.forecast["q50"]).all()
-    assert set(result.backtest.index) == {"SeasonalNaive", "AutoARIMA", "Armónico", "MSTL"}
+    assert set(result.backtest.index) == {
+        "SeasonalNaive",
+        "AutoARIMA",
+        "Armónico",
+        "MSTL",
+        "Ensamble",
+    }
     assert result.backtest_origins == 3
     covered, total = result.coverage80
     assert total == 3 * 8 and 0 <= covered <= total
-    assert result.best == result.backtest["qloss_80"].idxmin()
+    # Ensamble forecasts by default, uncalibrated; the others are there for reference
+    assert result.best == "Ensamble" and result.select_by is None
+    assert result.interval_scale == {}
     assert len(result.backtest_pred) == 8
+
+
+def test_run_forecast_chooses_only_when_asked() -> None:
+    from urgencias_core.models.baselines import SeasonalNaiveBaseline
+    from urgencias_core.models.harmonic import HarmonicRegression
+
+    weekly = weekly_series(load_deis(["24-115"], offline=True), "24-115")
+    chosen = run_forecast(weekly, 4, select_by="qloss_80")
+    assert chosen.best == chosen.backtest["qloss_80"].idxmin()
+    assert chosen.select_by == "qloss_80"
+    # without Ensamble among the models, the lowest P80 loss is used, as before
+    two = {"SeasonalNaive": SeasonalNaiveBaseline, "Armónico": HarmonicRegression}
+    res = run_forecast(weekly, 4, models=two)
+    assert res.best == res.backtest["qloss_80"].idxmin() and res.select_by == "qloss_80"
+    assert run_forecast(weekly, 4, models=two, calibrate=True).interval_scale
 
 
 def test_choose_model_by_column_or_function() -> None:
@@ -318,7 +341,13 @@ def test_resolve_models_builtin_custom_and_errors() -> None:
         resolve_models(["nada"])
     with pytest.raises(ValueError, match="importar"):
         resolve_models(["no_existe:Clase"])
-    assert len(resolve_models(None)) == 4
+    assert list(resolve_models(None)) == [
+        "SeasonalNaive",
+        "AutoARIMA",
+        "Armónico",
+        "MSTL",
+        "Ensamble",
+    ]
 
 
 def test_holidays_per_week_counts_weekday_holidays() -> None:

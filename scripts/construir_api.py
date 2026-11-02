@@ -262,34 +262,43 @@ SECTIONS = [
     Section(
         "pronostico",
         "Pronóstico",
-        "Comparar modelos en el pasado, elegir el mejor y pronosticar. Es lo que hace "
-        "`urg-forecast pronosticar`.",
+        "Medir modelos en el pasado y pronosticar. Es lo que hace `urg-forecast pronosticar`.",
         [
             Entry(
                 "run_forecast",
                 "urgencias_core.forecast:run_forecast",
                 "run_forecast",
                 "Cada modelo pronostica semanas pasadas que ya se conocen (ventanas tan "
-                "largas como el horizonte, hasta 26 semanas); se elige el mejor, se reajusta "
-                "con toda la historia y se pronostica. Mejor es, por defecto, el de menor "
-                "pérdida P80 (quedarse corto cuesta 4 veces más que pasarse); `select_by` "
-                "cambia el criterio. Con `calibrate=True` las bandas se ensanchan según el "
-                "error que tuvo en esas ventanas.",
+                "largas como el horizonte, hasta 26 semanas) y se pronostica con Ensamble, "
+                "la mediana de AutoARIMA, Armónico y MSTL, reajustado con toda la historia: "
+                "en 40 hospitales rindió más que elegir el mejor modelo de cada uno. Los "
+                "demás quedan en `backtest` como referencia. `select_by` elige en cambio el "
+                "mejor según un criterio, y con `calibrate=True` las bandas se ensanchan "
+                "según el error que tuvo en esas ventanas.",
                 params=[
                     ("history", "serie semanal"),
                     ("horizon_weeks", "semanas a pronosticar"),
-                    ("models", "nombre → fábrica; por defecto los cuatro de `default_models()`"),
+                    (
+                        "models",
+                        "nombre → fábrica; por defecto `default_models()`: Ensamble y sus "
+                        "referencias. Sin Ensamble entre ellos, gana el de menor pérdida P80",
+                    ),
                     (
                         "origins, step",
-                        "número de ventanas (3) y semanas entre ellas (8); más ventanas dan una "
-                        "elección más estable, no más acertada, a cambio de tiempo",
+                        "número de ventanas (3) y semanas entre ellas (8); al elegir, más "
+                        "ventanas dan una elección más estable, no más acertada",
                     ),
-                    ("calibrate", "ensanchar los intervalos según el backtest"),
+                    (
+                        "calibrate",
+                        "ensanchar los intervalos según el backtest (`False` por defecto: "
+                        "en 40 hospitales empeoró la pérdida P80 en la mayoría)",
+                    ),
                     (
                         "select_by",
-                        'columna para elegir: `"qloss_80"` (por defecto), `"qloss_50"`, '
-                        '`"qloss_90"`, `"qloss_95"`, `"qloss_mean"`, `"wis"`, `"mae"`, o una '
-                        "función que reciba la tabla del backtest y devuelva un modelo",
+                        "`None` (por defecto): Ensamble. Para elegir, una columna: "
+                        '`"qloss_80"`, `"qloss_50"`, `"qloss_90"`, `"qloss_95"`, '
+                        '`"qloss_mean"`, `"wis"`, `"mae"`, o una función que reciba la '
+                        "tabla del backtest y devuelva un modelo",
                     ),
                     (
                         "quantiles",
@@ -297,8 +306,9 @@ SECTIONS = [
                         'de P5 a P95 con `select_by="wis"`',
                     ),
                 ],
-                returns="`ForecastResult`: `best`, `backtest` (error por modelo), `forecast` "
-                "(`timestamp, q50, q80, q90, q95`), `coverage80`, `interval_scale`.",
+                returns="`ForecastResult`: `best` (el modelo que pronostica), `backtest` "
+                "(error por modelo), `forecast` (`timestamp, q50, q80, q90, q95`), "
+                "`coverage80`, `interval_scale` (vacío si no se calibró).",
                 example=(
                     "from urgencias_core import run_forecast\n\n"
                     'nombre = "Hospital de Puerto Montt"\n'
@@ -321,8 +331,9 @@ SECTIONS = [
                 example=(
                     "cubiertas, total = res.coverage80\n"
                     'print(f"bajo P80 en {cubiertas} de {total} semanas")\n'
-                    "# cuánto se ensanchó cada banda (1 = nada)\n"
-                    "print({k: round(v, 2) for k, v in res.interval_scale.items()})"
+                    "# con calibrate=True, cuánto se ensanchó cada banda (1 = nada)\n"
+                    "cal = run_forecast(semanal, 12, calibrate=True)\n"
+                    "print({k: round(v, 2) for k, v in cal.interval_scale.items()})"
                 ),
             ),
             Entry(
@@ -382,10 +393,11 @@ SECTIONS = [
                 "registry",
                 "urgencias_core.models.registry:resolve_models",
                 "default_models, available_models, resolve_models",
-                "Los modelos por nombre. `default_models()` son los cuatro que se comparan "
-                "por defecto; `available_models()` suma los opcionales; `resolve_models` "
+                "Los modelos por nombre. `default_models()` son los que se miden por defecto: "
+                "Ensamble, que pronostica, y SeasonalNaive, AutoARIMA, Armónico y MSTL como "
+                "referencia; `available_models()` suma los opcionales; `resolve_models` "
                 "acepta nombres sin tildes ni mayúsculas, o `'archivo:Clase'` para uno propio.",
-                params=[("names", "lista de nombres; `None` = los cuatro por defecto")],
+                params=[("names", "lista de nombres; `None` = los de `default_models()`")],
                 returns="dict nombre → fábrica (una instancia nueva por ajuste).",
                 example=(
                     "from urgencias_core import available_models, default_models\n"

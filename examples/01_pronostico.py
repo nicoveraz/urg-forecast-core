@@ -36,8 +36,10 @@ def main(argv: list[str] | None = None) -> None:
     semanal = weekly_series(df, a.codigo)
     print(f"{nombre}: {len(semanal)} semanas completas, de {semanal.timestamp.min():%Y-%m-%d}")
 
-    # 3. Backtest y pronóstico: cada modelo se evalúa en varias ventanas del pasado,
-    #    se elige el de menor pérdida P80 y se pronostica con él.
+    # 3. Backtest y pronóstico: cada modelo se evalúa en varias ventanas del pasado y se
+    #    pronostica con Ensamble, la mediana de AutoARIMA, Armónico y MSTL (en 40
+    #    hospitales rindió más que elegir el mejor de cada uno; ver docs/modelos.md).
+    #    select_by="qloss_80" elige el de menor pérdida P80.
     resultado = run_forecast(
         semanal, a.horizonte, code=a.codigo, name=nombre, source=df.attrs["source"]
     )

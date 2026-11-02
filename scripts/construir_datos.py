@@ -192,8 +192,9 @@ def forecast_one(code: str, out_dir: str, cache_dir: str) -> dict:
     if weekly["count"].median() < MIN_MEDIAN_WEEKLY:
         return entry | {"ok": False, "motivo": "muy pocas atenciones semanales"}
     try:
-        # chosen by P80 as always; the lower quantiles only feed the WIS column, so the
-        # demo can show which model each criterion of --criterio would pick
+        # the package default (Ensamble, uncalibrated), with every model backtested; the
+        # lower quantiles feed the WIS column, so the demo can show which model each
+        # criterion of --criterio would pick
         res = run_forecast(weekly, HORIZON, code=code, name=entry["n"], quantiles=WIS_QUANTILES)
     except NoDataError as exc:
         return entry | {"ok": False, "motivo": str(exc)}
@@ -221,6 +222,7 @@ def forecast_one(code: str, out_dir: str, cache_dir: str) -> dict:
             for m, r in res.backtest.sort_values("qloss_80").iterrows()
         ],
         "mejor": res.best,
+        "criterio": res.select_by,  # None: the default model, no choice
         "cobertura": list(res.coverage80),
         "ventanas": res.backtest_origins,
         "semanas_backtest": res.backtest_weeks,
