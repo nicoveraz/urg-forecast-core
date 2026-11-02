@@ -36,7 +36,7 @@ pasarse, el cuantil que corresponde es *k* / (*k* + 1):
 | `p80` (por defecto) | pérdida en el P80 | 4 veces más |
 | `p90` | pérdida en el P90 | 9 veces más |
 | `p95` | pérdida en el P95 | 19 veces más |
-| `media` | promedio de las pérdidas de P50 a P95 | no quieres fijar un costo: evalúa todo el pronóstico |
+| `media` | promedio de las pérdidas de P50 a P95 | no quieres fijar un costo: evalúa el valor central y la parte alta juntos |
 | `mae` | error del valor central | solo te importa el valor central |
 
 En Python también puedes pasar una función que reciba la tabla del backtest (una fila por
@@ -58,6 +58,12 @@ Dos cuidados. Fija el criterio **antes** de mirar los resultados: si pruebas var
 quedas con el que deja mejor a tu modelo, encuentras un ganador por azar. Y los cuantiles
 altos se miden con pocas semanas: en las 78 del backtest, solo unas 4 deberían superar el
 P95, así que la pérdida P95 es ruidosa.
+
+`media` se parece al WIS que usan el CDC y otros centros de pronóstico de influenza, pero no
+es lo mismo: el WIS promedia cuantiles a ambos lados de la mediana (P5, P10, P20… P80, P90,
+P95), y acá solo hay cuantiles desde la mediana hacia arriba. Mide bien la parte del
+pronóstico que importa para planificar con margen, pero no castiga un piso mal puesto, y su
+valor no se puede comparar con el de esos centros.
 
 Combinar modelos en vez de elegir uno también es posible: agrega `Ensamble` (la mediana de
 AutoARIMA, Armónico y MSTL) a los modelos y compite en el mismo backtest.
