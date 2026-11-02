@@ -60,6 +60,42 @@ def test_backtest_scores_each_window_and_records_failures() -> None:
     assert calls["n"] == 1
 
 
+def test_backtest_combines_an_ensemble_of_its_own_models() -> None:
+    from functools import partial
+
+    from urgencias_core.models.ensemble import MedianEnsemble
+
+    h = _history()
+    calls = {"n": 0}
+
+    def harmonic() -> HarmonicRegression:
+        calls["n"] += 1
+        return HarmonicRegression()
+
+    members = {"SN": SeasonalNaiveBaseline, "H": harmonic, "X": _Boom}
+    models = members | {"E": partial(MedianEnsemble, members)}
+    run = backtest(h, models, 4, 3, 8, min_train_weeks=104, quantiles=WIS_QUANTILES)
+    assert calls["n"] == 3  # the ensemble did not fit its members again
+    alone = backtest(
+        h,
+        {"E": partial(MedianEnsemble, members)},
+        4,
+        3,
+        8,
+        min_train_weeks=104,
+        quantiles=WIS_QUANTILES,
+    )  # fitted as usual: the members are not there
+    assert calls["n"] == 6
+    cols = ["q5", "q10", "q20", "q50", "q80", "q90", "q95"]
+    for a, b in zip(run.windows, alone.windows, strict=True):
+        assert np.allclose(a.preds["E"][cols].to_numpy(), b.preds["E"][cols].to_numpy())
+        assert "X" in a.errors and "E" not in a.errors  # a failed member is dropped
+    # same names but other factories: not combined, fitted as usual
+    other = {"SN": SeasonalNaiveBaseline, "H": HarmonicRegression}
+    backtest(h, other | {"E": partial(MedianEnsemble, members)}, 4, 1, 8, min_train_weeks=104)
+    assert calls["n"] == 7
+
+
 def _pred(q50: list[float], q80: list[float]) -> pd.DataFrame:
     q80a = np.array(q80, dtype=float)
     return pd.DataFrame({"q50": q50, "q80": q80a, "q90": q80a + 1, "q95": q80a + 2})

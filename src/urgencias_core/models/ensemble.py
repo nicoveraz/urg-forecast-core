@@ -10,12 +10,28 @@ import pandas as pd
 from urgencias_core.models.protocol import Forecaster, HorizonSpec
 
 
+def median_of(preds: list[pd.DataFrame], columns: list[str]) -> pd.DataFrame:
+    """The median of several predictions, column by column (``timestamp`` from the first).
+
+    The median keeps the quantiles in order: if every member has q50 <= q80, so does it.
+    """
+    out = pd.DataFrame({"timestamp": preds[0]["timestamp"].to_numpy()})
+    for col in columns:
+        stacked = np.vstack([p[col].to_numpy(dtype=float)[: len(out)] for p in preds])
+        out[col] = np.median(stacked, axis=0)
+    return out
+
+
 class MedianEnsemble:
     """Fit every member and return the median of their predictions per quantile.
 
     Members that fail to fit are dropped; at least one must succeed. The
     median is robust to a single member going astray, which is the usual
     reason ensembles of a few decent models beat each of them on average.
+
+    Give it to a backtest as ``functools.partial(MedianEnsemble, members)``: if the
+    members are in the same backtest, their predictions are combined instead of fitting
+    them twice.
     """
 
     def __init__(self, members: dict[str, Callable[[], Forecaster]]) -> None:
@@ -36,11 +52,7 @@ class MedianEnsemble:
 
     def predict(self, horizon: HorizonSpec) -> pd.DataFrame:
         preds = [m.predict(horizon).reset_index(drop=True) for m in self._fitted.values()]
-        out = pd.DataFrame({"timestamp": preds[0]["timestamp"]})
-        for col in horizon.quantile_columns:
-            stacked = np.vstack([p[col].to_numpy(dtype=float)[: len(out)] for p in preds])
-            out[col] = np.median(stacked, axis=0)
-        return out
+        return median_of(preds, list(horizon.quantile_columns))
 
 
-__all__ = ["MedianEnsemble"]
+__all__ = ["MedianEnsemble", "median_of"]

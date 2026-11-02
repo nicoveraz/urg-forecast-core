@@ -156,6 +156,18 @@ def test_criterio_wis_writes_lower_quantiles(tmp_path, capsys) -> None:
     assert csv.startswith("timestamp,q5,q10,q20,q50")
 
 
+def test_default_forecasts_with_ensamble_uncalibrated(tmp_path, capsys) -> None:
+    argv = ["demo", "--offline", "-H", "4", "-o", str(tmp_path)]
+    assert cli.main(argv) == 0
+    out = capsys.readouterr().out
+    assert "(* pronostica; los demás, de referencia)" in out and "Ensamble *" in out
+    assert "Pronóstico con Ensamble" in out and "ensanchados" not in out
+    assert cli.main([*argv, "-m", "SeasonalNaive", "--calibrar"]) == 0
+    assert "ensanchados" in capsys.readouterr().out
+    assert cli.main([*argv, "-m", "SeasonalNaive", "--calibrar", "--sin-calibrar"]) == 0
+    assert "ensanchados" not in capsys.readouterr().out
+
+
 def test_ventanas_and_paso_set_the_backtest(tmp_path, capsys) -> None:
     argv = ["demo", "--offline", "-H", "4", "-m", "SeasonalNaive", "-o", str(tmp_path)]
     assert cli.main([*argv, "--ventanas", "5", "--paso", "2"]) == 0

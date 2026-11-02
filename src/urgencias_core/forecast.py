@@ -1,13 +1,18 @@
-"""Backtest a set of models, pick the best, and forecast forward with calibrated bands.
+"""Backtest a set of models and forecast forward with one of them.
 
 :func:`run_forecast` is what ``urg-forecast pronosticar`` runs: a rolling backtest
 (:mod:`urgencias_core.eval.backtest`) of every model on windows as long as the horizon,
-the best model refitted on all history, and its upper bands widened by the backtest
-errors (:mod:`urgencias_core.eval.calibration`).
+then the model to use refitted on all history.
 
-"Best" is a choice, not a fact: by default the lowest mean P80 quantile loss (falling
-short costs four times more than over-planning). ``select_by`` takes any other score
-column (:data:`~urgencias_core.eval.metrics.CRITERIA`) or a function of the backtest table.
+By default that model is ``Ensamble`` (the median of AutoARIMA, Armónico and MSTL) and the
+other models are backtested for reference: on live DEIS data for 40 hospitals the ensemble
+beat choosing a model per establishment, whose backtest winner is largely chance
+(docs/modelos.md). ``select_by`` chooses instead: the lowest score in any column of
+:data:`~urgencias_core.eval.metrics.CRITERIA`, or a function of the backtest table.
+
+``calibrate=True`` widens the bands by the backtest errors
+(:mod:`urgencias_core.eval.calibration`). It is off by default: on the same data it made
+the P80 loss worse in most hospitals.
 """
 
 from __future__ import annotations
@@ -24,7 +29,7 @@ from urgencias_core.eval.backtest import MIN_TRAIN_WEEKS, backtest
 from urgencias_core.eval.calibration import apply_calibration, calibration_factors
 from urgencias_core.eval.metrics import CRITERIA, DEFAULT_CRITERION, criterion_label, quantiles_for
 from urgencias_core.models.protocol import Forecaster, HorizonSpec
-from urgencias_core.models.registry import default_models
+from urgencias_core.models.registry import DEFAULT_MODEL, default_models
 
 MAX_BACKTEST_WEEKS = 26
 BACKTEST_ORIGINS = 3  # rolling backtest windows
@@ -68,9 +73,10 @@ class ForecastResult:
     backtest_origins: int = 1
     coverage80: tuple[int, int] = (0, 0)  # best model: weeks at/below P80, total weeks
     skipped: dict[str, str] = field(default_factory=dict)  # model -> error
-    # Factor applied to each upper band (q - q50) after calibration; 1.0 = unchanged.
+    # Factor applied to each band (q - q50) after calibration; empty = not calibrated.
     interval_scale: dict[str, float] = field(default_factory=dict)
-    select_by: str = DEFAULT_CRITERION  # score column, or the name of the function used
+    # Score column or function name that chose ``best``; None: the default model, no choice.
+    select_by: str | None = None
 
     @property
     def backtest_actual(self) -> pd.DataFrame:
@@ -126,25 +132,29 @@ def run_forecast(
     source: str = SOURCE_LIVE,
     origins: int = BACKTEST_ORIGINS,
     step: int = BACKTEST_STEP,
-    calibrate: bool = True,
-    select_by: Criterion = DEFAULT_CRITERION,
+    calibrate: bool = False,
+    select_by: Criterion | None = None,
     quantiles: tuple[float, ...] | None = None,
 ) -> ForecastResult:
-    """Rolling backtest of ``models``, then forecast with the best one.
+    """Rolling backtest of ``models``, then forecast with one of them.
 
     Each backtest window is as long as the horizon (capped at 26 weeks). Up to
-    ``origins`` windows are used, ``step`` weeks apart, so the choice does not
-    hinge on a single season; fewer are used when history is short. The best
-    model is the one ``select_by`` prefers (:func:`choose_model`); by default the
-    lowest mean P80 quantile loss across windows. A model that fails to fit is
-    skipped and reported in ``skipped``.
+    ``origins`` windows are used, ``step`` weeks apart; fewer when history is short.
+    Which model forecasts:
+
+    - ``select_by=None`` (default): ``Ensamble`` when it is among the models (it is in
+      :func:`~urgencias_core.models.registry.default_models`); otherwise the lowest P80
+      quantile loss, as before.
+    - a criterion: the model it prefers (:func:`choose_model`), ``Ensamble`` included.
+
+    A model that fails to fit is skipped and reported in ``skipped``.
 
     ``quantiles`` are the ones the backtest scores and the forecast returns: by default
     q50, q80, q90 and q95, plus q5, q10 and q20 when ``select_by="wis"``.
 
     With ``calibrate=True`` the forward intervals are widened by
-    :func:`calibration_factors`, computed from the chosen model's backtest
-    errors. The reported backtest coverage is always the raw, uncalibrated one.
+    :func:`calibration_factors`, computed from the model's backtest errors. The reported
+    backtest coverage is always the raw, uncalibrated one.
     """
     models = models or default_models()
     qs = tuple(quantiles) if quantiles else quantiles_for(select_by)
@@ -168,7 +178,15 @@ def run_forecast(
     sums = scores.groupby("model")[["covered", "n"]].sum()
     table = scores.drop(columns=["origin", "covered", "n"]).groupby("model").mean()
     table["coverage_80"] = sums["covered"] / sums["n"]
-    best = choose_model(table, select_by)
+    if select_by is not None:
+        best = choose_model(table, select_by)
+    elif DEFAULT_MODEL in table.index:
+        best = DEFAULT_MODEL
+    else:
+        if DEFAULT_MODEL in models:
+            logger.warning("%s no se pudo ajustar; se elige por pérdida P80", DEFAULT_MODEL)
+        best = choose_model(table, DEFAULT_CRITERION)
+        select_by = DEFAULT_CRITERION
     if "wis" in table and table["wis"].isna().all():  # no lower quantiles were asked for
         table = table.drop(columns="wis")
 
@@ -197,7 +215,9 @@ def run_forecast(
         coverage80=(int(sums.loc[best, "covered"]), int(sums.loc[best, "n"])),
         skipped=skipped,
         interval_scale=scale,
-        select_by=select_by if isinstance(select_by, str) else criterion_name(select_by),
+        select_by=select_by
+        if select_by is None or isinstance(select_by, str)
+        else criterion_name(select_by),
     )
 
 
