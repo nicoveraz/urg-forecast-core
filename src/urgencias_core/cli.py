@@ -98,11 +98,12 @@ ejemplos:
   urg-forecast pronosticar 24-105 -m mi_modelo:MiClase -m MSTL
   urg-forecast pronosticar 24-105 --criterio p95   # quedarse corto cuesta 19 veces más
   urg-forecast pronosticar 24-105 --criterio wis   # pronóstico completo; agrega P5, P10, P20
+  urg-forecast pronosticar 24-105 --ventanas 9     # elige y calibra con 9 ventanas, no 3
 
-Horizonte: semanas (12 o 12s) o meses (6m). El backtest usa tres ventanas tan
-largas como el horizonte (máximo 26 semanas) y exige 104 semanas previas de
-historia completa. Los intervalos se ensanchan según el error del backtest
-(--sin-calibrar lo desactiva).
+Horizonte: semanas (12 o 12s) o meses (6m). El backtest usa tres ventanas
+(--ventanas) tan largas como el horizonte (máximo 26 semanas), cada 8 semanas
+(--paso), y exige 104 semanas previas de historia completa. Los intervalos se
+ensanchan según el error del backtest (--sin-calibrar lo desactiva).
 
 Modelo propio: una clase con fit(history, target_col) y predict(horizon) que
 devuelva timestamp, q50, q80, q90, q95, en un .py de la carpeta actual.
@@ -161,6 +162,16 @@ def _horizon_type(text: str) -> int:
         return parse_horizon(text)
     except ValueError as exc:
         raise argparse.ArgumentTypeError(str(exc)) from exc
+
+
+def _positive(text: str) -> int:
+    try:
+        n = int(text)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"se espera un número entero: {text!r}") from None
+    if n < 1:
+        raise argparse.ArgumentTypeError(f"debe ser 1 o más: {n}")
+    return n
 
 
 def _default_cache() -> Path:
@@ -253,6 +264,22 @@ def build_parser() -> argparse.ArgumentParser:
             help="no ensanchar los intervalos según el error del backtest",
         )
         p.add_argument("--criterio", choices=list(CRITERIO), default="p80", help=CRITERIO_HELP)
+        p.add_argument(
+            "--ventanas",
+            type=_positive,
+            default=None,
+            metavar="N",
+            help="ventanas del backtest para elegir el modelo y calibrar los intervalos "
+            "(por defecto 3). Más ventanas dan una elección más estable, no más acertada, "
+            "pero tardan más y miran más atrás; caben las que deje la historia",
+        )
+        p.add_argument(
+            "--paso",
+            type=_positive,
+            default=None,
+            metavar="SEMANAS",
+            help="semanas entre ventanas del backtest (por defecto 8)",
+        )
 
     p_demo = _spanish(
         sub.add_parser(
@@ -404,7 +431,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="largo de cada ventana (por defecto 4 semanas)",
     )
     p_cmp.add_argument(
-        "--ventanas", type=int, default=36, metavar="N", help="número de ventanas (36)"
+        "--ventanas", type=_positive, default=36, metavar="N", help="número de ventanas (36)"
     )
     p_cmp.add_argument(
         "--criterio",
@@ -413,7 +440,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="qué se compara en cada ventana (por defecto p80): " + CRITERIO_HELP.split(": ", 1)[1],
     )
     p_cmp.add_argument(
-        "--paso", type=int, default=4, metavar="SEMANAS", help="semanas entre ventanas (4)"
+        "--paso", type=_positive, default=4, metavar="SEMANAS", help="semanas entre ventanas (4)"
     )
     p_cmp.add_argument(
         "-o",
@@ -460,9 +487,11 @@ def _forecast(
     calibrate: bool = True,
     source: str = "repo",
     select_by: str = "qloss_80",
+    origins: int | None = None,
+    step: int | None = None,
 ) -> int:
     from urgencias_core.data.series import NoDataError, facility_name, load_deis, weekly_series
-    from urgencias_core.forecast import run_forecast
+    from urgencias_core.forecast import BACKTEST_ORIGINS, BACKTEST_STEP, run_forecast
     from urgencias_core.models.registry import resolve_models
     from urgencias_core.report import output_dir, summary_text, write_outputs
 
@@ -503,11 +532,19 @@ def _forecast(
                 models=models,
                 calibrate=calibrate,
                 select_by=select_by,
+                origins=origins or BACKTEST_ORIGINS,
+                step=step or BACKTEST_STEP,
             )
         except NoDataError as exc:
             print(f"error: {exc}", file=sys.stderr)
             failures += 1
             continue
+        if origins and result.backtest_origins < origins:
+            print(
+                f"nota: con la historia disponible caben {result.backtest_origins} ventanas, "
+                f"no {origins}.",
+                file=sys.stderr,
+            )
         paths = write_outputs(result, out)
         print()
         print(summary_text(result))
@@ -709,6 +746,8 @@ def main(argv: list[str] | None = None) -> int:
             calibrate=not args.sin_calibrar,
             source=args.fuente,
             select_by=CRITERIO[args.criterio],
+            origins=args.ventanas,
+            step=args.paso,
         )
     if args.command == "modelos":
         return _list_models()
@@ -729,6 +768,8 @@ def main(argv: list[str] | None = None) -> int:
         calibrate=not args.sin_calibrar,
         source=args.fuente,
         select_by=CRITERIO[args.criterio],
+        origins=args.ventanas,
+        step=args.paso,
     )
 
 

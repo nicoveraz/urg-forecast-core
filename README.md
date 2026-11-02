@@ -110,6 +110,7 @@ Pronóstico con Armónico: atenciones semanales
 | `--base`, `--ventanas`, `--paso` | comparar | Modelo base (Armónico), número de ventanas (36) y semanas entre ellas (4). Con `comparar`, `-H` es el largo de cada ventana (4 semanas). |
 | `--sin-calibrar` | demo, pronosticar | No ensanchar los intervalos según el error del backtest. |
 | `--criterio` | demo, pronosticar, comparar | Con qué se elige (o compara) el modelo: `p80` (por defecto), `p50`, `p90`, `p95`, `media` (promedio de P50 a P95), `wis` (puntaje de intervalos, de P5 a P95) o `mae`. Ver [Modelos](#modelos). |
+| `--ventanas`, `--paso` | demo, pronosticar | Ventanas del backtest con que se elige el modelo y se calibran los intervalos (3) y semanas entre ellas (8). Ver [Modelos](#modelos). |
 | `--desde AÑO` | analizar, pronosticar | Primer año DEIS a usar (por defecto 2022). 2020–2021 siempre se excluyen. |
 | `--offline` | demo, analizar, pronosticar | Solo el snapshot incluido, sin red. El snapshot trae únicamente los dos hospitales del demo. |
 | `--fuente repo\|deis` | demo, buscar, analizar, pronosticar | De dónde leer los datos (ver abajo). Por defecto `repo`. |

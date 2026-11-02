@@ -1,7 +1,7 @@
 """Paired comparison of two models over many backtest windows: does a regressor help?
 
-The usual backtest (three windows) is enough to pick a model, not to tell whether a new
-regressor really helps one establishment: with few windows the difference is mostly noise.
+The usual backtest (three windows) picks a model, but cannot tell whether a new regressor
+really helps one establishment: with few windows the difference is mostly noise.
 :func:`compare_models` fits both models on the same windows (many origins, a few weeks
 apart, spanning several seasons) and reports:
 
