@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import importlib
 import warnings
 
 import numpy as np
@@ -144,35 +143,11 @@ def test_qloss_mean_averages_the_quantile_losses() -> None:
     assert s["qloss_mean"] == pytest.approx(sum(parts) / 4)
 
 
-@pytest.mark.parametrize(
-    ("old", "name", "new"),
-    [
-        ("urgencias_core.pipeline", "load_deis", "urgencias_core.data.series"),
-        ("urgencias_core.pipeline", "run_forecast", "urgencias_core.forecast"),
-        ("urgencias_core.pipeline", "resolve_models", "urgencias_core.models.registry"),
-        ("urgencias_core.pipeline", "calibration_factors", "urgencias_core.eval.calibration"),
-        ("urgencias_core.eval.baselines", "auto_arima", "urgencias_core.models.baselines"),
-        ("urgencias_core.eval", "SeasonalNaiveBaseline", "urgencias_core.models.baselines"),
-        ("urgencias_core", "run_harness", "urgencias_core.eval.harness"),
-    ],
-)
-def test_old_import_paths_still_work_with_a_warning(old: str, name: str, new: str) -> None:
-    module = importlib.import_module(old)
-    with pytest.warns(DeprecationWarning, match="removed in 0.5"):
-        obj = getattr(module, name)
-    assert obj is getattr(importlib.import_module(new), name)
-
-
 def test_new_paths_do_not_warn() -> None:
     with warnings.catch_warnings():
         warnings.simplefilter("error", DeprecationWarning)
         from urgencias_core import backtest, compare_models, load_deis, run_forecast  # noqa: F401
         from urgencias_core.models.registry import resolve_models  # noqa: F401
-
-
-def test_unknown_name_on_old_module_is_an_attribute_error() -> None:
-    with pytest.raises(AttributeError):
-        importlib.import_module("urgencias_core.pipeline").no_such_thing  # noqa: B018
 
 
 def test_wis_matches_the_interval_score_formula() -> None:

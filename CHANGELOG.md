@@ -7,6 +7,12 @@ API puede cambiar entre versiones menores).
 
 ## [Sin publicar]
 
+## [0.5.0] - 2026-11-02
+
+El pronóstico por defecto cambia según lo que se midió en 40 hospitales: Ensamble en vez de
+elegir un modelo por establecimiento, y sin calibrar los intervalos. Elegir el criterio,
+las ventanas del backtest y las referencias de cada método quedan documentados.
+
 ### Cambiado
 
 - **Ensamble pronostica por defecto, en vez de elegir un modelo por establecimiento.**
@@ -105,6 +111,14 @@ API puede cambiar entre versiones menores).
   demo fallaba.
 - Los gráficos de la demo a veces no mostraban las fechas del eje horizontal (dependía del
   día del mes en que empezaba la serie).
+
+### Eliminado
+
+- Las rutas obsoletas desde 0.4: `urgencias_core.pipeline`, `urgencias_core.eval.baselines`
+  y `run_harness` (con `HarnessReport`). Usa `urgencias_core.data.series`,
+  `urgencias_core.models.registry`, `urgencias_core.forecast` y
+  `urgencias_core.eval.calibration` (o los nombres de `urgencias_core`), y `backtest` o
+  `compare_models` en vez de `run_harness`.
 
 ## [0.4.0] - 2026-11-01
 
@@ -316,7 +330,8 @@ Primera versión pública: el pipeline de referencia empaquetado para `pip insta
 
 - Formato unificado con `ruff format` (se dejó black).
 
-[Sin publicar]: https://github.com/nicoveraz/urg-forecast-core/compare/v0.4.0...HEAD
+[Sin publicar]: https://github.com/nicoveraz/urg-forecast-core/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/nicoveraz/urg-forecast-core/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/nicoveraz/urg-forecast-core/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/nicoveraz/urg-forecast-core/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/nicoveraz/urg-forecast-core/compare/v0.1.0...v0.2.0
