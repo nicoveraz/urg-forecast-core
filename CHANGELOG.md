@@ -17,6 +17,9 @@ API puede cambiar entre versiones menores).
   externa?", botones para agregar al pronóstico los feriados o la circulación viral (con
   promedio histórico o proyectada) y comparar el Armónico con y sin ese regresor, con lo
   que el modelo supuso para cada semana y el veredicto del backtest cuando existe.
+- **Una sola página para desarrolladores.** "API y recetas" y "Para desarrolladores (API)"
+  se unen: la referencia de cada función y, al final, las recetas para agregar un modelo o
+  un regresor propio (desde la sección "Extender" del README). `/extender/` redirige ahí.
 - **Página "Para desarrolladores"** en el sitio: cada función pública, con su
   explicación y parámetros a la izquierda y, a la derecha, un ejemplo y su salida real,
   ejecutados con el snapshot incluido (`scripts/construir_api.py`). Un test ejecuta los

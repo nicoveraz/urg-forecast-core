@@ -5,6 +5,8 @@ import { defineConfig } from "astro/config";
 export default defineConfig({
   site: "https://nicoveraz.github.io",
   base: "/urg-forecast-core",
+  // "API y recetas" was merged into the developer page.
+  redirects: { "/extender": "/urg-forecast-core/desarrolladores/#extender" },
   integrations: [
     starlight({
       title: "urg-forecast",
@@ -34,10 +36,9 @@ export default defineConfig({
         {
           label: "Extender",
           items: [
-            { label: "API y recetas", slug: "extender" },
+            { label: "Para desarrolladores", link: "/desarrolladores/" },
             { label: "Ejemplos", slug: "ejemplos" },
             { label: "Arquitectura", slug: "arquitectura" },
-            { label: "Para desarrolladores (API)", link: "/desarrolladores/" },
           ],
         },
         { label: "Hoja de ruta", slug: "roadmap" },
