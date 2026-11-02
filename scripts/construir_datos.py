@@ -493,7 +493,9 @@ def main() -> int:
             except Exception as exc:  # noqa: BLE001 - one bad series must not stop the batch
                 code = futs[fut]
                 print(f"demo: {code} failed ({str(exc)[:80]})", flush=True)
-                index.append({"c": code, "n": code, "ok": False, "motivo": f"error: {str(exc)[:80]}"})
+                index.append(
+                    {"c": code, "n": code, "ok": False, "motivo": f"error: {str(exc)[:80]}"}
+                )
             if i % 25 == 0 or i == len(codes):
                 print(f"{i}/{len(codes)}", flush=True)
     index.sort(key=lambda e: (e.get("r") or "~", e.get("n") or ""))
