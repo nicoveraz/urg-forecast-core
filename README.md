@@ -203,6 +203,9 @@ y MINSAL, [tipos de servicios de urgencia](https://www.minsal.cl/servicios-de-ur
 5. Ensancha los intervalos del pronóstico según el error del backtest cuando
    ahí resultaron estrechos (nunca los angosta). `--sin-calibrar` lo desactiva.
 
+Cada uno de estos pasos se apoya en literatura revisada por pares; las fuentes, con dónde se
+usa cada una, están en [Referencias](https://github.com/nicoveraz/urg-forecast-core/blob/main/docs/referencias.md).
+
 `urg-forecast demo` usa el snapshot incluido en el paquete si no hay conexión;
 el resumen indica qué fuente se usó. `--offline` fuerza el snapshot.
 

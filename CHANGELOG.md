@@ -23,6 +23,10 @@ API puede cambiar entre versiones menores).
   (`qloss_mean`, nueva columna de `score()`) o el MAE; `select_by` también acepta una
   función de la tabla del backtest, que ahora trae `coverage_80`. `docs/modelos.md` explica
   cómo elegirlo según cuánto cuesta quedarse corto.
+- **Página de referencias** (`docs/referencias.md`, en el sitio): la literatura detrás de
+  cada decisión de método (modelos, backtest, pérdida por cuantil, calibración, WIS,
+  variables externas), con DOI verificado y dónde se usa cada una. Las páginas de modelos,
+  regresores, selección de modelos y arquitectura la citan.
 - **WIS como criterio** (`--criterio wis`, `select_by="wis"`, `metric="wis"`): el puntaje
   de intervalos ponderado (Bracher y otros, 2021) que usan FluSight y el COVID-19 Forecast
   Hub, sobre P5, P10, P20, P50, P80, P90 y P95. Los modelos producen los cuantiles que pide

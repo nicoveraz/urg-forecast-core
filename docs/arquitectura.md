@@ -89,7 +89,8 @@ rama `datos` cada semana, sin bloquear el resto si falla, y su atribución en
 `scripts/LEEME_datos.md`. Ejemplo completo: `data/flunet.py`.
 
 **Un modelo.** La clase en `models/`, su función en `extra_models()` y su línea en
-`MODEL_INFO` (`models/registry.py`), una sección en [`modelos.md`](modelos.md) y una prueba
+`MODEL_INFO` (`models/registry.py`), una sección en [`modelos.md`](modelos.md), su fuente en
+[`referencias.md`](referencias.md) y una prueba
 que revise la forma de la salida. Antes de proponerlo como modelo por defecto, compáralo con
 `urg-forecast comparar` en varios establecimientos. Ejemplo: `examples/03_modelo_propio.py`.
 
@@ -123,6 +124,9 @@ CI ejecuta los ejemplos y avisa si una firma documentada cambió sin regenerarla
 
 ## Reglas que valen para todo
 
+- **Cada método, con su fuente.** Lo que el paquete hace se apoya en literatura citada en
+  [Referencias](referencias.md). Un resultado propio se documenta con su fecha y con cómo
+  reproducirlo.
 - **Nada mira el futuro.** Ni modelos, ni regresores, ni calibración usan datos
   posteriores al origen de cada ventana.
 - **Un resultado negativo también se documenta.**

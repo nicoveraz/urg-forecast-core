@@ -161,6 +161,9 @@ The table of health-service prefixes is in the Spanish README.
 5. Widens the forecast intervals by the backtest error when they were too
    narrow there (never narrows them). `--sin-calibrar` turns this off.
 
+Each step rests on peer-reviewed literature; the sources, and where each one is used, are
+listed (in Spanish) in [Referencias](https://github.com/nicoveraz/urg-forecast-core/blob/main/docs/referencias.md).
+
 `urg-forecast demo` falls back to a snapshot bundled with the package when there
 is no connection; the summary says which source was used.
 `--offline` forces the snapshot.

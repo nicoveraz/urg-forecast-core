@@ -11,7 +11,9 @@ son esos cuatro. El experimento completo está en
   (Puerto Montt, Frutillar, Osorno, Valdivia, Castro, Sótero del Río y Peumo),
   unas 245 semanas completas cada uno desde 2022.
 - Backtest con 6 ventanas separadas por 8 semanas, para horizontes de 12 y 26
-  semanas, de modo que cada modelo se evalúa en distintas épocas del año.
+  semanas, de modo que cada modelo se evalúa en distintas épocas del año (origen móvil,
+  Tashman 2000; las fuentes de los modelos y métricas están en
+  [Referencias](referencias.md)).
 - Métrica principal: pérdida por cuantil promedio (P50, P80, P90, P95),
   dividida por la de SeasonalNaive en el mismo establecimiento. Menos es mejor.
 - Cobertura P80: fracción de semanas en que el valor real quedó bajo el P80.
