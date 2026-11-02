@@ -46,6 +46,7 @@ sitio/node_modules/
 sitio/dist/
 sitio/.astro/
 sitio/src/content/docs/
+sitio/src/generated/
 sitio/public/pronostico.png
 sitio/public/datos/
 sitio/public/img/

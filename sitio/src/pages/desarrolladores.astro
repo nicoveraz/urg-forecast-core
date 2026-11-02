@@ -2,6 +2,8 @@
 import StarlightPage from "@astrojs/starlight/components/StarlightPage.astro";
 import { Code } from "@astrojs/starlight/components";
 import api from "../data/api.json";
+// Written by scripts/sync.mjs from the README's "Extender" recipes (single source).
+import { Content as Recetas } from "../generated/recetas.md";
 
 const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
 const REPO = "https://github.com/nicoveraz/urg-forecast-core/blob/main/";
@@ -20,22 +22,22 @@ const sourceUrl = (path: string) => (path ? REPO + path : "");
   frontmatter={{
     title: "Para desarrolladores",
     description:
-      "La API de urgencias_core: cada función con su explicación y un ejemplo que se ejecuta con los datos incluidos.",
+      "La API de urgencias_core, cada función con un ejemplo que se ejecuta con los datos incluidos, y recetas para agregar tu propio modelo o una variable externa.",
     tableOfContents: false,
   }}
 >
   <div class="api not-content">
     <p class="api-intro">
-      Las funciones del paquete <code>urgencias_core</code>, ordenadas por pregunta. A la
-      izquierda, qué hace cada una y sus parámetros; a la derecha, un ejemplo y su salida. Los
-      ejemplos se ejecutan en orden, con el snapshot del DEIS que trae el paquete, al generar
-      esta página: puedes copiarlos y obtener lo mismo. El mapa del paquete está en{" "}
-      <a href={base + "arquitectura/"}>Arquitectura</a> y hay scripts completos en{" "}
+      Todo lo que hace el comando <code>urg-forecast</code> son unas pocas funciones sobre
+      DataFrames. Esta página va de lo más simple a lo más detallado: cada función del paquete{" "}
+      <code>urgencias_core</code>, desde instalarlo hasta comparar modelos, con su explicación a
+      la izquierda y un ejemplo con su salida a la derecha; al final, las recetas para extenderlo
+      con tu propio modelo o una variable externa. El mapa del paquete está en <a href={base + "arquitectura/"}>Arquitectura</a> y hay scripts completos en{" "}
       <a href={base + "ejemplos/"}>Ejemplos</a>.
     </p>
-
     <nav class="api-indice" aria-label="Secciones">
       {api.sections.map((s) => <a href={`#${s.id}`}>{s.title}</a>)}
+      <a href="#extender">Extender el paquete</a>
     </nav>
 
     {
@@ -95,10 +97,22 @@ const sourceUrl = (path: string) => (path ? REPO + path : "");
       ))
     }
 
+  </div>
+
+  <section class="api-prosa" id="extender">
+    <h2>Extender el paquete</h2>
+    <p>
+      Recetas paso a paso para sumar algo propio y medir si sirve. Dónde va cada pieza está en{" "}
+      <a href={base + "arquitectura/"}>Arquitectura</a>.
+    </p>
+    <Recetas />
+  </section>
+
+  <div class="api not-content">
     <p class="api-pie">
       Generada con <a href={REPO + "scripts/construir_api.py"}>scripts/construir_api.py</a> y
-      urg-forecast-core {api.version}. La CI ejecuta todos los ejemplos y falla si una firma
-      cambia sin regenerar la página.
+      urg-forecast-core {api.version}; las recetas vienen de la sección "Extender" del README. La
+      CI ejecuta todos los ejemplos y falla si una firma cambia sin regenerar la página.
     </p>
   </div>
 </StarlightPage>
@@ -148,4 +162,8 @@ const sourceUrl = (path: string) => (path ? REPO + path : "");
   .api-codigo .expressive-code + .expressive-code { margin-top: 0.75rem; }
   .api .sin-salida { font-size: var(--sl-text-sm); color: var(--sl-color-gray-3); margin-top: 0.5rem; }
   .api-pie { margin-top: 3rem; font-size: var(--sl-text-sm); color: var(--sl-color-gray-3); }
+  /* Prose sections (from the README) keep a readable line length on this wide page. */
+  .api-prosa { max-width: 52rem; margin-top: 3rem; }
+  .api-prosa > h2 { font-size: var(--sl-text-3xl); }
+  .api-prosa h3 { font-size: var(--sl-text-2xl); }
 </style>

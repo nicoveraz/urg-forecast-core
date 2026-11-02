@@ -451,7 +451,7 @@ Estoy usando urg-forecast-core, un paquete de Python para pronosticar las
 atenciones semanales de un servicio de urgencia en Chile con datos públicos del
 DEIS MINSAL (https://github.com/nicoveraz/urg-forecast-core).
 Antes de responder, lee:
-- https://nicoveraz.github.io/urg-forecast-core/extender/
+- https://nicoveraz.github.io/urg-forecast-core/desarrolladores/
 - https://nicoveraz.github.io/urg-forecast-core/modelos/
 
 Lo que quiero: [describe el modelo o el cambio, por ejemplo: "un modelo que use

@@ -1,6 +1,7 @@
 // Generates the site's pages from the repo's own docs, so there is a single
 // source: README.md (sections between <!-- sitio:... --> markers), docs/*.md
-// and CHANGELOG.md. Output goes to src/content/docs/ (git-ignored).
+// and CHANGELOG.md. Output goes to src/content/docs/ (git-ignored); the README
+// recipes that the developer page shows go to src/generated/ (git-ignored).
 import { copyFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -26,7 +27,9 @@ const ANCHORS = {
   "una-base-no-un-producto": "uso/#una-base-no-un-producto",
   "referencia-de-comandos": "uso/#referencia-de-comandos",
   modelos: "modelos/",
-  extender: "extender/",
+  extender: "desarrolladores/#extender",
+  "agregar-tu-propio-modelo": "desarrolladores/#agregar-tu-propio-modelo",
+  "agregar-un-regresor-externo": "desarrolladores/#agregar-un-regresor-externo",
 };
 
 const README = "https://github.com/nicoveraz/urg-forecast-core/blob/main/README.md#";
@@ -111,8 +114,14 @@ hero:
 
 write("uso", { title: "Uso", description: "Comandos, opciones y qué revisar antes de usar un pronóstico." },
   section("uso", "modelos"));
-write("extender", { title: "Extender", description: "La API en Python y cómo agregar tus propios modelos." },
-  stripH2(section("extender", "acerca"), "Extender"));
+// The README's "Extender" recipes live on the developer page (src/pages/desarrolladores.astro),
+// after the API reference. Its intro (links and a quick start) is already covered there.
+const generated = join(here, "..", "src", "generated");
+rmSync(generated, { recursive: true, force: true });
+mkdirSync(generated, { recursive: true });
+const extender = stripH2(section("extender", "acerca"), "Extender");
+const firstRecipe = extender.indexOf("\n### ");
+writeFileSync(join(generated, "recetas.md"), fixLinks(extender.slice(firstRecipe).trim(), "desarrolladores") + "\n");
 write("acerca", { title: "Acerca de", description: "Datos, estado del proyecto, cita y licencia." },
   section("acerca", "fin"));
 write("modelos", { title: "Modelos", description: "Los modelos incluidos, cuándo conviene cada uno y cómo agregar el tuyo." },
