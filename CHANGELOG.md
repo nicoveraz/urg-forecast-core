@@ -74,6 +74,9 @@ API puede cambiar entre versiones menores).
 
 ### Corregido
 
+- La tabla del backtest conserva la columna MAPE aunque todas las semanas evaluadas tengan
+  cero atenciones (un servicio que dejó de reportar); antes se perdía y la generación de la
+  demo fallaba.
 - Los gráficos de la demo a veces no mostraban las fechas del eje horizontal (dependía del
   día del mes en que empezaba la serie).
 

@@ -141,6 +141,14 @@ def test_run_forecast_on_wis_adds_lower_quantiles_only_then() -> None:
     assert "wis" not in default.backtest.columns and "q5" not in default.forecast.columns
 
 
+def test_backtest_table_keeps_mape_when_every_week_was_zero() -> None:
+    weekly = weekly_series(load_deis(["24-115"], offline=True), "24-115")
+    weekly.loc[weekly.index[-20:], "count"] = 0.0  # a service that stopped reporting
+    result = run_forecast(weekly, 4, models={"SeasonalNaive": SeasonalNaiveBaseline})
+    assert "mape" in result.backtest.columns and result.backtest["mape"].isna().all()
+    assert "wis" not in result.backtest.columns
+
+
 class _OnlyUpper(SeasonalNaiveBaseline):
     """A custom model that only gives the default quantiles."""
 
