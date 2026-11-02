@@ -156,6 +156,21 @@ def test_criterio_wis_writes_lower_quantiles(tmp_path, capsys) -> None:
     assert csv.startswith("timestamp,q5,q10,q20,q50")
 
 
+def test_ventanas_and_paso_set_the_backtest(tmp_path, capsys) -> None:
+    argv = ["demo", "--offline", "-H", "4", "-m", "SeasonalNaive", "-o", str(tmp_path)]
+    assert cli.main([*argv, "--ventanas", "5", "--paso", "2"]) == 0
+    assert "5 ventanas de 4 semanas" in capsys.readouterr().out
+    assert cli.main([*argv, "--ventanas", "999"]) == 0
+    assert "ventanas, no 999" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("value", ["0", "-2", "tres"])
+def test_ventanas_rejects_non_positive(value, capsys) -> None:
+    with pytest.raises(SystemExit):
+        cli.main(["demo", "--offline", "--ventanas", value])
+    assert "--ventanas" in capsys.readouterr().err
+
+
 def test_criterio_rejects_unknown_values(capsys) -> None:
     with pytest.raises(SystemExit):
         cli.main(["demo", "--offline", "--criterio", "p70"])
