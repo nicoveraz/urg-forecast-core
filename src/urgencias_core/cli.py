@@ -270,8 +270,8 @@ def build_parser() -> argparse.ArgumentParser:
             default=None,
             metavar="N",
             help="ventanas del backtest para elegir el modelo y calibrar los intervalos "
-            "(por defecto 3). Más ventanas dan una elección más estable, pero tardan más y "
-            "llegan más atrás en el tiempo; caben las que deje la historia",
+            "(por defecto 3). Más ventanas dan una elección más estable, no más acertada, "
+            "pero tardan más y miran más atrás; caben las que deje la historia",
         )
         p.add_argument(
             "--paso",

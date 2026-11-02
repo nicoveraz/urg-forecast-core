@@ -96,7 +96,65 @@ otros, 2024); citas completas en [Referencias](referencias.md).
 
 ### Ventanas del backtest
 
-PENDIENTE
+Por defecto el modelo se elige, y sus intervalos se calibran, con 3 ventanas tan largas como
+el horizonte, cada 8 semanas. Con el horizonte de 26 semanas eso implica:
+
+- **Menos semanas de las que parece.** Las ventanas se superponen: juntas cubren las
+  últimas 42 semanas (unos 10 meses), no 78, y las del medio cuentan tres veces. Con 12
+  semanas de horizonte cubren 28. Con 4 no se superponen: son 12 semanas repartidas en las
+  últimas 20.
+- **Solo lo reciente.** La elección mira el último invierno y los meses que siguen. Ayuda si
+  el establecimiento cambió hace poco y perjudica si ese año fue atípico.
+- **Ganadores por poco.** Los modelos quedan tan parejos que el ganador cambia con
+  detalles: con el criterio (ver arriba) o con las semanas nuevas de cada actualización.
+
+**¿Ayudan más ventanas?** Se midió en noviembre de 2026, con datos al 1 de noviembre, en
+los mismos 40 hospitales del estudio de [regresores](regresores.md)
+(`experiments/ventanas_backtest.py`). En 5 fechas entre septiembre de 2025 y mayo de 2026 se
+eligió el modelo con las 3, 6 o 9 ventanas anteriores (de 24 semanas, cada 8), como lo
+habría hecho `run_forecast` en esa fecha, y se evaluó esa elección en las 24 semanas
+siguientes, que ninguna de esas ventanas vio.
+
+| Ventanas | Cambio mediano de la pérdida P80 frente a 3 | Hospitales mejor / peor que con 3 | El modelo elegido cambia de una fecha a la siguiente |
+|---|---|---|---|
+| 3 (por defecto) | — | — | 33 % |
+| 6 | 0,0 % | 16 / 17 | 18 % |
+| 9 | 0,0 % | 17 / 19 | 16 % |
+
+- **Más ventanas no eligen mejor.** La pérdida del modelo elegido no cambió, ni la pérdida
+  P80 ni el WIS. Con la calibración incluida, 9 ventanas salieron algo peor (mediana
+  +3,7 %, mejor en 14 hospitales y peor en 26), sin llegar a ser una diferencia consistente.
+- **Sí eligen más estable.** Con 6 ventanas, el modelo elegido cambia la mitad de las veces.
+- **Por qué.** El desempeño pasado anticipa poco qué modelo rendirá mejor después. El
+  elegido con 3 ventanas fue el mejor de los cuatro en las semanas siguientes solo el 30 %
+  de las veces (al azar sería 25 %). Usar siempre el Armónico rindió igual que elegir
+  (mediana −2,7 %, mejor en 23 hospitales y peor en 13, sin diferencia consistente). Y
+  elegir sabiendo qué pasó, el mejor en cada ventana de prueba, habría bajado la pérdida
+  P80 un 21 %. Hay diferencias entre los modelos, pero este historial no permite
+  anticiparlas: con una medida tan ruidosa, la elección se sobreajusta (Cawley y Talbot,
+  2010; ver [Referencias](referencias.md)).
+- **La calibración tampoco mejoró en esas fechas.** Sin calibrar, lo real quedó bajo el
+  P80 el 83 % de las semanas (se busca el 80 %). Calibrar lo subió a 85 % sin bajar la
+  pérdida P80 (mediana 0,0 %; en total, +3 %). La [hoja de ruta](roadmap.md) propone una
+  calibración mejor.
+
+Son 5 fechas en 8 meses y 40 hospitales: alcanza para ver que más ventanas no traen una
+mejora clara, no para descartar una pequeña.
+
+**Qué se decidió.** Se mantienen 3 ventanas por defecto. Más ventanas no eligen mejor,
+tardan más (cada ventana ajusta todos los modelos de nuevo: 6 ventanas, el doble de
+tiempo) y miran más atrás. En la demo, que actualiza 602 establecimientos cada semana en
+unos 45 minutos, duplicarían ese tiempo. Si te importa que el modelo no cambie de una
+actualización a otra, por ejemplo en un informe periódico, usa 6.
+
+**Cambiarlas.** `--ventanas N` y `--paso SEMANAS` en `pronosticar` y `demo`; `origins` y
+`step` en `run_forecast`. Cada ventana necesita 104 semanas de historia antes de ella, así
+que caben las que permita la historia: con datos desde 2022, en noviembre de 2026 caben 16
+de 26 semanas cada 8. El resumen dice cuántas se usaron.
+
+```bash
+urg-forecast pronosticar 24-105 --ventanas 6
+```
 
 ## Modelos por defecto
 

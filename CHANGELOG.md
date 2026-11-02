@@ -23,6 +23,12 @@ API puede cambiar entre versiones menores).
   (`qloss_mean`, nueva columna de `score()`) o el MAE; `select_by` también acepta una
   función de la tabla del backtest, que ahora trae `coverage_80`. `docs/modelos.md` explica
   cómo elegirlo según cuánto cuesta quedarse corto.
+- **`--ventanas` y `--paso` en `pronosticar` y `demo`**: cuántas ventanas del backtest
+  eligen el modelo y calibran los intervalos (3 y 8 semanas por defecto, sin cambios;
+  `origins` y `step` en `run_forecast`). `docs/modelos.md` explica qué implican 3 ventanas y
+  mide si más ayudan en 40 hospitales: con 6 o 9 la elección es más estable, pero no mejor.
+  También documenta cuánto cambia la elección con el criterio. Lo reproduce
+  `experiments/ventanas_backtest.py`.
 - **Página de referencias** (`docs/referencias.md`, en el sitio): la literatura detrás de
   cada decisión de método (modelos, backtest, pérdida por cuantil, calibración, WIS,
   variables externas), con DOI verificado y dónde se usa cada una. Las páginas de modelos,

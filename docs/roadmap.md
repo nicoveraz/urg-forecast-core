@@ -37,7 +37,13 @@ conocer todo el paquete. Dónde va cada cosa está en [Arquitectura](arquitectur
   de Puerto Montt, a octubre de 2026, cubrió el 26 % de las semanas del backtest). Hoy
   `eval/calibration.py` lo corrige ensanchando las bandas con un solo factor para todo el
   horizonte. Faltan una calibración por horizonte (o conformal) y medir la cobertura en
-  muchos establecimientos, no solo en uno.
+  muchos establecimientos, no solo en uno. Una primera medición, en 40 hospitales y 5 fechas
+  entre septiembre de 2025 y mayo de 2026, dio que lo real quedó bajo el P80 el 83 % de las
+  semanas y que calibrar lo subió a 85 % sin bajar la pérdida P80 (ver
+  [Ventanas del backtest](modelos.md#ventanas-del-backtest)).
+- **Elegir o combinar.** Elegir el modelo por establecimiento rindió igual que usar siempre
+  el Armónico, y elegir con 6 o 9 ventanas tampoco eligió mejor (mismo enlace). Falta medir
+  si combinar los modelos (`Ensamble`) rinde más que elegir uno.
 - **Feriados en los modelos por defecto.** `ArmónicoFeriados` mejoró la pérdida P80 en 19 de
   los 40 hospitales con más atenciones y no empeoró en ninguno (ver
   [Regresores](regresores.md)), pero hoy es opcional. Antes de sumarlo a los modelos por

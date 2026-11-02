@@ -276,7 +276,7 @@
       ],
       [
        "origins, step",
-       "número de ventanas y semanas entre ellas"
+       "número de ventanas (3) y semanas entre ellas (8); más ventanas dan una elección más estable, no más acertada, a cambio de tiempo"
       ],
       [
        "calibrate",
