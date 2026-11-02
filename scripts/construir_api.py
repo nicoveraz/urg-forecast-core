@@ -270,15 +270,23 @@ SECTIONS = [
                 "urgencias_core.forecast:run_forecast",
                 "run_forecast",
                 "Cada modelo pronostica semanas pasadas que ya se conocen (ventanas tan "
-                "largas como el horizonte, hasta 26 semanas); se elige el de menor pérdida "
-                "P80, se reajusta con toda la historia y se pronostica. Con `calibrate=True` "
-                "las bandas se ensanchan según el error que tuvo en esas ventanas.",
+                "largas como el horizonte, hasta 26 semanas); se elige el mejor, se reajusta "
+                "con toda la historia y se pronostica. Mejor es, por defecto, el de menor "
+                "pérdida P80 (quedarse corto cuesta 4 veces más que pasarse); `select_by` "
+                "cambia el criterio. Con `calibrate=True` las bandas se ensanchan según el "
+                "error que tuvo en esas ventanas.",
                 params=[
                     ("history", "serie semanal"),
                     ("horizon_weeks", "semanas a pronosticar"),
                     ("models", "nombre → fábrica; por defecto los cuatro de `default_models()`"),
                     ("origins, step", "número de ventanas y semanas entre ellas"),
                     ("calibrate", "ensanchar los intervalos según el backtest"),
+                    (
+                        "select_by",
+                        'columna para elegir: `"qloss_80"` (por defecto), `"qloss_50"`, '
+                        '`"qloss_90"`, `"qloss_95"`, `"qloss_mean"`, `"mae"`, o una función '
+                        "que reciba la tabla del backtest y devuelva un modelo",
+                    ),
                 ],
                 returns="`ForecastResult`: `best`, `backtest` (error por modelo), `forecast` "
                 "(`timestamp, q50, q80, q90, q95`), `coverage80`, `interval_scale`.",
@@ -422,6 +430,7 @@ SECTIONS = [
                     ("history", "serie semanal"),
                     ("base, candidate", "pares `(nombre, fábrica)`"),
                     ("horizon_weeks, origins, step", "ventanas (4, 36, 4)"),
+                    ("metric", 'qué se compara en cada ventana (por defecto `"qloss_80"`)'),
                 ],
                 returns="`Comparison`: `verdict` (`mejora`, `empeora`, `sin diferencia "
                 "clara`), `text()`, `summary()`, `windows`.",

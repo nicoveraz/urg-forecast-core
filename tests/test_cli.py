@@ -141,6 +141,19 @@ def test_single_model_option(tmp_path, capsys) -> None:
     assert "MSTL *" in out and "AutoARIMA" not in out
 
 
+def test_criterio_option_changes_the_choice_and_says_so(tmp_path, capsys) -> None:
+    argv = ["demo", "--offline", "-H", "4", "-m", "SeasonalNaive", "-m", "Armonico"]
+    assert cli.main([*argv, "--criterio", "p95", "-o", str(tmp_path)]) == 0
+    out = capsys.readouterr().out
+    assert "el de menor pérdida P95" in out and "Pérdida P95" in out
+
+
+def test_criterio_rejects_unknown_values(capsys) -> None:
+    with pytest.raises(SystemExit):
+        cli.main(["demo", "--offline", "--criterio", "p70"])
+    assert "p70" in capsys.readouterr().err
+
+
 def test_unknown_model_fails_cleanly(tmp_path, capsys) -> None:
     assert cli.main(["demo", "--offline", "-m", "nada", "-o", str(tmp_path)]) == 2
     assert "modelo desconocido" in capsys.readouterr().err
@@ -170,6 +183,9 @@ def test_comparar_reports_windows_and_writes_csv(tmp_path, monkeypatch, capsys) 
     assert cli.main(argv) == 0
     out = capsys.readouterr().out
     assert "ArmónicoFeriados frente a Armónico, 3 ventanas" in out
+    assert "cambio mediano de la pérdida P80" in out
+    assert cli.main([*argv, "--criterio", "media"]) == 0
+    assert "cambio mediano de la pérdida media P50–P95" in capsys.readouterr().out
     assert "invierno" in out
     assert (tmp_path / "24-105" / "comparacion.csv").exists()
 

@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 from tabulate import tabulate  # noqa: E402
 
 from urgencias_core.data.series import COVID_EXCLUDE_YEARS  # noqa: E402
+from urgencias_core.eval.metrics import CRITERIA, criterion_label  # noqa: E402
 from urgencias_core.forecast import ForecastResult  # noqa: E402
 
 TABLE_FMT = "psql"  # pure ASCII: + - |
@@ -43,19 +44,25 @@ def _fmt_date(ts) -> str:
 
 
 def backtest_table(result: ForecastResult) -> str:
-    t = result.backtest.sort_values("qloss_80")
+    """MAE, MAPE and P80 loss per model, plus the selection criterion's column if it is
+    another one; sorted by the criterion."""
+    crit = result.select_by
+    extra = crit in CRITERIA and crit not in ("mae", "qloss_80")
+    t = result.backtest.sort_values(crit if crit in result.backtest.columns else "qloss_80")
     rows = [
         [
             name + (" *" if name == result.best else ""),
             f"{r['mae']:.0f}",
             f"{100 * r['mape']:.1f}",
             f"{r['qloss_80']:.1f}",
+            *([f"{r[crit]:.1f}"] if extra else []),
         ]
         for name, r in t.iterrows()
     ]
     return tabulate(
         rows,
-        headers=["Modelo", "MAE", "MAPE %", "Pérdida P80"],
+        headers=["Modelo", "MAE", "MAPE %", "Pérdida P80"]
+        + ([criterion_label(crit)[0].upper() + criterion_label(crit)[1:]] if extra else []),
         tablefmt=TABLE_FMT,
         disable_numparse=True,
         colalign=("left", "right", "right", "right"),
@@ -79,7 +86,9 @@ def forecast_table(result: ForecastResult) -> str:
 def _backtest_title(result: ForecastResult) -> str:
     w, k = result.backtest_weeks, result.backtest_origins
     windows = f"{k} ventanas de {w} semanas" if k > 1 else f"últimas {w} semanas"
-    return f"Backtest: {windows}, promedio (el modelo elegido se marca con *)"
+    crit = result.select_by
+    how = f"el de menor {criterion_label(crit)}" if crit in CRITERIA else f"según {crit}"
+    return f"Backtest: {windows}, promedio (el modelo elegido, {how}, se marca con *)"
 
 
 def _calibration_line(result: ForecastResult) -> str:

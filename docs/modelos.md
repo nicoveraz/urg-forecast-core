@@ -17,11 +17,50 @@ igual se hace el backtest, para que veas su error, pero no hay elección.
 ## Cómo se comparan
 
 Cada modelo se ajusta en tres ventanas de backtest tan largas como el horizonte
-(máximo 26 semanas), separadas por 8 semanas. Gana el de menor **pérdida por
+(máximo 26 semanas), separadas por 8 semanas. Por defecto gana el de menor **pérdida por
 cuantil P80** promedio: una medida que castiga más quedarse corto que pasarse,
 que es lo que importa al planificar dotación. Luego el ganador se reajusta con
 toda la historia y sus intervalos se ensanchan si en el backtest resultaron
 estrechos (ver `--sin-calibrar`).
+
+### Elegir el criterio
+
+El P80 es una elección, no un dato: equivale a decir que quedarse corto cuesta 4 veces más
+que pasarse. Quien usa el paquete puede elegir otro con `--criterio` (o `select_by` en
+`run_forecast` y `metric` en `compare_models`). Si quedarse corto cuesta *k* veces más que
+pasarse, el cuantil que corresponde es *k* / (*k* + 1):
+
+| `--criterio` | Mide | Úsalo si quedarse corto cuesta… |
+|---|---|---|
+| `p50` | pérdida en el P50 | lo mismo que pasarse |
+| `p80` (por defecto) | pérdida en el P80 | 4 veces más |
+| `p90` | pérdida en el P90 | 9 veces más |
+| `p95` | pérdida en el P95 | 19 veces más |
+| `media` | promedio de las pérdidas de P50 a P95 | no quieres fijar un costo: evalúa todo el pronóstico |
+| `mae` | error del valor central | solo te importa el valor central |
+
+En Python también puedes pasar una función que reciba la tabla del backtest (una fila por
+modelo, con `coverage_80` además de los errores) y devuelva el nombre del modelo. Por
+ejemplo, quedarse con el más angosto entre los que cubrieron al menos el 75 % de las
+semanas y, si ninguno lo logra, con el que más se acercó:
+
+```python
+def calibrado_y_angosto(tabla):
+    cubren = tabla[tabla["coverage_80"] >= 0.75]
+    if cubren.empty:  # ninguno cubre lo que promete
+        return tabla["coverage_80"].idxmax()
+    return cubren["width_80"].idxmin()
+
+res = run_forecast(semanal, 26, select_by=calibrado_y_angosto)
+```
+
+Dos cuidados. Fija el criterio **antes** de mirar los resultados: si pruebas varios y te
+quedas con el que deja mejor a tu modelo, encuentras un ganador por azar. Y los cuantiles
+altos se miden con pocas semanas: en las 78 del backtest, solo unas 4 deberían superar el
+P95, así que la pérdida P95 es ruidosa.
+
+Combinar modelos en vez de elegir uno también es posible: agrega `Ensamble` (la mediana de
+AutoARIMA, Armónico y MSTL) a los modelos y compite en el mismo backtest.
 
 Si un modelo falla al ajustarse, se omite y el resumen lo informa.
 

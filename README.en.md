@@ -105,6 +105,7 @@ Pronóstico con Armónico: atenciones semanales
 | `-o`, `--salida` | demo, pronosticar | Output folder (default `./urg-forecast-salida`); one subfolder per establishment. |
 | `-m`, `--modelo` | demo, pronosticar | Model to use, repeatable. A name from `urg-forecast modelos` or `file:Class` for your own. See [Models](#models). |
 | `--sin-calibrar` | demo, pronosticar | Do not widen intervals by backtest error. |
+| `--criterio` | demo, pronosticar, comparar | What picks (or compares) the model: `p80` (default), `p50`, `p90`, `p95`, `media` (mean of P50 to P95) or `mae`. |
 | `--desde YEAR` | pronosticar | First DEIS year to use (default 2022). 2020–2021 are always excluded. |
 | `--offline` | demo, pronosticar | Bundled snapshot only, no network. It contains only the two demo hospitals. |
 | `--fuente repo\|deis` | demo, buscar, pronosticar | Where to read data from (see below). Default `repo`. |
@@ -151,7 +152,8 @@ The table of health-service prefixes is in the Spanish README.
    history starts in 2022 even with `--desde`.
 3. Backtests four models — seasonal naive (reference), AutoARIMA, a harmonic
    regression and MSTL — over three windows as long as the horizon (max. 26
-   weeks), and picks the one with the lowest mean P80 quantile loss. On live
+   weeks), and picks the one with the lowest mean P80 quantile loss (`--criterio`
+   picks another criterion). On live
    data for seven hospitals no single model won everywhere, so the choice is
    made per establishment; see
    [`docs/seleccion-de-modelos.md`](https://github.com/nicoveraz/urg-forecast-core/blob/main/docs/seleccion-de-modelos.md).

@@ -96,6 +96,7 @@ ejemplos:
   urg-forecast pronosticar 24-105 -m AutoARIMA     # un solo modelo, sin comparar
   urg-forecast pronosticar 24-105 -m Ensamble -m TBATS -m MSTL
   urg-forecast pronosticar 24-105 -m mi_modelo:MiClase -m MSTL
+  urg-forecast pronosticar 24-105 --criterio p95   # quedarse corto cuesta 19 veces más
 
 Horizonte: semanas (12 o 12s) o meses (6m). El backtest usa tres ventanas tan
 largas como el horizonte (máximo 26 semanas) y exige 104 semanas previas de
@@ -113,6 +114,7 @@ ejemplos:
   urg-forecast comparar 24-105 -m ArmonicoFluNet
   urg-forecast comparar 24-105 -m ArmonicoFluNetProy --base Armonico -H 8
   urg-forecast comparar 24-105 -m mi_modelo:MiClase --ventanas 24 --paso 6
+  urg-forecast comparar 24-105 -m ArmonicoFeriados --criterio media
 
 Ajusta ambos modelos en las mismas ventanas (por defecto 36 ventanas de 4 semanas,
 cada 4 semanas: unos tres inviernos) y cuenta en cuántas gana el candidato, con
@@ -121,6 +123,23 @@ establecimientos, uno de cada veinte saldrá "mejora" o "empeora" por azar.
 
 {BASE_NOTE}
 """
+
+# --criterio: how the backtest picks the model (or compares two). Score columns in
+# urgencias_core.eval.metrics.CRITERIA.
+CRITERIO = {
+    "p80": "qloss_80",
+    "p50": "qloss_50",
+    "p90": "qloss_90",
+    "p95": "qloss_95",
+    "media": "qloss_mean",
+    "mae": "mae",
+}
+CRITERIO_HELP = (
+    "criterio para elegir el modelo en el backtest (por defecto p80). p50, p80, p90 o p95: "
+    "pérdida en ese cuantil; elígelo según cuánto peor es quedarse corto que pasarse "
+    "(p50: igual; p80: 4 veces; p90: 9; p95: 19). media: promedio de P50 a P95, evalúa todo "
+    "el pronóstico. mae: error del valor central. Fíjalo antes de mirar los resultados"
+)
 
 MODELS_EPILOG = """\
 ejemplos:
@@ -229,6 +248,7 @@ def build_parser() -> argparse.ArgumentParser:
             action="store_true",
             help="no ensanchar los intervalos según el error del backtest",
         )
+        p.add_argument("--criterio", choices=list(CRITERIO), default="p80", help=CRITERIO_HELP)
 
     p_demo = _spanish(
         sub.add_parser(
@@ -319,7 +339,8 @@ def build_parser() -> argparse.ArgumentParser:
             description=(
                 "Descarga los datos DEIS de los establecimientos indicados, compara\n"
                 "modelos en un backtest con varias ventanas y pronostica con el de menor\n"
-                "pérdida P80. Por defecto: SeasonalNaive, AutoARIMA, Armónico y MSTL."
+                "pérdida P80 (--criterio cambia el criterio). Por defecto: SeasonalNaive,\n"
+                "AutoARIMA, Armónico y MSTL."
             ),
             epilog=FORECAST_EPILOG,
         )
@@ -382,6 +403,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--ventanas", type=int, default=36, metavar="N", help="número de ventanas (36)"
     )
     p_cmp.add_argument(
+        "--criterio",
+        choices=list(CRITERIO),
+        default="p80",
+        help="qué se compara en cada ventana (por defecto p80): " + CRITERIO_HELP.split(": ", 1)[1],
+    )
+    p_cmp.add_argument(
         "--paso", type=int, default=4, metavar="SEMANAS", help="semanas entre ventanas (4)"
     )
     p_cmp.add_argument(
@@ -428,6 +455,7 @@ def _forecast(
     model_names: list[str] | None = None,
     calibrate: bool = True,
     source: str = "repo",
+    select_by: str = "qloss_80",
 ) -> int:
     from urgencias_core.data.series import NoDataError, facility_name, load_deis, weekly_series
     from urgencias_core.forecast import run_forecast
@@ -470,6 +498,7 @@ def _forecast(
                 source=df.attrs["source"],
                 models=models,
                 calibrate=calibrate,
+                select_by=select_by,
             )
         except NoDataError as exc:
             print(f"error: {exc}", file=sys.stderr)
@@ -605,6 +634,7 @@ def _compare(args: argparse.Namespace) -> int:
         horizon_weeks=args.horizonte,
         origins=args.ventanas,
         step=args.paso,
+        metric=CRITERIO[args.criterio],
     )
     if cmp.n == 0:
         print("error: no hay historia suficiente para ninguna ventana", file=sys.stderr)
@@ -674,6 +704,7 @@ def main(argv: list[str] | None = None) -> int:
             model_names=args.modelo,
             calibrate=not args.sin_calibrar,
             source=args.fuente,
+            select_by=CRITERIO[args.criterio],
         )
     if args.command == "modelos":
         return _list_models()
@@ -693,6 +724,7 @@ def main(argv: list[str] | None = None) -> int:
         model_names=args.modelo,
         calibrate=not args.sin_calibrar,
         source=args.fuente,
+        select_by=CRITERIO[args.criterio],
     )
 
 

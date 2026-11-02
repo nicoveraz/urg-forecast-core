@@ -17,6 +17,12 @@ API puede cambiar entre versiones menores).
   externa?", botones para agregar al pronóstico los feriados o la circulación viral (con
   promedio histórico o proyectada) y comparar el Armónico con y sin ese regresor, con lo
   que el modelo supuso para cada semana y el veredicto del backtest cuando existe.
+- **El criterio para elegir el modelo es configurable.** `run_forecast(select_by=...)`,
+  `compare_models(metric=...)` y `--criterio` en `pronosticar`, `demo` y `comparar` aceptan
+  la pérdida en P50, P80 (por defecto, sin cambios), P90 o P95, el promedio de P50 a P95
+  (`qloss_mean`, nueva columna de `score()`) o el MAE; `select_by` también acepta una
+  función de la tabla del backtest, que ahora trae `coverage_80`. `docs/modelos.md` explica
+  cómo elegirlo según cuánto cuesta quedarse corto.
 - **Una sola página para desarrolladores.** "API y recetas" y "Para desarrolladores (API)"
   se unen: la referencia de cada función y, al final, las recetas para agregar un modelo o
   un regresor propio (desde la sección "Extender" del README). `/extender/` redirige ahí.

@@ -135,7 +135,10 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
           La <strong>pérdida P80</strong> mide qué tan bien puesto quedó el P80: cobra por cada
           atención de diferencia, 0,8 si faltaron (lo real superó el P80) y 0,2 si sobraron (lo
           real quedó bajo él). Quedarse corto cuesta 4 veces más; con esa regla, el mejor P80 es
-          justo el que se supera 1 de cada 5 semanas.
+          justo el que se supera 1 de cada 5 semanas. Acá el modelo se elige por la pérdida P80;
+          quien use el paquete puede elegir otro criterio (P50, P90, P95, el promedio o el MAE)
+          con <code>--criterio</code>, según cuánto le cuesta quedarse corto (ver{" "}
+          <a href={base + "modelos/#elegir-el-criterio"}>Modelos</a>).
         </p>
         <p id="bt-texto" class="detalle"></p>
         <div class="tabla"><table id="bt"></table></div>
