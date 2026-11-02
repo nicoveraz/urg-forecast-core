@@ -81,28 +81,32 @@ quien venga después.
 
 ## Por qué un intervalo más angosto o más bajo puede ser peor
 
-Al sumar un regresor, la banda hasta P80 a veces se angosta o baja. Eso no basta para que el
-pronóstico sea mejor. La comparación usa la pérdida P80, que cobra distinto según el lado:
+Al sumar un regresor, el P80 a veces baja y queda más cerca del valor central: el
+intervalo se ve más angosto y el pronóstico, más preciso. Eso no basta para que sea mejor.
+El P80 es el número de atenciones que no se debería superar en 4 de cada 5 semanas, y la
+pérdida P80 mide qué tan bien puesto quedó. Cobra por cada atención de diferencia, pero no
+igual:
 
-- si lo real supera el P80, **0,8** por cada atención de diferencia;
-- si queda bajo el P80, **0,2** por cada atención.
+- si lo real supera el P80 (faltaron), **0,8** por atención;
+- si queda bajo el P80 (sobraron), **0,2** por atención.
 
-Bajar el P80 en 10 atenciones ahorra 2 en cada semana que sigue bajo él y cuesta 8 en cada
-semana que queda sobre él. Conviene solo si lo real lo sigue superando en menos de 1 de
-cada 5 semanas, que es lo que promete un P80. Un ejemplo inventado, con cuatro semanas:
+Quedarse corto cuesta 4 veces más. Un ejemplo, con el P80 10 atenciones más abajo:
 
-| Semana | Real | P80 A | Pérdida A | P80 B, 30 más abajo | Pérdida B |
-|---|---|---|---|---|---|
-| 1 | 1.000 | 1.050 | 0,2 × 50 = 10 | 1.020 | 0,2 × 20 = 4 |
-| 2 | 980 | 1.050 | 0,2 × 70 = 14 | 1.020 | 0,2 × 40 = 8 |
-| 3 | 1.040 | 1.050 | 0,2 × 10 = 2 | 1.020 | **0,8 × 20 = 16** |
-| 4 | 1.035 | 1.050 | 0,2 × 15 = 3 | 1.020 | **0,8 × 15 = 12** |
-| **Pérdida P80** (promedio) | | | **7,25** | | **10,0** |
+| | Real | P80 en 1.050 | P80 en 1.040 | Diferencia |
+|---|---|---|---|---|
+| Semana tranquila | 1.000 | sobran 50 → pérdida 10 | sobran 40 → pérdida 8 | −2, mejor |
+| Semana cargada | 1.100 | faltan 50 → pérdida 40 | faltan 60 → pérdida 48 | +8, peor |
 
-B ahorra 12 en las dos semanas tranquilas y pierde 23 en las otras dos: es más angosto y
-peor. En cuatro hospitales grandes revisados en noviembre de 2026, los regresores cambian
-el ancho del intervalo apenas (entre 1 y 4 %). Cuando empeoran, es porque lo real supera
-su P80 más seguido o por más, no por el ancho en sí.
+Bajar el P80 mejora un poco cada semana tranquila y empeora cuatro veces más cada semana
+cargada. Con 4 semanas tranquilas y 1 cargada, queda igual (4 × 2 = 8): por eso el mejor P80
+es el que se supera justo 1 de cada 5 semanas. Si lo real supera el P80 más bajo en más de 1
+de cada 5 semanas, sale peor, aunque se vea más preciso.
+
+En los 40 hospitales evaluados, con datos al 31 de octubre de 2026, casi todos los
+regresores angostan el intervalo: los feriados en 37 y la positividad viral en 35. Con los
+feriados, la pérdida P80 bajó en 31 de esos 37; con la positividad viral, subió en 21 de
+esos 35. Lo que decide no es el ancho, sino si lo real sigue quedando bajo el P80 4 de cada
+5 semanas.
 
 La demo lo muestra con el backtest real de cada uno de los 40 establecimientos evaluados.
 Hay un gráfico con el P80 de cada ventana y lo que pasó, la cuenta semana a semana de la

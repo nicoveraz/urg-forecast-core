@@ -119,9 +119,10 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
           </figcaption>
         </figure>
         <p class="glosario">
-          <strong>Cómo leerlo:</strong> P50 es el valor central (la mitad de las semanas debería
-          quedar bajo él). P80 y P95 son los valores que, con 80 % y 95 % de probabilidad, no se
-          superan: sirven para planificar con margen.
+          <strong>Cómo leerlo:</strong> P50 es el valor central: la mitad de las semanas queda
+          bajo él. P80 es el número de atenciones que no se debería superar en 4 de cada 5
+          semanas, y P95, en 19 de cada 20. Si planificas para el P80, deberías tener margen 4
+          semanas de cada 5.
         </p>
       </section>
 
@@ -129,9 +130,12 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
         <h3>Qué tan confiable es</h3>
         <p class="detalle">
           Cada modelo pronosticó semanas pasadas que ya se conocen, como si estuviera en esa fecha,
-          y se comparó con lo que pasó (backtest). MAE es el error absoluto medio por semana; la
-          pérdida P80 mide el error del P80 castigando más quedarse corto que pasarse. En ambos,
-          menor es mejor.
+          y se comparó con lo que pasó (backtest). Hay dos medidas, y en ambas menor es mejor. El
+          <strong>MAE</strong> es cuánto se equivocó el valor central, en atenciones por semana.
+          La <strong>pérdida P80</strong> mide qué tan bien puesto quedó el P80: cobra por cada
+          atención de diferencia, 0,8 si faltaron (lo real superó el P80) y 0,2 si sobraron (lo
+          real quedó bajo él). Quedarse corto cuesta 4 veces más; con esa regla, el mejor P80 es
+          justo el que se supera 1 de cada 5 semanas.
         </p>
         <p id="bt-texto" class="detalle"></p>
         <div class="tabla"><table id="bt"></table></div>
@@ -190,14 +194,35 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
           <div id="btr" hidden>
             <h4>Por qué un intervalo más angosto o más bajo puede ser peor</h4>
             <p>
-              El P80 es el valor que las atenciones no deberían superar en 4 de cada 5 semanas.
-              La pérdida P80 cobra <strong>0,8 por cada atención sobre el P80</strong> y{" "}
-              <strong>0,2 por cada atención bajo él</strong>. Bajar el P80 en 10 atenciones
-              ahorra 2 en cada semana que sigue bajo él y cuesta 8 en cada semana que queda sobre
-              él. Por eso un intervalo más angosto conviene solo si lo real lo sigue superando en
-              menos de 1 de cada 5 semanas; no es mejor por sí solo. Y como la pérdida solo mira
-              dónde queda el P80, un intervalo más angosto pero corrido hacia arriba también
-              puede salir peor.
+              Un regresor puede dejar el P80 más abajo, más cerca del valor central: el intervalo
+              se ve más angosto y el pronóstico, más preciso. Pero la pérdida P80 no premia verse
+              preciso: cobra 0,2 por cada atención que sobra y 0,8 por cada una que falta. Un
+              ejemplo, con el P80 10 atenciones más abajo:
+            </p>
+            <div class="tabla">
+              <table class="ejemplo-p80">
+                <thead>
+                  <tr><th></th><th>Real</th><th>P80 en 1.050</th><th>P80 en 1.040</th><th>Diferencia</th></tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Semana tranquila</td><td>1.000</td>
+                    <td>sobran 50 → pérdida 10</td><td>sobran 40 → pérdida 8</td>
+                    <td class="gana">−2, mejor</td>
+                  </tr>
+                  <tr>
+                    <td>Semana cargada</td><td>1.100</td>
+                    <td>faltan 50 → pérdida 40</td><td>faltan 60 → pérdida 48</td>
+                    <td class="pierde">+8, peor</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              Bajar el P80 mejora un poco cada semana tranquila y empeora cuatro veces más cada
+              semana cargada. Con 4 semanas tranquilas y 1 cargada, queda igual: 4 × 2 = 8. Si lo
+              real supera el P80 más bajo en más de 1 de cada 5 semanas, sale peor, aunque se vea
+              más preciso.
             </p>
             <p>
               El gráfico muestra el backtest de este establecimiento: cada tramo es un pronóstico
@@ -446,6 +471,7 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
   #demo .ley.proy { height: 0; border-top: 2px dashed var(--sl-color-gray-3); }
   #demo #svg-pos { width: 100%; height: auto; display: block; overflow: visible; }
   #demo #svg-pos text, #demo #svg-reg text { fill: var(--sl-color-gray-3); font-size: 11px; font-family: var(--sl-font); }
+  #demo #svg-reg text.recorte { fill: var(--sl-color-black); font-size: 10px; font-weight: 600; }
   #demo #svg-reg { width: 100%; height: auto; display: block; overflow: visible; margin-top: 0.5rem; }
   #demo .grafico figcaption[hidden], #demo .regs[hidden] { display: none; }
   #demo .codigos { margin-top: 0.5rem; font-size: var(--sl-text-sm); color: var(--sl-color-gray-3); }
@@ -470,7 +496,13 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
   #demo .ley.conreg-banda { background: color-mix(in srgb, var(--reg-color, var(--sl-color-accent)) 25%, transparent); }
   #demo .ley.punto { width: 0.6rem; height: 0.6rem; border-radius: 50%; margin-right: 0; }
   #demo .ley.inv { background: color-mix(in srgb, var(--sl-color-gray-3) 22%, transparent); }
+  #demo .ley.mejor { background: var(--sl-color-green); }
+  #demo .ley.peor { background: var(--sl-color-red); }
   #demo #btr[hidden] { display: none; }
+  #demo .ejemplo-p80 td, #demo .ejemplo-p80 th { white-space: nowrap; }
+  #demo .ejemplo-p80 td:nth-child(2) { text-align: right; font-variant-numeric: tabular-nums; }
+  #demo .ejemplo-p80 .gana { color: var(--sl-color-green-high); font-weight: 600; }
+  #demo .ejemplo-p80 .pierde { color: var(--sl-color-red-high); font-weight: 600; }
   #demo .ley-item { display: inline-flex; align-items: center; gap: 0.35rem; max-width: 100%; }
   #demo .ley-item .ley { flex: none; margin-right: 0; }
   #demo #btr h4 { margin-top: 2rem; }
@@ -491,7 +523,13 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
   #demo .ley.solo-reg { background: var(--sl-color-red); }
   #demo .ley.solo-base { background: transparent; border: 2px solid var(--reg-color); box-sizing: border-box; }
   #demo .veredictos { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 0.75rem; margin-top: 1rem; }
-  #demo .veredicto { border: 1px solid var(--sl-color-hairline); border-radius: 0.5rem; padding: 0.75rem 0.9rem; }
+  #demo .veredicto {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 0.15rem; text-align: left;
+    border: 1px solid var(--sl-color-hairline); border-radius: 0.5rem; padding: 0.75rem 0.9rem;
+    background: transparent; color: inherit; font: inherit; cursor: pointer;
+  }
+  #demo .veredicto[aria-pressed="true"] { border-color: var(--reg-color); box-shadow: inset 0 0 0 1px var(--reg-color); }
+  #demo .veredicto .cod { font-size: var(--sl-text-xs); color: var(--sl-color-gray-3); font-family: var(--sl-font-mono); }
   #demo .veredicto .m { font-weight: 600; color: var(--sl-color-white); }
   #demo .veredicto .v { display: inline-block; margin: 0.35rem 0; padding: 0.1rem 0.55rem; border-radius: 999px; font-size: var(--sl-text-sm); font-weight: 600; }
   #demo .v.mejora { background: color-mix(in srgb, var(--sl-color-green) 22%, transparent); color: var(--sl-color-green-high); }
@@ -916,51 +954,80 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
       (c.firstChild as HTMLElement).textContent = cmdFor(reg.candidatos[0]);
       box.append(p, c);
     } else {
+      // The regressor shown is the one chosen above (activeReg); the cards also select it.
+      const m = activeReg && mine.candidatos[activeReg] ? activeReg : reg.candidatos[0];
+      const c = mine.candidatos[m];
+      const name = REG_NAME[m] ?? m;
       const intro = document.createElement("p");
-      const n = mine.candidatos[reg.candidatos[0]].todas.n;
       intro.textContent =
-        `${n} ventanas de ${reg.horizonte} semanas, una cada ${reg.paso} semanas desde ${fecha(mine.ventanas[0][0])}. ` +
-        `Cada punto es una ventana: bajo cero, el modelo con regresor tuvo menor pérdida P80 que el Armónico.`;
+        `Un regresor puede salir mejor por suerte en unas pocas semanas. Por eso la prueba se repite en ` +
+        `${c.todas.n} ventanas de ${reg.horizonte} semanas desde el ${fecha(mine.ventanas[0][0])}: en cada una, ` +
+        `los dos modelos pronostican con lo que se sabía en esa fecha y se compara su pérdida P80. ` +
+        `Cada barra es una ventana. Hacia arriba (verde), el Armónico ${name} se equivocó menos que el ` +
+        `Armónico solo; hacia abajo (rojo), más. La altura dice cuánto.`;
       box.append(intro);
-      const grid = document.createElement("div");
-      grid.className = "veredictos";
-      for (const m of reg.candidatos) {
-        const c = mine.candidatos[m];
-        const card = document.createElement("div");
-        card.className = "veredicto";
-        card.innerHTML = `<div class="m"></div><span class="v"></span><p class="l"></p><p class="l"></p>`;
-        const [title, badge, l1, l2] = card.children as unknown as HTMLElement[];
-        title.textContent = m;
-        badge.textContent = c.veredicto;
-        badge.classList.add(VEREDICTO[c.veredicto] ?? "neutro");
-        l1.textContent = `Gana ${c.todas.gana} de ${c.todas.n} ventanas (p = ${c.todas.p.toFixed(2).replace(".", ",")}); cambio mediano ${pct(c.todas.mediana)}.`;
-        l2.textContent = `Invierno (may–sep): gana ${c.invierno.gana} de ${c.invierno.n}, cambio mediano ${pct(c.invierno.mediana)}.`;
-        grid.append(card);
-      }
-      box.append(grid);
       const fig = document.createElement("figure");
       fig.className = "grafico";
       fig.innerHTML = `<svg id="svg-reg" role="img"></svg><figcaption></figcaption>`;
       box.append(fig);
       const cap = fig.querySelector("figcaption")!;
-      cap.innerHTML = "";
-      reg.candidatos.forEach((m, i) => {
-        const dot = document.createElement("span");
-        dot.className = "ley punto";
-        dot.style.background = candColor(i);
-        const label = document.createElement("span");
-        label.textContent = m;
-        cap.append(dot, " ", label, " ");
-      });
-      const inv = document.createElement("span");
-      inv.className = "ley inv";
-      cap.append(inv, " Ventanas de invierno");
-      drawWindows(mine, reg.candidatos);
-      const c = document.createElement("div");
-      c.className = "comando";
-      c.innerHTML = "<code></code>";
-      (c.firstChild as HTMLElement).textContent = cmdFor(reg.candidatos[0]);
-      box.append(c);
+      for (const [cls, label] of [["mejor", `Se equivocó menos ${name}`], ["peor", `Se equivocó más ${name}`], ["inv", "Ventanas de invierno (may–sep)"]]) {
+        const item = document.createElement("span");
+        item.className = "ley-item";
+        const k = document.createElement("span");
+        k.className = `ley ${cls}`;
+        const t = document.createElement("span");
+        t.textContent = label;
+        item.append(k, t);
+        cap.append(item);
+      }
+      drawWindows(mine, m);
+      const verdict = document.createElement("p");
+      const chance = c.todas.p < 0.05
+        ? `Un resultado tan desigual difícilmente es azar (p = ${c.todas.p.toFixed(2).replace(".", ",")}): ${c.veredicto}.`
+        : `Un resultado así puede salir por azar (p = ${c.todas.p.toFixed(2).replace(".", ",")}): sin diferencia clara.`;
+      verdict.textContent =
+        `${name[0].toUpperCase() + name.slice(1)}, ganó ${c.todas.gana} de ${c.todas.n} ventanas y perdió ${c.todas.pierde}. ${chance}`;
+      box.append(verdict);
+
+      const grid = document.createElement("div");
+      grid.className = "veredictos";
+      for (const k of reg.candidatos) {
+        const v = mine.candidatos[k];
+        const card = document.createElement("button");
+        card.type = "button";
+        card.className = "veredicto";
+        card.setAttribute("aria-pressed", String(k === m));
+        card.style.setProperty("--reg-color", regColor(k));
+        card.innerHTML = `<span class="m"></span><span class="cod"></span><span class="v"></span><span class="l"></span><span class="l"></span>`;
+        const [title, code, badge, l1, l2] = card.children as unknown as HTMLElement[];
+        title.textContent = REG_SHORT[k] ?? k;
+        code.textContent = k;
+        badge.textContent = v.veredicto;
+        badge.classList.add(VEREDICTO[v.veredicto] ?? "neutro");
+        const typical = (x: number | null) =>
+          x == null ? "" : `; en la ventana típica, la pérdida P80 ${x < 0 ? "baja" : "sube"} ${pct(Math.abs(x)).replace("+", "")}`;
+        l1.textContent = `Gana ${v.todas.gana} de ${v.todas.n} ventanas${typical(v.todas.mediana)}.`;
+        l2.textContent = `Invierno (may–sep): gana ${v.invierno.gana} de ${v.invierno.n}.`;
+        card.addEventListener("click", () => {
+          activeReg = k;
+          if (k !== btReg) { btReg = k; btSel = -1; }
+          render();
+        });
+        grid.append(card);
+      }
+      box.append(grid);
+      const note = document.createElement("p");
+      note.className = "nota";
+      note.textContent =
+        "Toca una tarjeta para ver ese regresor. p es la probabilidad de un resultado tan desigual solo por azar " +
+        "(prueba de signos): bajo 0,05 el veredicto es «mejora» o «empeora»; si no, «sin diferencia clara».";
+      box.append(note);
+      const cmd = document.createElement("div");
+      cmd.className = "comando";
+      cmd.innerHTML = "<code></code>";
+      (cmd.firstChild as HTMLElement).textContent = cmdFor(m);
+      box.append(cmd);
     }
     if (mine?.resumen) loadBacktest(mine);
     else $("btr").hidden = true;
@@ -1325,33 +1392,47 @@ print(cmp.text())           # gana/pierde, prueba de signos y veredicto</code></
     el("line", { x1: X(+new Date(last[0])), x2: X(+new Date(last[0])), y1: m.t, y2: H - m.b, stroke: "var(--sl-color-gray-4)", "stroke-dasharray": "3 4" }, s);
   }
 
-  function drawWindows(e: RegEntry, cands: string[]) {
+  // One bar per backtest window: how much lower (green, up) or higher (red, down) the P80 loss
+  // of Armónico + regressor was than Armónico alone.
+  function drawWindows(e: RegEntry, m: string) {
     const s = document.getElementById("svg-reg") as unknown as SVGSVGElement;
     const W = Math.max(300, Math.round(s.parentElement!.clientWidth || 760));
-    const H = W < 560 ? 200 : 230, m = { t: 12, r: 10, b: 26, l: 46 };
+    const H = W < 560 ? 210 : 240, mg = { t: 18, r: 10, b: 26, l: 46 };
     s.setAttribute("viewBox", `0 0 ${W} ${H}`);
-    s.setAttribute("aria-label", "Cambio de la pérdida P80 por ventana, con regresor frente al Armónico");
-    const rows = e.ventanas.map((w) => ({
-      t: +new Date(w[0]), winter: w[1], vals: cands.map((_, i) => {
-        const v = w[3 + i] as number | null;
-        return v == null || !w[2] ? null : 100 * (v / w[2] - 1);
-      }),
-    }));
-    const all = rows.flatMap((r) => r.vals).filter((v): v is number => v != null);
-    const lim = Math.min(80, Math.max(10, ...all.map(Math.abs)) * 1.1);
+    s.setAttribute("aria-label", `Por ventana: cuánto se equivocó menos o más el Armónico ${REG_NAME[m] ?? m} que el Armónico solo`);
+    const i = reg!.candidatos.indexOf(m);
     const wk = 7 * 864e5;
-    const x0 = rows[0].t - 2 * wk, x1 = rows[rows.length - 1].t + 2 * wk;
-    const X0 = (t: number) => m.l + ((t - x0) / (x1 - x0)) * (W - m.l - m.r);
+    const rows = e.ventanas.map((w) => {
+      const v = w[3 + i] as number | null;
+      return { t: +new Date(w[0]), winter: w[1], base: w[2], cand: v, gain: v == null || !w[2] ? null : 100 * (1 - v / w[2]) };
+    });
+    const all = rows.map((r) => r.gain).filter((v): v is number => v != null);
+    // true scale up to ±120 %, so the big misses show as big; beyond that, clipped and labelled
+    const lim = Math.min(120, Math.max(10, ...all.map(Math.abs)) * 1.1);
+    const x0 = rows[0].t, x1 = rows[rows.length - 1].t + 5 * wk;
+    const X0 = (t: number) => mg.l + ((t - x0) / (x1 - x0)) * (W - mg.l - mg.r);
     for (const r of rows.filter((r) => r.winter))
-      el("rect", { x: X0(r.t - 2 * wk), y: m.t, width: X0(r.t + 2 * wk) - X0(r.t - 2 * wk), height: H - m.t - m.b, fill: "var(--sl-color-gray-3)", "fill-opacity": 0.12 }, s);
-    const { X, Y } = axes(s, W, H, m, x0, x1, -lim, lim, (v) => `${v > 0 ? "+" : ""}${v} %`);
-    el("line", { x1: m.l, x2: W - m.r, y1: Y(0), y2: Y(0), stroke: "var(--sl-color-gray-3)" }, s);
-    const k = cands.length;
-    rows.forEach((r) => r.vals.forEach((v, i) => {
-      if (v == null) return;
-      const c = Math.max(-lim, Math.min(lim, v));
-      el("circle", { cx: X(r.t) + (i - (k - 1) / 2) * 4, cy: Y(c), r: 3.2, fill: candColor(i) }, s);
-    }));
+      el("rect", { x: X0(r.t + 0.5 * wk), y: mg.t, width: X0(r.t + 4.5 * wk) - X0(r.t + 0.5 * wk), height: H - mg.t - mg.b, fill: "var(--sl-color-gray-3)", "fill-opacity": 0.12 }, s);
+    const { X, Y } = axes(s, W, H, mg, x0, x1, -lim, lim, (v) => `${v > 0 ? "+" : ""}${v} %`);
+    el("line", { x1: mg.l, x2: W - mg.r, y1: Y(0), y2: Y(0), stroke: "var(--sl-color-gray-3)" }, s);
+    el("text", { x: mg.l + 6, y: mg.t - 6 }, s).textContent =
+      W < 560 ? "▲ menos error · ▼ más error" : "▲ se equivocó menos con el regresor · ▼ se equivocó más";
+    for (const r of rows) {
+      if (r.gain == null) continue;
+      const g = Math.max(-lim, Math.min(lim, r.gain));
+      const xa = X(r.t + 1 * wk), xb = X(r.t + 4 * wk);
+      const bar = el("rect", {
+        x: xa, width: Math.max(1, xb - xa), y: Math.min(Y(0), Y(g)), height: Math.max(1, Math.abs(Y(g) - Y(0))),
+        fill: Math.abs(r.gain) < 0.05 ? "var(--sl-color-gray-3)" : r.gain > 0 ? "var(--sl-color-green)" : "var(--sl-color-red)",
+      }, s);
+      el("title", {}, bar).textContent =
+        `Ventana desde el ${fecha(new Date(r.t + wk).toISOString().slice(0, 10))}: pérdida P80 ` +
+        `${dec(r.base)} con el Armónico solo y ${dec(r.cand!)} ${REG_NAME[m] ?? m} ` +
+        `(${dec(Math.abs(r.gain))} % ${r.gain > 0 ? "menos" : "más"} error)`;
+      if (Math.abs(r.gain) > lim) // clipped: the real value, written inside the end of the bar
+        el("text", { x: (xa + xb) / 2, y: r.gain > 0 ? Y(lim) + 11 : Y(-lim) - 5, "text-anchor": "middle", class: "recorte" }, s).textContent =
+          `${r.gain > 0 ? "+" : "−"}${Math.round(Math.abs(r.gain))}`;
+    }
   }
 
   const NS = "http://www.w3.org/2000/svg";

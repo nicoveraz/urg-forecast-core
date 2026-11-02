@@ -37,6 +37,11 @@ API puede cambiar entre versiones menores).
   de cada modelo frente a lo que pasó, la cuenta semana a semana de la pérdida P80
   (0,8 por atención sobre el P80, 0,2 bajo él) y una tabla con el ancho del intervalo, las
   semanas sobre el P80 y las dos partes de la pérdida.
+- **Explicaciones más claras en la demo.** El P80 y la pérdida P80 se explican paso a paso
+  (qué es el P80, en la sección del pronóstico; cómo se cobra, en la de confiabilidad; un
+  ejemplo con una semana tranquila y una cargada, en la de regresores). La comparación de
+  regresores muestra uno a la vez, en barras verdes (se equivocó menos) o rojas (más), y
+  sus tarjetas lo seleccionan.
 - `score()` (y `Backtest.scores()`) separa la pérdida P80 en `qloss_80_short` y
   `qloss_80_excess` y agrega el ancho `width_80`. `compare_scores()` compara modelos desde
   una corrida de `backtest` ya hecha.
