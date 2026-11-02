@@ -22,15 +22,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v3
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
         with:
           version: "0.10.11"
+          enable-cache: false # as in v3; with auto, parallel jobs race to save one key
       - run: uv python install 3.12
       - run: uv sync --python 3.12
 
       - name: Restore DEIS downloads
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: data/external/deis_cache
           key: deis-${{ github.run_id }}
