@@ -17,11 +17,16 @@ igual se hace el backtest, para que veas su error, pero no hay elección.
 ## Cómo se comparan
 
 Cada modelo se ajusta en tres ventanas de backtest tan largas como el horizonte
-(máximo 26 semanas), separadas por 8 semanas. Por defecto gana el de menor **pérdida por
+(máximo 26 semanas), separadas por 8 semanas (`--ventanas` y `--paso` lo cambian; ver
+[Ventanas del backtest](#ventanas-del-backtest)). Por defecto gana el de menor **pérdida por
 cuantil P80** promedio: una medida que castiga más quedarse corto que pasarse,
 que es lo que importa al planificar dotación. Luego el ganador se reajusta con
 toda la historia y sus intervalos se ensanchan si en el backtest resultaron
 estrechos (ver `--sin-calibrar`).
+
+Combinar modelos en vez de elegir uno también es posible: agrega `Ensamble` (la mediana de
+AutoARIMA, Armónico y MSTL) a los modelos y compite en el mismo backtest. Si un modelo falla
+al ajustarse, se omite y el resumen lo informa.
 
 ### Elegir el criterio
 
@@ -56,10 +61,16 @@ def calibrado_y_angosto(tabla):
 res = run_forecast(semanal, 26, select_by=calibrado_y_angosto)
 ```
 
-Dos cuidados. Fija el criterio **antes** de mirar los resultados: si pruebas varios y te
-quedas con el que deja mejor a tu modelo, encuentras un ganador por azar. Y los cuantiles
-altos se miden con pocas semanas: en las 78 del backtest, solo unas 4 deberían superar el
-P95, así que la pérdida P95 es ruidosa.
+Tres cuidados. Fija el criterio **antes** de mirar los resultados: si pruebas varios y te
+quedas con el que deja mejor a tu modelo, encuentras un ganador por azar. Los cuantiles
+altos se miden con pocas semanas: de las 78 que pronostica el backtest (42 distintas), solo
+unas 4 deberían superar el P95, así que la pérdida P95 es ruidosa. Y el criterio cambia la
+elección más de lo que parece: con datos al 1 de noviembre de 2026, en los 602
+establecimientos de la demo, el modelo elegido difiere del que elige `p80` en el 42 % de
+los casos con `p50` o `mae`, el 33 % con `p95`, el 32 % con `wis`, el 20 % con `p90` y el
+13 % con `media`. Parte es que cada criterio premia algo distinto; parte es que los
+modelos quedan tan parejos en el backtest que el ganador depende de detalles (ver
+[Ventanas del backtest](#ventanas-del-backtest)).
 
 ### El WIS
 
@@ -83,10 +94,9 @@ comparar con el de esos centros.
 Fuentes: Bracher y otros (2021), que define el WIS, y la evaluación de FluSight (Mathis y
 otros, 2024); citas completas en [Referencias](referencias.md).
 
-Combinar modelos en vez de elegir uno también es posible: agrega `Ensamble` (la mediana de
-AutoARIMA, Armónico y MSTL) a los modelos y compite en el mismo backtest.
+### Ventanas del backtest
 
-Si un modelo falla al ajustarse, se omite y el resumen lo informa.
+PENDIENTE
 
 ## Modelos por defecto
 

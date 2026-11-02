@@ -96,6 +96,13 @@ reproducir con los comandos de cada página.
   <https://www.sciencedirect.com/science/article/pii/S0169-2070(00)00065-0>
   — El backtest con origen móvil: cada ventana se ajusta solo con lo anterior y se evalúa
   fuera de muestra, en varias ventanas para no depender de una sola temporada.
+- Cawley GC, Talbot NLC. On over-fitting in model selection and subsequent selection bias in
+  performance evaluation. *J Mach Learn Res*. 2010;11:2079–2107.
+  <https://www.jmlr.org/papers/v11/cawley10a.html>
+  — Elegir el modelo con una medida ruidosa sobreajusta la elección: parte de la ventaja del
+  ganador es azar, y puede costar tanto como la diferencia entre los modelos. Es la razón de
+  medir cuántas ventanas necesita el backtest ([Ventanas del backtest](modelos.md#ventanas-del-backtest))
+  y de fijar el criterio antes de mirar los resultados.
 - Dixon WJ, Mood AM. The statistical sign test. *J Am Stat Assoc*. 1946;41:557–566.
   [doi:10.2307/2280577](https://doi.org/10.2307/2280577)
   — La prueba de signos de `compare_models`: cuenta en cuántas ventanas gana cada modelo,
