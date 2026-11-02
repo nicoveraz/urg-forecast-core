@@ -44,7 +44,8 @@ class PromedioAnual:
         centro = fechas.isocalendar().week.map(self.promedio).to_numpy(dtype=float)
         salida = pd.DataFrame({"timestamp": fechas})
         for q, columna in zip(horizon.quantiles, horizon.quantile_columns, strict=True):
-            salida[columna] = centro + (np.quantile(self.errores, q) if q > 0.5 else 0.0)
+            # bajo la mediana (q5, q10, q20, si se piden) el error es negativo
+            salida[columna] = centro + (np.quantile(self.errores, q) if q != 0.5 else 0.0)
         return salida
 
 

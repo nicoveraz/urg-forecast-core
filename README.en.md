@@ -105,7 +105,7 @@ Pronóstico con Armónico: atenciones semanales
 | `-o`, `--salida` | demo, pronosticar | Output folder (default `./urg-forecast-salida`); one subfolder per establishment. |
 | `-m`, `--modelo` | demo, pronosticar | Model to use, repeatable. A name from `urg-forecast modelos` or `file:Class` for your own. See [Models](#models). |
 | `--sin-calibrar` | demo, pronosticar | Do not widen intervals by backtest error. |
-| `--criterio` | demo, pronosticar, comparar | What picks (or compares) the model: `p80` (default), `p50`, `p90`, `p95`, `media` (mean of P50 to P95) or `mae`. |
+| `--criterio` | demo, pronosticar, comparar | What picks (or compares) the model: `p80` (default), `p50`, `p90`, `p95`, `media` (mean of P50 to P95), `wis` (weighted interval score, P5 to P95) or `mae`. |
 | `--desde YEAR` | pronosticar | First DEIS year to use (default 2022). 2020–2021 are always excluded. |
 | `--offline` | demo, pronosticar | Bundled snapshot only, no network. It contains only the two demo hospitals. |
 | `--fuente repo\|deis` | demo, buscar, pronosticar | Where to read data from (see below). Default `repo`. |
@@ -236,8 +236,9 @@ result.forecast                                    # timestamp, q50, q80, q90, q
 
 A model is a class with two methods: `fit(history, target_col)` receives the
 weekly history (`timestamp` plus `target_col`); `predict(horizon)` returns one
-row per future week with `timestamp, q50, q80, q90, q95` (`horizon.length`
-weeks, `horizon.quantiles`). The constructor must not require arguments.
+row per future week with `timestamp` and one column per quantile in
+`horizon.quantiles` (`q50, q80, q90, q95`, plus `q5, q10, q20` with `--criterio wis`).
+The constructor must not require arguments.
 
 The step-by-step example in the Spanish README
 ([Extender](https://github.com/nicoveraz/urg-forecast-core/blob/main/README.md#extender))

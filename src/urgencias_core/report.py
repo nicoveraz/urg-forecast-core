@@ -194,8 +194,13 @@ def write_outputs(result: ForecastResult, base: Path, today: date | None = None)
     }
     paths["resumen"].write_text(summary_text(result, today) + "\n", encoding="utf-8")
 
-    fc = result.forecast[["timestamp", "q50", "q80", "q90", "q95"]].copy()
-    fc[["q50", "q80", "q90", "q95"]] = fc[["q50", "q80", "q90", "q95"]].round(1)
+    # q5, q10 and q20 too when they were asked for (--criterio wis)
+    qcols = sorted(
+        (c for c in result.forecast.columns if c[0] == "q" and c[1:].isdigit()),
+        key=lambda c: int(c[1:]),
+    )
+    fc = result.forecast[["timestamp", *qcols]].copy()
+    fc[qcols] = fc[qcols].round(1)
     fc.to_csv(paths["pronostico_csv"], index=False)
     result.backtest.round(4).to_csv(paths["backtest_csv"], index_label="modelo")
     result.history.to_csv(paths["historia_csv"], index=False)

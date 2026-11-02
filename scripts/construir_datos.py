@@ -46,6 +46,14 @@ REG_HORIZON, REG_WINDOWS, REG_STEP = 4, 36, 4
 REG_BASE = "Armónico"
 REG_CANDIDATES = ("ArmónicoFeriados", "ArmónicoFluNet", "ArmónicoFluNetProy")
 POSITIVITY_WEEKS_SHOWN = 156
+# Other --criterio values whose backtest score each demo detail carries (p80 is always there).
+CRITERIA_DEMO = {
+    "p50": "qloss_50",
+    "p90": "qloss_90",
+    "p95": "qloss_95",
+    "media": "qloss_mean",
+    "wis": "wis",
+}
 
 
 def _round(x: float) -> float:
@@ -162,6 +170,7 @@ def forecast_one(code: str, out_dir: str, cache_dir: str) -> dict:
     warnings.filterwarnings("ignore")
     from urgencias_core.data.mirror import mirror_facilities, mirror_rows
     from urgencias_core.data.series import COVID_EXCLUDE_YEARS, NoDataError, weekly_series
+    from urgencias_core.eval.metrics import WIS_QUANTILES
     from urgencias_core.forecast import min_weeks_needed, run_forecast
 
     base = Path(out_dir).resolve().as_uri() + "/"
@@ -183,7 +192,9 @@ def forecast_one(code: str, out_dir: str, cache_dir: str) -> dict:
     if weekly["count"].median() < MIN_MEDIAN_WEEKLY:
         return entry | {"ok": False, "motivo": "muy pocas atenciones semanales"}
     try:
-        res = run_forecast(weekly, HORIZON, code=code, name=entry["n"])
+        # chosen by P80 as always; the lower quantiles only feed the WIS column, so the
+        # demo can show which model each criterion of --criterio would pick
+        res = run_forecast(weekly, HORIZON, code=code, name=entry["n"], quantiles=WIS_QUANTILES)
     except NoDataError as exc:
         return entry | {"ok": False, "motivo": str(exc)}
     except Exception as exc:  # noqa: BLE001 - one bad series must not stop the batch
@@ -205,6 +216,7 @@ def forecast_one(code: str, out_dir: str, cache_dir: str) -> dict:
                 "mae": _round(r["mae"]),
                 "mape": _round(100 * r["mape"]),
                 "p80": _round(r["qloss_80"]),
+                **{k: _round(r[c]) for k, c in CRITERIA_DEMO.items() if pd.notna(r.get(c))},
             }
             for m, r in res.backtest.sort_values("qloss_80").iterrows()
         ],

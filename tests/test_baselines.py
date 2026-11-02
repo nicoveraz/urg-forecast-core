@@ -62,3 +62,29 @@ def test_statsforecast_auto_ets_and_theta_smoke() -> None:
         pred = fc.predict(HorizonSpec(grain="h", length=6))
         assert len(pred) == 6
         assert {"q50", "q80", "q90", "q95"}.issubset(pred.columns)
+
+
+def _weekly(n: int = 160) -> pd.DataFrame:
+    ts = pd.date_range("2022-01-03", periods=n, freq="W-MON")
+    t = np.arange(n)
+    y = 500 + 80 * np.sin(2 * np.pi * t / 52.18) + np.random.default_rng(0).normal(0, 15, n)
+    return pd.DataFrame({"timestamp": ts, "count": y})
+
+
+def test_models_produce_lower_quantiles_when_asked() -> None:
+    from urgencias_core.eval.metrics import QUANTILES, WIS_QUANTILES
+    from urgencias_core.models.harmonic import HarmonicRegression
+
+    w = _weekly()
+    wis = HorizonSpec(grain="W-MON", length=8, quantiles=WIS_QUANTILES)
+    upper = HorizonSpec(grain="W-MON", length=8, quantiles=QUANTILES)
+    for factory in (SeasonalNaiveBaseline, lambda: auto_arima(season_length=1), HarmonicRegression):
+        m = factory()
+        m.fit(w, "count")
+        full, base = m.predict(wis), m.predict(upper)
+        cols = ["q5", "q10", "q20", "q50", "q80", "q90", "q95"]
+        assert list(full.columns) == ["timestamp", *cols]
+        values = full[cols].to_numpy()
+        assert (np.diff(values, axis=1) >= -1e-9).all()  # ordered
+        for c in ("q50", "q80", "q90", "q95"):  # asking for more does not change the rest
+            np.testing.assert_allclose(full[c], base[c])

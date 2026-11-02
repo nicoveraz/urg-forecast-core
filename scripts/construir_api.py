@@ -284,8 +284,13 @@ SECTIONS = [
                     (
                         "select_by",
                         'columna para elegir: `"qloss_80"` (por defecto), `"qloss_50"`, '
-                        '`"qloss_90"`, `"qloss_95"`, `"qloss_mean"`, `"mae"`, o una función '
-                        "que reciba la tabla del backtest y devuelva un modelo",
+                        '`"qloss_90"`, `"qloss_95"`, `"qloss_mean"`, `"wis"`, `"mae"`, o una '
+                        "función que reciba la tabla del backtest y devuelva un modelo",
+                    ),
+                    (
+                        "quantiles",
+                        "cuantiles del backtest y del pronóstico; por defecto P50 a P95, y "
+                        'de P5 a P95 con `select_by="wis"`',
                     ),
                 ],
                 returns="`ForecastResult`: `best`, `backtest` (error por modelo), `forecast` "
@@ -343,9 +348,11 @@ SECTIONS = [
                 "urgencias_core.models.protocol:Forecaster",
                 "Forecaster (contrato)",
                 "`fit(history, target_col)` aprende de la serie semanal. `predict(horizon)` "
-                "devuelve `horizon.length` filas con `timestamp, q50, q80, q90, q95`, "
-                "ordenadas. El constructor no debe exigir argumentos (o se registra una "
-                "función que lo construya). Las fechas futuras salen de `future_index`.",
+                "devuelve `horizon.length` filas con `timestamp` y una columna por cuantil de "
+                "`horizon.quantiles` (`q50, q80, q90, q95`; con el criterio WIS también "
+                "`q5, q10, q20`), ordenadas. El constructor no debe exigir argumentos (o se "
+                "registra una función que lo construya). Las fechas futuras salen de "
+                "`future_index`.",
                 example=(
                     "import numpy as np\n"
                     "from urgencias_core.models.protocol import HorizonSpec, future_index\n\n"
@@ -407,7 +414,8 @@ SECTIONS = [
                 returns="`Backtest`: `windows`, `scores()`, `failed`, `pairs(modelo)`. "
                 "`scores()` trae `mae`, la pérdida de cada cuantil (`qloss_80`, …), sus dos "
                 "partes (`qloss_80_short`: semanas sobre el P80, a 0,8 por atención; "
-                "`qloss_80_excess`: bajo él, a 0,2), el ancho `width_80` (P80 menos P50) y "
+                "`qloss_80_excess`: bajo él, a 0,2), `qloss_mean` (promedio de P50 a P95), "
+                "`wis` (si se pidieron P5, P10 y P20), el ancho `width_80` (P80 menos P50) y "
                 "`covered` de `n` semanas bajo el P80. `compare_scores` hace la comparación de "
                 "`compare_models` sobre una corrida ya hecha.",
                 example=(

@@ -23,6 +23,13 @@ API puede cambiar entre versiones menores).
   (`qloss_mean`, nueva columna de `score()`) o el MAE; `select_by` también acepta una
   función de la tabla del backtest, que ahora trae `coverage_80`. `docs/modelos.md` explica
   cómo elegirlo según cuánto cuesta quedarse corto.
+- **WIS como criterio** (`--criterio wis`, `select_by="wis"`, `metric="wis"`): el puntaje
+  de intervalos ponderado (Bracher y otros, 2021) que usan FluSight y el COVID-19 Forecast
+  Hub, sobre P5, P10, P20, P50, P80, P90 y P95. Los modelos producen los cuantiles que pide
+  el horizonte, también los de abajo de la mediana; la calibración ensancha también las
+  bandas de abajo; `score()` agrega `wis` (vacío si faltan cuantiles) y `run_forecast`,
+  `quantiles`. En la demo, la sección "Qué tan confiable es" muestra qué modelo elegiría
+  cada criterio y agrega `--criterio` al comando para reproducirlo.
 - **Una sola página para desarrolladores.** "API y recetas" y "Para desarrolladores (API)"
   se unen: la referencia de cada función y, al final, las recetas para agregar un modelo o
   un regresor propio (desde la sección "Extender" del README). `/extender/` redirige ahí.

@@ -26,7 +26,13 @@ from math import comb
 import pandas as pd
 
 from urgencias_core.eval.backtest import MIN_TRAIN_WEEKS, backtest
-from urgencias_core.eval.metrics import CRITERIA, DEFAULT_CRITERION, criterion_label
+from urgencias_core.eval.metrics import (
+    CRITERIA,
+    DEFAULT_CRITERION,
+    QUANTILES,
+    criterion_label,
+    quantiles_for,
+)
 from urgencias_core.models.protocol import Forecaster
 
 WINTER_MONTHS = (5, 6, 7, 8, 9)
@@ -48,6 +54,7 @@ def paired_windows(
     origins: int = 36,
     step: int = 4,
     min_train_weeks: int = MIN_TRAIN_WEEKS,
+    quantiles: tuple[float, ...] = QUANTILES,
 ) -> pd.DataFrame:
     """Per-window scores of each model on the same rolling windows.
 
@@ -56,7 +63,9 @@ def paired_windows(
     the end of ``history``, ``step`` weeks apart, while at least ``min_train_weeks`` remain
     for training. A model that fails on a window is left out of that window.
     """
-    scores = backtest(history, models, horizon_weeks, origins, step, min_train_weeks).scores()
+    scores = backtest(
+        history, models, horizon_weeks, origins, step, min_train_weeks, quantiles
+    ).scores()
     return scores if not scores.empty else pd.DataFrame(columns=["origin", "model", *CRITERIA])
 
 
@@ -146,7 +155,13 @@ def compare_many(
     if bname in candidates:
         raise ValueError("base and candidates need different names")
     long = paired_windows(
-        history, {bname: bf, **candidates}, horizon_weeks, origins, step, min_train_weeks
+        history,
+        {bname: bf, **candidates},
+        horizon_weeks,
+        origins,
+        step,
+        min_train_weeks,
+        quantiles_for(metric),
     )
     return compare_scores(long, bname, list(candidates), horizon_weeks, alpha, metric)
 

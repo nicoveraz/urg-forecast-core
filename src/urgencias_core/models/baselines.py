@@ -5,7 +5,10 @@
   for daily, etc.).
 - ``StatsForecastWrapper``: thin wrapper around any statsforecast model that
   produces quantile intervals, mapping the ``level`` API back to the standard
-  q50/q80/q90/q95 columns.
+  quantile columns (q50/q80/q90/q95, and q5/q10/q20 when the horizon asks for them).
+
+Every model produces the quantiles the horizon asks for (``horizon.quantiles``); the
+``quantiles`` argument of the constructors is kept for compatibility and ignored.
 - Convenience factories for the baseline battery: ``auto_arima``,
   ``auto_ets``, ``auto_theta``, ``mstl``.
 """
@@ -33,8 +36,8 @@ class SeasonalNaiveBaseline:
     """
 
     def __init__(self, quantiles: tuple[float, ...] = (0.5, 0.8, 0.9, 0.95)) -> None:
-        self.quantiles = tuple(quantiles)
-        self._lookup: dict[tuple, np.ndarray] = {}
+        self.quantiles = tuple(quantiles)  # ignored: predict uses horizon.quantiles
+        self._lookup: dict[tuple, np.ndarray] = {}  # key -> observed values
         self._fallback: np.ndarray | None = None
         self._key_fn: Callable[[pd.Timestamp], tuple] | None = None
         self._history_end: pd.Timestamp | None = None
@@ -47,8 +50,8 @@ class SeasonalNaiveBaseline:
         y = np.asarray(history[target_col], dtype="float64")
         df = pd.DataFrame({"key": keys.values, "y": y})
         for k, g in df.groupby("key", sort=False):
-            self._lookup[k] = np.quantile(g["y"].to_numpy(), self.quantiles)
-        self._fallback = np.quantile(y, self.quantiles)
+            self._lookup[k] = g["y"].to_numpy()
+        self._fallback = y
         self._history_end = ts.max()
 
     def predict(self, horizon: HorizonSpec) -> pd.DataFrame:
@@ -58,15 +61,12 @@ class SeasonalNaiveBaseline:
         # not stored, so the horizon grain is the source of truth on predict.
         key_fn = _key_func(horizon.grain)
         future = future_index(self._history_end, horizon)
-        qcols = [f"q{int(round(q * 100))}" for q in sorted(self.quantiles)]
-        sorted_q_idx = np.argsort(self.quantiles)
-        values = np.zeros((len(future), len(self.quantiles)), dtype="float64")
+        qs = list(horizon.quantiles)  # sorted ascending (HorizonSpec checks it)
+        values = np.zeros((len(future), len(qs)), dtype="float64")
         for i, t in enumerate(future):
-            k = key_fn(t)
-            row = self._lookup.get(k, self._fallback)
-            values[i] = row[sorted_q_idx]
+            values[i] = np.quantile(self._lookup.get(key_fn(t), self._fallback), qs)
         out = pd.DataFrame({"timestamp": future})
-        for j, col in enumerate(qcols):
+        for j, col in enumerate(horizon.quantile_columns):
             out[col] = values[:, j]
         return out
 
@@ -76,9 +76,8 @@ class StatsForecastWrapper:
 
     Quantile columns are derived from statsforecast's ``level`` API:
     - ``q50`` = point forecast (statsforecast median).
-    - ``q80`` = hi-60 interval upper edge.
-    - ``q90`` = hi-80 interval upper edge.
-    - ``q95`` = hi-90 interval upper edge.
+    - ``q80``, ``q90``, ``q95`` = upper edge of the 60, 80 and 90 % intervals (``hi``).
+    - ``q20``, ``q10``, ``q5`` = lower edge of the same intervals (``lo``).
     """
 
     def __init__(
@@ -88,7 +87,7 @@ class StatsForecastWrapper:
         name: str | None = None,
     ) -> None:
         self.model = model
-        self.quantiles = tuple(quantiles)
+        self.quantiles = tuple(quantiles)  # ignored: predict uses horizon.quantiles
         self.name = name or model.__class__.__name__
         self._sf = None
         self._freq: str | None = None
@@ -113,19 +112,18 @@ class StatsForecastWrapper:
     def predict(self, horizon: HorizonSpec) -> pd.DataFrame:
         if self._sf is None:
             raise RuntimeError(f"{self.name}.predict called before fit")
-        levels = sorted({_quantile_to_level(q) for q in self.quantiles if q != 0.5})
+        levels = sorted({_quantile_to_level(q) for q in horizon.quantiles if q != 0.5})
         pred = self._sf.predict(h=horizon.length, level=levels)
         if "unique_id" in pred.columns:
             pred = pred.drop(columns=["unique_id"])
         alias = _infer_alias(pred)
         out = pd.DataFrame({"timestamp": pd.to_datetime(pred["ds"]).to_numpy()})
-        for q in sorted(self.quantiles):
-            col = f"q{int(round(q * 100))}"
+        for q, col in zip(horizon.quantiles, horizon.quantile_columns, strict=True):
             if q == 0.5:
                 out[col] = pred[alias].to_numpy()
             else:
-                level = _quantile_to_level(q)
-                out[col] = pred[f"{alias}-hi-{level}"].to_numpy()
+                side = "hi" if q > 0.5 else "lo"
+                out[col] = pred[f"{alias}-{side}-{_quantile_to_level(q)}"].to_numpy()
         return out
 
 
@@ -182,9 +180,8 @@ def mstl(
 
 
 def _quantile_to_level(q: float) -> int:
-    """Convert a one-sided upper quantile (>0.5) to a statsforecast interval level."""
-    level = int(round((2 * q - 1) * 100))
-    return level
+    """The statsforecast central interval whose edge is quantile ``q``: 0.8 and 0.2 -> 60."""
+    return int(round(abs(2 * q - 1) * 100))
 
 
 def _key_func(freq: str | None) -> Callable[[pd.Timestamp], tuple]:

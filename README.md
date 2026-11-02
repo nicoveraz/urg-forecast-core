@@ -109,7 +109,7 @@ Pronóstico con Armónico: atenciones semanales
 | `-m`, `--modelo` | demo, pronosticar | Modelo a usar, repetible. Nombre de `urg-forecast modelos` o `archivo:Clase` para uno propio. Ver [Modelos](#modelos). |
 | `--base`, `--ventanas`, `--paso` | comparar | Modelo base (Armónico), número de ventanas (36) y semanas entre ellas (4). Con `comparar`, `-H` es el largo de cada ventana (4 semanas). |
 | `--sin-calibrar` | demo, pronosticar | No ensanchar los intervalos según el error del backtest. |
-| `--criterio` | demo, pronosticar, comparar | Con qué se elige (o compara) el modelo: `p80` (por defecto), `p50`, `p90`, `p95`, `media` (promedio de P50 a P95) o `mae`. Ver [Modelos](#modelos). |
+| `--criterio` | demo, pronosticar, comparar | Con qué se elige (o compara) el modelo: `p80` (por defecto), `p50`, `p90`, `p95`, `media` (promedio de P50 a P95), `wis` (puntaje de intervalos, de P5 a P95) o `mae`. Ver [Modelos](#modelos). |
 | `--desde AÑO` | analizar, pronosticar | Primer año DEIS a usar (por defecto 2022). 2020–2021 siempre se excluyen. |
 | `--offline` | demo, analizar, pronosticar | Solo el snapshot incluido, sin red. El snapshot trae únicamente los dos hospitales del demo. |
 | `--fuente repo\|deis` | demo, buscar, analizar, pronosticar | De dónde leer los datos (ver abajo). Por defecto `repo`. |
@@ -291,8 +291,9 @@ Un modelo es una clase con dos métodos:
 - `fit(history, target_col)`: recibe la historia semanal (un DataFrame con
   `timestamp` y la columna `target_col`) y aprende lo que necesite.
 - `predict(horizon)`: devuelve un DataFrame con una fila por semana futura y las
-  columnas `timestamp`, `q50`, `q80`, `q90` y `q95`. `horizon.length` es la
-  cantidad de semanas y `horizon.quantiles` los cuantiles pedidos.
+  columnas `timestamp` y una por cada cuantil de `horizon.quantiles`: `q50`, `q80`,
+  `q90` y `q95`, más `q5`, `q10` y `q20` cuando se elige con `--criterio wis`.
+  `horizon.length` es la cantidad de semanas.
 
 El constructor no debe exigir argumentos.
 
@@ -330,8 +331,9 @@ class PromedioAnual:
         centro = fechas.isocalendar().week.map(self.promedio).to_numpy(dtype=float)
         salida = pd.DataFrame({"timestamp": fechas})
         for q, columna in zip(horizon.quantiles, horizon.quantile_columns):
-            # q50 es el promedio; q80, q90 y q95 le suman el error de ese cuantil.
-            salida[columna] = centro + (np.quantile(self.errores, q) if q > 0.5 else 0.0)
+            # q50 es el promedio; los demás le suman el error de ese cuantil
+            # (negativo bajo la mediana, para q5, q10 y q20 cuando se piden).
+            salida[columna] = centro + (np.quantile(self.errores, q) if q != 0.5 else 0.0)
         return salida
 ```
 
@@ -464,7 +466,8 @@ Reglas:
 2. history es un DataFrame con una fila por semana (semanas que terminan en
    lunes) y las columnas timestamp y target_col.
 3. predict debe devolver un DataFrame con horizon.length filas y las columnas
-   timestamp, q50, q80, q90 y q95, con q50 <= q80 <= q90 <= q95. Usa
+   timestamp y una por cada cuantil de horizon.quantiles (q50, q80, q90 y q95;
+   también q5, q10 y q20 si se piden), ordenadas de menor a mayor. Usa
    urgencias_core.models.protocol.future_index(ultima_semana, horizon) para
    las fechas.
 4. Si necesitas una biblioteca adicional, dime cómo instalarla.

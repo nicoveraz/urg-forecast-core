@@ -37,6 +37,7 @@ pasarse, el cuantil que corresponde es *k* / (*k* + 1):
 | `p90` | pérdida en el P90 | 9 veces más |
 | `p95` | pérdida en el P95 | 19 veces más |
 | `media` | promedio de las pérdidas de P50 a P95 | no quieres fijar un costo: evalúa el valor central y la parte alta juntos |
+| `wis` | puntaje de intervalos ponderado, de P5 a P95 | quieres evaluar el pronóstico completo, también la parte baja, como los centros de pronóstico epidemiológico |
 | `mae` | error del valor central | solo te importa el valor central |
 
 En Python también puedes pasar una función que reciba la tabla del backtest (una fila por
@@ -59,11 +60,30 @@ quedas con el que deja mejor a tu modelo, encuentras un ganador por azar. Y los 
 altos se miden con pocas semanas: en las 78 del backtest, solo unas 4 deberían superar el
 P95, así que la pérdida P95 es ruidosa.
 
-`media` se parece al WIS que usan el CDC y otros centros de pronóstico de influenza, pero no
-es lo mismo: el WIS promedia cuantiles a ambos lados de la mediana (P5, P10, P20… P80, P90,
-P95), y acá solo hay cuantiles desde la mediana hacia arriba. Mide bien la parte del
-pronóstico que importa para planificar con margen, pero no castiga un piso mal puesto, y su
-valor no se puede comparar con el de esos centros.
+### El WIS
+
+El puntaje de intervalos ponderado (WIS, *weighted interval score*) es la medida con que el
+CDC evalúa los pronósticos de influenza de FluSight y la que usó el COVID-19 Forecast Hub.
+Mira el pronóstico completo: el error del valor central más, para los intervalos centrales
+de 60, 80 y 90 % (de P20 a P80, de P10 a P90 y de P5 a P95), su ancho y una multa por cada
+atención que quede fuera. Un intervalo angosto que deja fuera lo real paga la multa; uno
+ancho que siempre acierta paga el ancho. Menor es mejor, y se mide en atenciones por
+semana, como el MAE: si el pronóstico fuera solo el valor central, el WIS sería el MAE.
+
+Para calcularlo, los modelos entregan además P5, P10 y P20. Los incluidos lo hacen, y con
+`--criterio wis` esos cuantiles aparecen también en el pronóstico y en el CSV, calibrados
+igual que los de arriba. Un modelo propio que no los entregue queda fuera de la elección
+con este criterio (su WIS sale vacío).
+
+`media` se le parece, pero solo mira de la mediana hacia arriba: mide bien la parte que
+importa para planificar con margen, no castiga un piso mal puesto y su valor no se puede
+comparar con el de esos centros.
+
+Referencias: Bracher J, Ray EL, Gneiting T, Reich NG. *Evaluating epidemic forecasts in an
+interval format*. PLoS Comput Biol. 2021;17(2):e1008618,
+<https://doi.org/10.1371/journal.pcbi.1008618>. Mathis SM y otros. *Evaluation of FluSight
+influenza forecasting in the 2021–22 and 2022–23 seasons*. Nat Commun. 2024;15:6289,
+<https://doi.org/10.1038/s41467-024-50601-9>.
 
 Combinar modelos en vez de elegir uno también es posible: agrega `Ensamble` (la mediana de
 AutoARIMA, Armónico y MSTL) a los modelos y compite en el mismo backtest.
@@ -180,7 +200,8 @@ posibles razones y cómo probar otras fuentes en [Regresores](regresores.md).
 ## Agregar tu propio modelo
 
 Cualquier clase con `fit(history, target_col)` y `predict(horizon)` que devuelva
-`timestamp, q50, q80, q90, q95` sirve. Guárdala en un `.py` en la carpeta donde
+`timestamp` y los cuantiles de `horizon.quantiles` (`q50, q80, q90, q95`; con
+`--criterio wis` también `q5, q10, q20`) sirve. Guárdala en un `.py` en la carpeta donde
 corres el comando y compárala con los incluidos:
 
 ```bash
