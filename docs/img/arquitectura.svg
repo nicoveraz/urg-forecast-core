@@ -82,9 +82,9 @@
 
   <!-- row 5 -->
   <rect class="box" x="294" y="458" width="250" height="76" rx="10"/>
-  <text class="title" x="308" y="482">Elegir y pronosticar</text>
+  <text class="title" x="308" y="482">Pronosticar</text>
   <text class="mono" x="308" y="502">forecast.py</text>
-  <text class="small" x="308" y="522">el de menor pérdida P80</text>
+  <text class="small" x="308" y="522">con Ensamble por defecto</text>
 
   <!-- row 6: outputs -->
   <rect class="box" x="16" y="574" width="528" height="80" rx="10"/>

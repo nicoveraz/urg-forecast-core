@@ -7,8 +7,8 @@ bibliográficos (RePEc, JSTOR).
 
 Lo que no está aquí son resultados propios, medidos con los datos del DEIS y documentados
 con su fecha: la comparación de modelos ([Por qué estos modelos](seleccion-de-modelos.md)),
-la de regresores ([Regresores](regresores.md)) y la de ventanas del backtest
-([Modelos](modelos.md#ventanas-del-backtest)). Son resultados, no literatura, y se pueden
+la de regresores ([Regresores](regresores.md)), la de combinar o elegir un modelo y la de
+ventanas del backtest ([Modelos](modelos.md#combinar-o-elegir)). Son resultados, no literatura, y se pueden
 reproducir con los comandos de cada página.
 
 ## Pronosticar la demanda de urgencias
@@ -55,8 +55,10 @@ reproducir con los comandos de cada página.
   forecasting methods. *Int J Forecast*. 2020;36(1):54–74.
   [doi:10.1016/j.ijforecast.2019.04.014](https://doi.org/10.1016/j.ijforecast.2019.04.014)
   — Combinar métodos estuvo entre lo más preciso de la competencia, que también evaluó
-  intervalos de predicción. Es la razón del modelo `Ensamble` y de comparar siempre contra
-  una referencia simple.
+  intervalos de predicción. Es la razón del modelo `Ensamble`, que pronostica por defecto
+  porque además rindió mejor que elegir un modelo con los datos del DEIS
+  ([Modelos](modelos.md#combinar-o-elegir)), y de comparar siempre contra una referencia
+  simple.
 
 ## Evaluar pronósticos por cuantiles
 
@@ -117,8 +119,10 @@ reproducir con los comandos de cada página.
   [doi:10.1561/2200000101](https://doi.org/10.1561/2200000101)
   — La idea detrás de la calibración: ensanchar los intervalos según los errores fuera de
   muestra. La del paquete es una versión simple (un factor por cuantil, sacado del
-  backtest) y no tiene las garantías de la predicción conformal; por eso la
-  [hoja de ruta](roadmap.md) propone una calibración por horizonte o conformal.
+  backtest) y no tiene las garantías de la predicción conformal. Con los datos del DEIS
+  empeoró la pérdida P80 en la mayoría de los hospitales, así que quedó desactivada por
+  defecto (`--calibrar`), y la [hoja de ruta](roadmap.md) propone una por horizonte o
+  conformal.
 
 ## Variables externas
 

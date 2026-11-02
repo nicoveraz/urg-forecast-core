@@ -1,45 +1,102 @@
 # Modelos
 
-`urg-forecast` trae ocho modelos. Cuatro se comparan por defecto y se usa el
-que tenga menor error en el backtest. Los otros cuatro están para experimentar
-y se activan con `-m`. Todos son aproximaciones iniciales: ninguno está ajustado
-a un establecimiento en particular.
+`urg-forecast` trae once modelos. Por defecto pronostica **Ensamble**, la mediana de
+AutoARIMA, Armónico y MSTL, y mide en el mismo backtest, como referencia, SeasonalNaive,
+AutoARIMA, Armónico y MSTL. Los otros seis están para experimentar y se activan con `-m`.
+Todos son aproximaciones iniciales: ninguno está ajustado a un establecimiento en
+particular.
 
 ```bash
 urg-forecast modelos                                   # lista con descripción
-urg-forecast pronosticar 24-105 -m TBATS -m Ensamble   # compara solo esos
+urg-forecast pronosticar 24-105 --criterio p80         # elige el de menor pérdida P80
+urg-forecast pronosticar 24-105 -m TBATS -m Ensamble   # TBATS, como referencia
+urg-forecast pronosticar 24-105 -m TBATS -m MSTL       # elige entre esos dos
 urg-forecast pronosticar 24-105 -m Armonico            # usa uno sin comparar
 ```
 
 Los nombres no distinguen mayúsculas ni tildes. Cuando indicas un solo modelo
-igual se hace el backtest, para que veas su error, pero no hay elección.
+igual se hace el backtest, para que veas su error, pero no hay elección. Si indicas
+varios sin Ensamble, se usa el de menor pérdida P80.
 
 ## Cómo se comparan
 
 Cada modelo se ajusta en tres ventanas de backtest tan largas como el horizonte
 (máximo 26 semanas), separadas por 8 semanas (`--ventanas` y `--paso` lo cambian; ver
-[Ventanas del backtest](#ventanas-del-backtest)). Por defecto gana el de menor **pérdida por
-cuantil P80** promedio: una medida que castiga más quedarse corto que pasarse,
-que es lo que importa al planificar dotación. Luego el ganador se reajusta con
-toda la historia y sus intervalos se ensanchan si en el backtest resultaron
-estrechos (ver `--sin-calibrar`).
+[Ventanas del backtest](#ventanas-del-backtest)), y la tabla del resumen muestra su error
+promedio. La medida principal es la **pérdida por cuantil P80**, que castiga más quedarse
+corto que pasarse, que es lo que importa al planificar dotación.
 
-Combinar modelos en vez de elegir uno también es posible: agrega `Ensamble` (la mediana de
-AutoARIMA, Armónico y MSTL) a los modelos y compite en el mismo backtest. Si un modelo falla
-al ajustarse, se omite y el resumen lo informa.
+El pronóstico lo hace Ensamble, reajustado con toda la historia, aunque otro modelo haya
+tenido menos error en esas ventanas: elegir así rindió peor (ver
+[Combinar o elegir](#combinar-o-elegir)). Con `--criterio`, en cambio, se usa el de menor
+error según ese criterio (ver [Elegir el criterio](#elegir-el-criterio)). Los intervalos son
+los del modelo; `--calibrar` los ensancha si en el backtest resultaron estrechos (ver
+[Calibrar los intervalos](#calibrar-los-intervalos)). Si un modelo falla al ajustarse, se omite y el resumen lo
+informa.
+
+### Combinar o elegir
+
+Hasta noviembre de 2026, el paquete elegía en cada establecimiento el modelo de menor
+pérdida P80 en el backtest. Ningún modelo gana en todos lados, así que elegir parecía
+razonable. Se midió si rinde, en noviembre de 2026, con datos al 1 de noviembre, en los
+mismos 40 hospitales del estudio de [regresores](regresores.md)
+(`experiments/combinar_vs_elegir.py`). En 11 fechas entre octubre de 2024 y mayo de 2026,
+cada estrategia se aplicó con lo que se sabía en esa fecha (3 ventanas de 24 semanas) y se
+evaluó en las 24 semanas siguientes, sin calibrar.
+
+| Estrategia | Pérdida P80 frente a elegir (mediana) | Hospitales mejor / peor | WIS frente a elegir (mediana) | Hospitales mejor / peor |
+|---|---|---|---|---|
+| Elegir el de menor pérdida P80 (antes) | — | — | — | — |
+| **Siempre Ensamble (ahora)** | **−7,4 %** | **29 / 11** | **−9,3 %** | **33 / 7** |
+| Elegir, con Ensamble compitiendo | −0,6 % | 23 / 12 | −0,7 % | 29 / 6 |
+| Siempre Armónico | −0,6 % | 20 / 19 | −1,2 % | 22 / 17 |
+| Siempre MSTL | −0,4 % | 20 / 20 | −1,4 % | 24 / 16 |
+| Siempre AutoARIMA | +2,5 % | 17 / 23 | −1,8 % | 21 / 19 |
+| Siempre SeasonalNaive | +11,9 % | 14 / 26 | +21,7 % | 6 / 34 |
+
+- **Ensamble rinde más que elegir**, de forma consistente: con una prueba de signos sobre
+  los hospitales, p = 0,01 para la pérdida P80 y p < 0,01 para el WIS. La ventaja aparece
+  en las dos mitades del período (−7,1 % hasta junio de 2025, −5,0 % desde julio) y frente
+  a cada modelo por separado: le gana al Armónico en 29 hospitales de 40, al MSTL en 32 y
+  al AutoARIMA en 34.
+- **Elegir no rinde más que fijar un modelo.** Con 3 ventanas el ganador es en buena parte
+  azar (ver [Ventanas del backtest](#ventanas-del-backtest)): elegir terminó usando
+  SeasonalNaive en el 18 % de los casos, y es el que peor rinde después. Que Ensamble
+  compita en la elección casi no cambia nada: se elige solo una de cada cuatro veces.
+- **Coincide con la literatura.** Combinar pronósticos estuvo entre lo más preciso de la
+  competencia M4 (Makridakis y otros, 2020), y la mediana descarta al modelo que se desvía.
+
+Por eso Ensamble pronostica por defecto. Elegir sigue disponible con `--criterio` (o
+`select_by` en `run_forecast`), por ejemplo si tu criterio es otro que la pérdida P80.
+
+### Calibrar los intervalos
+
+Hasta noviembre de 2026, los intervalos también se ensanchaban por defecto según el error
+del backtest: un factor por cuantil, que nunca los angosta. En la misma medición, calibrar
+empeoró la pérdida P80 del modelo elegido en 30 de 38 hospitales (mediana +4,7 %) y la de
+Ensamble en 30 de 33 (+6,1 %), y el WIS de Ensamble en 37 de 39. Sin calibrar, lo real ya
+quedaba bajo el P80 el 80 % de las semanas con el modelo elegido y el 84 % con Ensamble;
+calibrar lo llevaba a 83 y 86 %, más margen del que el P80 promete.
+
+Calibrar solo ayudó en las ventanas en que el modelo se quedó muy corto (lo real sobre el
+P80 en más de la mitad de las semanas, típicamente porque la demanda cambió de nivel): ahí
+bajó la pérdida un 9 %. Pero eso no se sabe de antemano. Por eso quedó desactivado por
+defecto: `--calibrar` (o `calibrate=True`) lo activa, y el resumen lo sugiere cuando el P80
+quedó bajo lo real en mucho más de 1 de cada 5 semanas del backtest. La
+[hoja de ruta](roadmap.md) propone una calibración que también angoste.
 
 ### Elegir el criterio
 
-El P80 es una elección, no un dato: equivale a decir que quedarse corto cuesta 4 veces más
-que pasarse. Quien usa el paquete puede elegir otro con `--criterio` (o `select_by` en
-`run_forecast` y `metric` en `compare_models`). Si quedarse corto cuesta *k* veces más que
-pasarse, el cuantil que corresponde es *k* / (*k* + 1) (Gneiting, 2011; las fuentes de esta
-página están en [Referencias](referencias.md)):
+Si eliges el modelo con `--criterio` (o `select_by` en `run_forecast`), o comparas dos con
+`comparar` (`metric` en `compare_models`, `p80` por defecto), el criterio es una elección,
+no un dato. El P80 equivale a decir que quedarse corto cuesta 4 veces más que pasarse. Si
+quedarse corto cuesta *k* veces más que pasarse, el cuantil que corresponde es *k* / (*k* +
+1) (Gneiting, 2011; las fuentes de esta página están en [Referencias](referencias.md)):
 
 | `--criterio` | Mide | Úsalo si quedarse corto cuesta… |
 |---|---|---|
 | `p50` | pérdida en el P50 | lo mismo que pasarse |
-| `p80` (por defecto) | pérdida en el P80 | 4 veces más |
+| `p80` | pérdida en el P80 | 4 veces más |
 | `p90` | pérdida en el P90 | 9 veces más |
 | `p95` | pérdida en el P95 | 19 veces más |
 | `media` | promedio de las pérdidas de P50 a P95 | no quieres fijar un costo: evalúa el valor central y la parte alta juntos |
@@ -83,8 +140,8 @@ ancho que siempre acierta paga el ancho. Menor es mejor, y se mide en atenciones
 semana, como el MAE: si el pronóstico fuera solo el valor central, el WIS sería el MAE.
 
 Para calcularlo, los modelos entregan además P5, P10 y P20. Los incluidos lo hacen, y con
-`--criterio wis` esos cuantiles aparecen también en el pronóstico y en el CSV, calibrados
-igual que los de arriba. Un modelo propio que no los entregue queda fuera de la elección
+`--criterio wis` esos cuantiles aparecen también en el pronóstico y en el CSV (con
+`--calibrar`, calibrados igual que los de arriba). Un modelo propio que no los entregue queda fuera de la elección
 con este criterio (su WIS sale vacío).
 
 `media` se le parece, pero solo mira de la mediana hacia arriba: mide bien la parte que
@@ -96,8 +153,9 @@ otros, 2024); citas completas en [Referencias](referencias.md).
 
 ### Ventanas del backtest
 
-Por defecto el modelo se elige, y sus intervalos se calibran, con 3 ventanas tan largas como
-el horizonte, cada 8 semanas. Con el horizonte de 26 semanas eso implica:
+El backtest usa 3 ventanas tan largas como el horizonte, cada 8 semanas. Con `--criterio` o
+`--calibrar`, son las que eligen el modelo y calibran los intervalos. Con el horizonte de
+26 semanas eso implica:
 
 - **Menos semanas de las que parece.** Las ventanas se superponen: juntas cubren las
   últimas 42 semanas (unos 10 meses), no 78, y las del medio cuentan tres veces. Con 12
@@ -132,20 +190,21 @@ siguientes, que ninguna de esas ventanas vio.
   elegir sabiendo qué pasó, el mejor en cada ventana de prueba, habría bajado la pérdida
   P80 un 21 %. Hay diferencias entre los modelos, pero este historial no permite
   anticiparlas: con una medida tan ruidosa, la elección se sobreajusta (Cawley y Talbot,
-  2010; ver [Referencias](referencias.md)).
+  2010; ver [Referencias](referencias.md)). Por eso el paquete ya no elige por defecto
+  (ver [Combinar o elegir](#combinar-o-elegir)).
 - **La calibración tampoco mejoró en esas fechas.** Sin calibrar, lo real quedó bajo el
   P80 el 83 % de las semanas (se busca el 80 %). Calibrar lo subió a 85 % sin bajar la
-  pérdida P80 (mediana 0,0 %; en total, +3 %). La [hoja de ruta](roadmap.md) propone una
-  calibración mejor.
+  pérdida P80 (mediana 0,0 %; en total, +3 %). Ver [Calibrar los intervalos](#calibrar-los-intervalos).
 
 Son 5 fechas en 8 meses y 40 hospitales: alcanza para ver que más ventanas no traen una
 mejora clara, no para descartar una pequeña.
 
-**Qué se decidió.** Se mantienen 3 ventanas por defecto. Más ventanas no eligen mejor,
-tardan más (cada ventana ajusta todos los modelos de nuevo: 6 ventanas, el doble de
-tiempo) y miran más atrás. En la demo, que actualiza 602 establecimientos cada semana en
-unos 45 minutos, duplicarían ese tiempo. Si te importa que el modelo no cambie de una
-actualización a otra, por ejemplo en un informe periódico, usa 6.
+**Qué se decidió.** Se mantienen 3 ventanas. Por defecto ya no se elige el modelo (ver
+[Combinar o elegir](#combinar-o-elegir)), así que las ventanas solo muestran cómo le fue a
+cada uno. Si eliges con `--criterio`, más ventanas no eligen mejor y tardan más (cada
+ventana ajusta todos los modelos de nuevo: 6 ventanas, el doble de tiempo); úsalas si te
+importa que el modelo no cambie de una actualización a otra, por ejemplo en un informe
+periódico.
 
 **Cambiarlas.** `--ventanas N` y `--paso SEMANAS` en `pronosticar` y `demo`; `origins` y
 `step` en `run_forecast`. Cada ventana necesita 104 semanas de historia antes de ella, así
@@ -157,6 +216,22 @@ urg-forecast pronosticar 24-105 --ventanas 6
 ```
 
 ## Modelos por defecto
+
+### Ensamble
+
+Ajusta AutoARIMA, Armónico y MSTL y toma la mediana de sus pronósticos, cuantil
+por cuantil. Es el que pronostica por defecto. Código en
+`src/urgencias_core/models/ensemble.py`.
+
+- **Para qué sirve:** combinar modelos razonables reduce el error promedio, porque la
+  mediana descarta al que se desvía. No siempre gana una ventana en particular, pero en
+  40 hospitales rindió mejor que elegir el mejor modelo de cada uno (ver
+  [Combinar o elegir](#combinar-o-elegir)).
+- **Costo:** el de los tres modelos juntos (unos pocos segundos). En el backtest no se
+  ajustan de nuevo: se combinan los pronósticos que ya hicieron.
+- **Para experimentar:** `MedianEnsemble` acepta cualquier conjunto de modelos. Pásalo
+  como `partial(MedianEnsemble, miembros)`: si los miembros están en el mismo backtest,
+  se combinan sus pronósticos en vez de ajustarlos dos veces.
 
 ### SeasonalNaive
 
@@ -225,17 +300,6 @@ tendencia suavizada.
   estacionalidad. Si Theta le gana a los demás en tu establecimiento, la serie
   probablemente tiene poco ciclo anual.
 
-### Ensamble
-
-Ajusta AutoARIMA, Armónico y MSTL y toma la mediana de sus pronósticos, cuantil
-por cuantil. Código en `src/urgencias_core/models/ensemble.py`.
-
-- **Para qué probarlo:** combinar modelos razonables suele reducir el error
-  promedio, porque la mediana descarta al que se desvía. No siempre gana una
-  ventana en particular, pero suele ser más estable.
-- **Costo:** el de los tres modelos juntos (unos pocos segundos).
-- **Para experimentar:** `MedianEnsemble` acepta cualquier conjunto de modelos.
-
 ### ArmónicoFeriados y ArmónicoCalendario
 
 El Armónico más variables del **calendario chileno** por semana DEIS, que se conocen de
@@ -271,7 +335,8 @@ Cualquier clase con `fit(history, target_col)` y `predict(horizon)` que devuelva
 corres el comando y compárala con los incluidos:
 
 ```bash
-urg-forecast pronosticar 24-105 -m mi_modelo:MiClase -m AutoARIMA -m MSTL
+urg-forecast pronosticar 24-105 -m mi_modelo:MiClase -m AutoARIMA -m MSTL   # gana el mejor
+urg-forecast pronosticar 24-105 -m mi_modelo:MiClase -m Ensamble            # frente al de por defecto
 ```
 
 El paso a paso, con un modelo completo y cómo leer el resultado, está en
@@ -283,6 +348,7 @@ El paso a paso, con un modelo completo y cómo leer el resultado, está en
   `load_deis(..., source="deis")` las entrega por causa y grupo de edad.
 - Sumar los feriados a los modelos por defecto, después de evaluarlos a 26 semanas y en
   establecimientos pequeños.
-- Calibrar los intervalos por horizonte en vez de con un solo factor.
+- Una calibración que también angoste los intervalos, por horizonte o conformal, y que
+  rinda mejor que no calibrar.
 
 El detalle de cada punto está en la [hoja de ruta](roadmap.md).

@@ -101,6 +101,19 @@ def _calibration_line(result: ForecastResult) -> str:
     return f"Intervalos del pronóstico ensanchados según ese error: {parts}."
 
 
+LOW_COVERAGE = 0.65  # backtest share of weeks at or below the P80 far from its 80 %
+
+
+def _coverage_line(result: ForecastResult) -> str:
+    covered, n = result.coverage80
+    if result.interval_scale or not n or covered / n >= LOW_COVERAGE:
+        return ""
+    return (
+        "Bastante menos que el 80 % esperable, lo típico cuando la demanda cambia de nivel;\n"
+        "si eso sigue, --calibrar ensancha las bandas según ese error."
+    )
+
+
 def _reference_line(result: ForecastResult) -> str:
     """When the default model is used and another one scored better in the backtest."""
     if result.select_by is not None or "qloss_80" not in result.backtest:
@@ -142,6 +155,7 @@ def summary_text(result: ForecastResult, today: date | None = None) -> str:
         _backtest_title(result),
         backtest_table(result),
         f"Con {result.best}, el valor real quedó bajo el P80 en {covered} de {n_bt} semanas.",
+        *([_coverage_line(result)] if _coverage_line(result) else []),
         *([_reference_line(result)] if _reference_line(result) else []),
         *([_calibration_line(result)] if _calibration_line(result) else []),
         *(

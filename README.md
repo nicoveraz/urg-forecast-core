@@ -38,7 +38,7 @@ urg-forecast pronosticar 24-105                        # backtest + pronóstico 
 urg-forecast pronosticar 24-105 -H 6m                  # elige el horizonte: 12, 12s (semanas) o 6m (meses)
 urg-forecast modelos                                   # lista los modelos disponibles
 urg-forecast pronosticar 24-105 -m AutoARIMA           # usa un modelo en vez de comparar
-urg-forecast pronosticar 24-105 -m Ensamble -m TBATS   # prueba modelos extra
+urg-forecast pronosticar 24-105 -m TBATS -m Theta      # prueba modelos extra
 urg-forecast pronosticar 24-105 -m mi_modulo:MiModelo  # o un modelo propio
 ```
 
@@ -57,34 +57,39 @@ Usa `urg-forecast -h`, o `urg-forecast <comando> -h`, para ver todas las
 opciones con ejemplos. El detalle está en la
 [referencia de comandos](#referencia-de-comandos).
 
-Ejemplo de salida de `urg-forecast demo` con datos DEIS en vivo, el 5 de octubre de 2026:
+Ejemplo de salida de `urg-forecast demo` con la copia de datos DEIS al 1 de noviembre de 2026:
 
 ```text
 Hospital de Puerto Montt (24-105)
 =================================
 
-Datos      DEIS MINSAL (descarga actualizada); atenciones totales por semana
-Historia   2022-01-10 a 2026-09-14 (245 semanas completas; 2020–2021 excluidos)
+Datos      DEIS MINSAL, copia semanal del repositorio (al 2026-11-01); atenciones totales por semana
+Historia   2022-01-10 a 2026-10-19 (250 semanas completas; 2020–2021 excluidos)
 Horizonte  26 semanas
 
-Backtest: 3 ventanas de 26 semanas, promedio (el modelo elegido se marca con *)
+Backtest: 3 ventanas de 26 semanas, promedio (* pronostica; los demás, de referencia)
 +---------------+-------+----------+---------------+
 | Modelo        |   MAE |   MAPE % |   Pérdida P80 |
 |---------------+-------+----------+---------------|
-| Armónico *    |   207 |     10.7 |          91.0 |
-| MSTL          |   231 |     11.9 |          91.6 |
-| AutoARIMA     |   232 |     11.7 |         104.0 |
-| SeasonalNaive |   359 |     17.6 |         230.0 |
+| Armónico      |   211 |     10.4 |          96.3 |
+| Ensamble *    |   219 |     10.8 |         106.6 |
+| AutoARIMA     |   224 |     11.0 |         108.4 |
+| MSTL          |   241 |     11.9 |         113.6 |
+| SeasonalNaive |   403 |     19.7 |         259.2 |
 +---------------+-------+----------+---------------+
-Con Armónico, el valor real quedó bajo el P80 en 24 de 78 semanas.
-Intervalos del pronóstico ensanchados según ese error: P80 x2.8, P90 x2.6, P95 x2.1.
+Con Ensamble, el valor real quedó bajo el P80 en 30 de 78 semanas.
+Bastante menos que el 80 % esperable, lo típico cuando la demanda cambia de nivel;
+si eso sigue, --calibrar ensancha las bandas según ese error.
+Armónico tuvo menor pérdida P80 en estas ventanas; con tan pocas semanas eso
+es en buena parte azar. Elegir así rindió peor que Ensamble en 40 hospitales
+(docs/modelos.md). Para elegir igual: --criterio p80.
 
-Pronóstico con Armónico: atenciones semanales
+Pronóstico con Ensamble: atenciones semanales
 +--------------------+-------+-------+-------+
 | Semana (termina)   |   P50 |   P80 |   P95 |
 |--------------------+-------+-------+-------|
-| 2026-09-21         |  2042 |  2259 |  2350 |
-| 2026-09-28         |  2027 |  2284 |  2393 |
+| 2026-10-26         |  1951 |  2014 |  2086 |
+| 2026-11-02         |  1914 |  1987 |  2068 |
 | ...                |       |       |       |
 ```
 
@@ -106,11 +111,11 @@ Pronóstico con Armónico: atenciones semanales
 |---|---|---|
 | `-H`, `--horizonte` | demo, pronosticar | Horizonte: semanas (`12`, `12s`) o meses (`6m`). Por defecto 26 semanas. |
 | `-o`, `--salida` | demo, analizar, pronosticar | Carpeta de salida (por defecto `./urg-forecast-salida`); una subcarpeta por establecimiento. |
-| `-m`, `--modelo` | demo, pronosticar | Modelo a usar, repetible. Nombre de `urg-forecast modelos` o `archivo:Clase` para uno propio. Ver [Modelos](#modelos). |
+| `-m`, `--modelo` | demo, pronosticar | Modelo a comparar en el backtest, repetible. Nombre de `urg-forecast modelos` o `archivo:Clase` para uno propio. Si `Ensamble` no está entre ellos, pronostica el de menor pérdida P80. Ver [Modelos](#modelos). |
 | `--base`, `--ventanas`, `--paso` | comparar | Modelo base (Armónico), número de ventanas (36) y semanas entre ellas (4). Con `comparar`, `-H` es el largo de cada ventana (4 semanas). |
-| `--sin-calibrar` | demo, pronosticar | No ensanchar los intervalos según el error del backtest. |
-| `--criterio` | demo, pronosticar, comparar | Con qué se elige (o compara) el modelo: `p80` (por defecto), `p50`, `p90`, `p95`, `media` (promedio de P50 a P95), `wis` (puntaje de intervalos, de P5 a P95) o `mae`. Ver [Modelos](#modelos). |
-| `--ventanas`, `--paso` | demo, pronosticar | Ventanas del backtest con que se elige el modelo y se calibran los intervalos (3) y semanas entre ellas (8). Ver [Modelos](#modelos). |
+| `--calibrar` | demo, pronosticar | Ensanchar los intervalos según el error del backtest. Desactivado por defecto: en 40 hospitales empeoró la pérdida P80 en la mayoría. |
+| `--criterio` | demo, pronosticar, comparar | En `pronosticar` y `demo`, elegir el modelo con el backtest en vez de usar Ensamble; en `comparar`, qué se compara (`p80` por defecto). Opciones: `p80`, `p50`, `p90`, `p95`, `media` (promedio de P50 a P95), `wis` (puntaje de intervalos, de P5 a P95) o `mae`. Ver [Modelos](#modelos). |
+| `--ventanas`, `--paso` | demo, pronosticar | Ventanas del backtest (3) y semanas entre ellas (8). Con `--criterio` o `--calibrar`, son las que eligen el modelo y calibran los intervalos. Ver [Modelos](#modelos). |
 | `--desde AÑO` | analizar, pronosticar | Primer año DEIS a usar (por defecto 2022). 2020–2021 siempre se excluyen. |
 | `--offline` | demo, analizar, pronosticar | Solo el snapshot incluido, sin red. El snapshot trae únicamente los dos hospitales del demo. |
 | `--fuente repo\|deis` | demo, buscar, analizar, pronosticar | De dónde leer los datos (ver abajo). Por defecto `repo`. |
@@ -194,15 +199,17 @@ y MINSAL, [tipos de servicios de urgencia](https://www.minsal.cl/servicios-de-ur
    los extremos se descartan, porque el DEIS reporta con rezago). Se excluyen
    2020–2021 por la pandemia, y los archivos 2017–2019 (xlsx/mdb) todavía no se
    leen, así que en la práctica la historia parte en 2022 aunque uses `--desde`.
-3. Compara cuatro modelos (seasonal naive como referencia, AutoARIMA, una
-   regresión armónica y MSTL) en tres ventanas de backtest tan largas como el
-   horizonte (máximo 26 semanas), y elige el de menor pérdida por cuantil P80
-   promedio (`--criterio` usa otro). Con datos en vivo de siete hospitales ningún modelo ganó en todos,
-   así que la elección se hace por establecimiento; ver
-   [`docs/seleccion-de-modelos.md`](https://github.com/nicoveraz/urg-forecast-core/blob/main/docs/seleccion-de-modelos.md).
-4. Reajusta ese modelo con toda la historia y pronostica el horizonte pedido.
-5. Ensancha los intervalos del pronóstico según el error del backtest cuando
-   ahí resultaron estrechos (nunca los angosta). `--sin-calibrar` lo desactiva.
+3. Mide cinco modelos en tres ventanas de backtest tan largas como el horizonte
+   (máximo 26 semanas): seasonal naive como referencia, AutoARIMA, una regresión
+   armónica, MSTL y Ensamble, la mediana de los tres anteriores.
+4. Pronostica con Ensamble, reajustado con toda la historia. Ningún modelo gana
+   en todos los establecimientos, pero elegir el que mejor le fue en el backtest
+   tampoco sirve: en 40 hospitales, usar siempre Ensamble rindió mejor (ver
+   [`docs/modelos.md`](https://github.com/nicoveraz/urg-forecast-core/blob/main/docs/modelos.md#combinar-o-elegir)).
+   `--criterio` elige el modelo con el backtest de todas formas.
+5. Entrega los intervalos del modelo tal cual. `--calibrar` los ensancha según el
+   error del backtest; no se hace por defecto porque en esos 40 hospitales
+   empeoró la pérdida P80 en la mayoría.
 
 Cada uno de estos pasos se apoya en literatura revisada por pares; las fuentes, con dónde se
 usa cada una, están en [Referencias](https://github.com/nicoveraz/urg-forecast-core/blob/main/docs/referencias.md).
@@ -242,18 +249,18 @@ El valor está en lo que le agregues. Para eso son las dos secciones que siguen.
 <!-- sitio:modelos -->
 ## Modelos
 
-Por defecto se comparan cuatro y se usa el mejor. Hay otros siete para
-experimentar, que se activan con `-m`:
+Por defecto pronostica Ensamble, y los otros cuatro se miden en el mismo backtest como
+referencia. Hay otros seis para experimentar, que se activan con `-m`:
 
 | Modelo | Por defecto | En pocas palabras |
 |---|---|---|
-| SeasonalNaive | sí | referencia: la misma semana de años anteriores |
-| AutoARIMA | sí | ARIMA estacional de 52 semanas, búsqueda acotada |
-| Armónico | sí | tendencia + ciclo anual (Fourier) + ARIMA en los residuos |
-| MSTL | sí | descomposición estacional + tendencia ETS |
+| Ensamble | pronostica | mediana de AutoARIMA, Armónico y MSTL |
+| SeasonalNaive | se compara | referencia: la misma semana de años anteriores |
+| AutoARIMA | se compara | ARIMA estacional de 52 semanas, búsqueda acotada |
+| Armónico | se compara | tendencia + ciclo anual (Fourier) + ARIMA en los residuos |
+| MSTL | se compara | descomposición estacional + tendencia ETS |
 | TBATS | | estacionalidad trigonométrica con Box-Cox; lento |
 | Theta | | solo tendencia; sirve de contraste |
-| Ensamble | | mediana de AutoARIMA, Armónico y MSTL |
 | ArmónicoFeriados | | Armónico + feriados chilenos en día hábil |
 | ArmónicoCalendario | | Armónico + feriados, interferiados y vacaciones escolares |
 | ArmónicoFluNet | | Armónico + circulación viral (OMS FluNet); ejemplo de fuente externa |
@@ -262,7 +269,7 @@ experimentar, que se activan con `-m`:
 Los nombres no distinguen mayúsculas ni tildes (`-m armonicoferiados` sirve).
 Qué hace cada uno, cuándo conviene y cómo agregar el tuyo está en
 [`docs/modelos.md`](https://github.com/nicoveraz/urg-forecast-core/blob/main/docs/modelos.md).
-Por qué esos cuatro van por defecto, en
+Por qué esos modelos y por qué combinarlos en vez de elegir uno, en
 [`docs/seleccion-de-modelos.md`](https://github.com/nicoveraz/urg-forecast-core/blob/main/docs/seleccion-de-modelos.md).
 
 <!-- sitio:extender -->
@@ -284,6 +291,7 @@ from urgencias_core import load_deis, weekly_series, run_forecast
 df = load_deis(["24-105"])
 semanal = weekly_series(df, "24-105")             # timestamp, count
 resultado = run_forecast(semanal, horizon_weeks=12)
+resultado.best                                     # "Ensamble"
 resultado.backtest                                 # por modelo, promedio de las ventanas
 resultado.forecast                                 # timestamp, q50, q80, q90, q95
 ```
@@ -365,7 +373,9 @@ Acá la regla simple pierde: no sigue los cambios de nivel recientes. Ese es el
 punto de comparar antes de confiar en un modelo. Si el tuyo gana de forma
 consistente en tu establecimiento, úsalo solo con `-m mi_modelo:PromedioAnual`.
 
-**Desde Python** es lo mismo: agrega tu clase a los modelos por defecto.
+**Desde Python** es lo mismo: agrega tu clase a los modelos por defecto. Su backtest
+aparece junto al de los demás; el pronóstico sigue siendo de Ensamble, salvo que pidas
+elegir con un criterio.
 
 ```python
 from urgencias_core import default_models
@@ -374,6 +384,7 @@ from mi_modelo import PromedioAnual
 modelos = default_models() | {"PromedioAnual": PromedioAnual}
 resultado = run_forecast(semanal, 12, models=modelos)
 print(resultado.backtest)
+elegido = run_forecast(semanal, 12, models=modelos, select_by="qloss_80")  # gana el mejor
 ```
 
 Más ejemplos en `src/urgencias_core/models/`: `harmonic.py` (regresión con

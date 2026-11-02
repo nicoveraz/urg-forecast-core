@@ -65,9 +65,10 @@ def main(argv: list[str] | None = None) -> None:
     assert list(pred.columns) == ["timestamp", "q50", "q80", "q90", "q95"]
     assert (pred["q50"] <= pred["q80"]).all() and (pred["q80"] <= pred["q95"]).all()
 
-    # 2. Junto a los modelos por defecto, como lo haría `urg-forecast pronosticar`.
+    # 2. Junto a los modelos por defecto, como lo haría `urg-forecast pronosticar`. Se
+    #    pronostica con Ensamble; con select_by="qloss_80" ganaría el de menor pérdida P80.
     modelos = default_models() | {"PromedioAnual": PromedioAnual}
-    resultado = run_forecast(semanal, 12, models=modelos, calibrate=False)
+    resultado = run_forecast(semanal, 12, models=modelos)
     print(resultado.backtest[["mae", "qloss_80"]].sort_values("qloss_80").round(1))
 
     # 3. Contra el Armónico en muchas ventanas de 4 semanas: gana, pierde y veredicto.

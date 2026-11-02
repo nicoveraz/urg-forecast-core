@@ -34,21 +34,20 @@ conocer todo el paquete. Dónde va cada cosa está en [Arquitectura](arquitectur
 
 - **Intervalos que se quedan cortos cuando cambia el nivel.** Cuando la demanda sube de un
   año a otro, el P80 queda bajo lo real en muchas más semanas de lo esperado (en el Hospital
-  de Puerto Montt, a octubre de 2026, cubrió el 26 % de las semanas del backtest). Hoy
-  `eval/calibration.py` lo corrige ensanchando las bandas con un solo factor para todo el
-  horizonte. Faltan una calibración por horizonte (o conformal) y medir la cobertura en
-  muchos establecimientos, no solo en uno. Una primera medición, en 40 hospitales y 5 fechas
-  entre septiembre de 2025 y mayo de 2026, dio que lo real quedó bajo el P80 el 83 % de las
-  semanas y que calibrar lo subió a 85 % sin bajar la pérdida P80 (ver
-  [Ventanas del backtest](modelos.md#ventanas-del-backtest)).
-- **Elegir o combinar.** Elegir el modelo por establecimiento rindió igual que usar siempre
-  el Armónico, y elegir con 6 o 9 ventanas tampoco eligió mejor (mismo enlace). Falta medir
-  si combinar los modelos (`Ensamble`) rinde más que elegir uno.
+  de Puerto Montt, a noviembre de 2026, cubrió el 38 % de las semanas del backtest).
+  `eval/calibration.py` ensancha las bandas con un solo factor para todo el horizonte, pero
+  en 40 hospitales empeoró la pérdida P80 en la mayoría, así que quedó desactivado por
+  defecto (ver [Calibrar los intervalos](modelos.md#calibrar-los-intervalos)). Falta una calibración que también
+  angoste, por horizonte o conformal, y que rinda mejor que no calibrar.
+- **Un ensamble mejor.** Ensamble pronostica por defecto porque rindió más que elegir un
+  modelo por establecimiento (ver [Combinar o elegir](modelos.md#combinar-o-elegir)). Falta
+  probar otros miembros (TBATS, ArmónicoFeriados) o pesos sacados del backtest, siempre
+  frente a la mediana simple de los tres actuales.
 - **Feriados en los modelos por defecto.** `ArmónicoFeriados` mejoró la pérdida P80 en 19 de
   los 40 hospitales con más atenciones y no empeoró en ninguno (ver
   [Regresores](regresores.md)), pero hoy es opcional. Antes de sumarlo a los modelos por
   defecto falta evaluarlo a 26 semanas (el horizonte por defecto), en establecimientos
-  pequeños (SAPU, SUR) y en cómo cambia la elección del modelo.
+  pequeños (SAPU, SUR) y como miembro de Ensamble.
 - **Granularidad diaria.** Todo es semanal. Pasar a diario exige revisar el rezago con que
   el DEIS completa cada día.
 

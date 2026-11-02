@@ -7,6 +7,26 @@ API puede cambiar entre versiones menores).
 
 ## [Sin publicar]
 
+### Cambiado
+
+- **Ensamble pronostica por defecto, en vez de elegir un modelo por establecimiento.**
+  `run_forecast`, `pronosticar` y la demo usan `Ensamble` (la mediana de AutoARIMA, Armónico
+  y MSTL), que pasa a `default_models()`; los otros cuatro siguen en el backtest como
+  referencia. En 40 hospitales y 11 fechas, usar siempre Ensamble bajó la pérdida P80 un
+  7,4 % frente a elegir (mediana; mejor en 29 de 40) y el WIS un 9,3 % (mejor en 33 de 40);
+  ver `docs/modelos.md` ("Combinar o elegir") y `experiments/combinar_vs_elegir.py`. Para
+  elegir como antes: `--criterio p80` o `select_by="qloss_80"`. Con `-m` sin Ensamble, se
+  usa el de menor pérdida P80, como antes. `ForecastResult.select_by` es `None` cuando no se
+  eligió.
+- **La calibración de intervalos queda desactivada por defecto** (`calibrate=False`): en
+  esa misma medición empeoró la pérdida P80 en 30 de 38 hospitales. `--calibrar` la activa;
+  `--sin-calibrar` se sigue aceptando y no hace nada. El resumen sugiere `--calibrar` cuando
+  el P80 cubrió mucho menos del 80 % de las semanas del backtest.
+- **El backtest no ajusta dos veces los miembros de un ensamble**: un
+  `partial(MedianEnsemble, miembros)` cuyos miembros están en el mismo backtest se combina
+  desde sus pronósticos (`median_of`), con el mismo resultado. Por eso medir Ensamble junto a
+  los otros cuatro cuesta casi lo mismo que antes.
+
 ### Agregado
 
 - **La demo avanza de lo más simple a lo más detallado**, en cinco secciones numeradas y

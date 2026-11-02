@@ -1,8 +1,10 @@
 # Elección de modelos
 
-El comando compara cuatro modelos y pronostica con el que tenga menor pérdida
-por cuantil P80 en un backtest con varias ventanas. Esta nota resume por qué
-son esos cuatro. El experimento completo está en
+El comando pronostica con Ensamble, la mediana de AutoARIMA, Armónico y MSTL, y muestra
+esos tres y SeasonalNaive como referencia. Esta nota resume por qué son esos modelos, a
+partir de una comparación de octubre de 2026. Por qué se combinan en vez de elegir uno por
+establecimiento, como se hacía hasta noviembre de 2026, está en
+[Modelos](modelos.md#combinar-o-elegir). El experimento completo está en
 [`experiments/model_comparison.py`](https://github.com/nicoveraz/urg-forecast-core/blob/main/experiments/model_comparison.py).
 
 ## Datos y método
@@ -66,9 +68,11 @@ son esos cuatro. El experimento completo está en
    pronóstico queda plano: no anticipa la baja de verano.
 2. **Ningún modelo gana en todos lados.** AutoARIMA, Armónico y MSTL quedan a
    pocos puntos entre sí en promedio, y el ganador cambia según el
-   establecimiento. Por eso se elige por establecimiento.
+   establecimiento. Por eso, al principio, se elegía por establecimiento. Una medición
+   posterior en 40 hospitales mostró que esa elección es en buena parte azar y que
+   combinar los tres (Ensamble) rinde más (ver [Modelos](modelos.md#combinar-o-elegir)).
 3. **El backtest usa varias ventanas** (3 por defecto, separadas por 8 semanas)
-   para que la elección no dependa de calzar con una sola temporada.
+   para medir cada modelo en más de una temporada.
 4. **AutoARIMA usa una búsqueda acotada.** La búsqueda completa tarda unos 18 s
    por ajuste y mejora la pérdida en menos de 3%.
 5. **Cobertura.** Armónico y MSTL cubren algo menos de lo nominal a 26 semanas
@@ -77,7 +81,7 @@ son esos cuatro. El experimento completo está en
 
 ## Modelos extra
 
-TBATS, Theta, Ensamble y ArmónicoFeriados se agregaron después para
-experimentar y no forman parte de esta comparación. Se describen en
+TBATS, Theta, Ensamble y ArmónicoFeriados se agregaron después y no forman parte de
+esta comparación; Ensamble pasó a ser el modelo por defecto en noviembre de 2026. Se describen en
 [`modelos.md`](modelos.md). Si en tu establecimiento alguno gana de forma
 consistente, úsalo con `-m`.

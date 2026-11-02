@@ -13,7 +13,7 @@ repositorio.
 
 ## El recorrido de los datos
 
-![Recorrido de los datos: del DEIS a la serie semanal; de ahí al análisis y a los modelos, que pueden sumar variables externas; los modelos se evalúan, se elige el mejor y se pronostica; todo termina en informes, comandos y la demo](img/arquitectura.svg)
+![Recorrido de los datos: del DEIS a la serie semanal; de ahí al análisis y a los modelos, que pueden sumar variables externas; los modelos se evalúan y se pronostica con Ensamble; todo termina en informes, comandos y la demo](img/arquitectura.svg)
 
 1. **Datos.** `data/` lee el DEIS (la copia semanal o el snapshot incluido) y
    `weekly_series` lo deja como serie semanal: `timestamp`, `count`.
@@ -23,8 +23,9 @@ repositorio.
    en cada fecha solo lo que ya estaba publicado.
 4. **Evaluación.** `eval/` mide cada modelo en el pasado (`backtest`) y dice si un cambio
    ayuda de verdad (`compare_models`).
-5. **Pronóstico.** `forecast.py` elige el mejor según un criterio (por defecto, la pérdida
-   P80; `select_by` usa otro) y pronostica.
+5. **Pronóstico.** `forecast.py` pronostica con Ensamble, la mediana de tres modelos, y
+   muestra los demás como referencia; con un criterio (`select_by`), elige el mejor según
+   el backtest.
 6. **Resultados.** `report.py`, `cli.py` y la demo muestran el análisis y el pronóstico.
 
 Todo es un `DataFrame` de pandas: no hay clases de datos propias ni base de datos.
