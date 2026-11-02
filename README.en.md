@@ -106,6 +106,7 @@ Pronóstico con Armónico: atenciones semanales
 | `-m`, `--modelo` | demo, pronosticar | Model to use, repeatable. A name from `urg-forecast modelos` or `file:Class` for your own. See [Models](#models). |
 | `--sin-calibrar` | demo, pronosticar | Do not widen intervals by backtest error. |
 | `--criterio` | demo, pronosticar, comparar | What picks (or compares) the model: `p80` (default), `p50`, `p90`, `p95`, `media` (mean of P50 to P95), `wis` (weighted interval score, P5 to P95) or `mae`. |
+| `--ventanas`, `--paso` | demo, pronosticar | Backtest windows used to pick the model and calibrate the intervals (3) and weeks between them (8). |
 | `--desde YEAR` | pronosticar | First DEIS year to use (default 2022). 2020–2021 are always excluded. |
 | `--offline` | demo, pronosticar | Bundled snapshot only, no network. It contains only the two demo hospitals. |
 | `--fuente repo\|deis` | demo, buscar, pronosticar | Where to read data from (see below). Default `repo`. |

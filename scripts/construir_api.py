@@ -279,7 +279,11 @@ SECTIONS = [
                     ("history", "serie semanal"),
                     ("horizon_weeks", "semanas a pronosticar"),
                     ("models", "nombre → fábrica; por defecto los cuatro de `default_models()`"),
-                    ("origins, step", "número de ventanas y semanas entre ellas"),
+                    (
+                        "origins, step",
+                        "número de ventanas (3) y semanas entre ellas (8); más ventanas dan una "
+                        "elección más estable, a cambio de tiempo",
+                    ),
                     ("calibrate", "ensanchar los intervalos según el backtest"),
                     (
                         "select_by",

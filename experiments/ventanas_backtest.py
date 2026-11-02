@@ -59,6 +59,8 @@ def one(args: tuple[str, str]) -> tuple[pd.DataFrame, pd.DataFrame]:
     run = backtest(weekly, default_models(), LENGTH, 40, STEP, quantiles=WIS_QUANTILES)
     s = run.scores()
     wins = run.windows  # most recent first, STEP weeks apart
+    if s.empty or len(wins) < LENGTH // STEP + max(KS) + 1:  # no history for one test
+        return pd.DataFrame(), pd.DataFrame()
     table = s.pivot(index="origin", columns="model", values="qloss_80")
     rows = []
     gap = LENGTH // STEP  # first window that ends before the test window starts
@@ -107,17 +109,21 @@ def main() -> int:
     ap.add_argument("--espejo", required=True, help="carpeta con diario.parquet")
     ap.add_argument("--out", type=Path, default=Path("resultados_ventanas"))
     ap.add_argument("--top", type=int, default=40, help="establecimientos con más atenciones")
+    ap.add_argument("--codigos", type=Path, help="archivo con los códigos a usar, en vez de --top")
     ap.add_argument("--workers", type=int, default=2)
     args = ap.parse_args()
 
-    codes = busiest(args.espejo, args.top)
+    codes = args.codigos.read_text().split() if args.codigos else busiest(args.espejo, args.top)
+    args.out.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory() as cache:
         # mirror_rows reads <cache>/espejo/; point it at the local copy, no download
         (Path(cache) / "espejo").symlink_to(Path(args.espejo).resolve())
         with ProcessPoolExecutor(args.workers) as pool:
             parts = list(pool.map(one, [(c, cache) for c in codes]))
+    skipped = [c for c, p in zip(codes, parts, strict=True) if p[0].empty]
+    if skipped:
+        print("sin historia suficiente para una ventana de prueba:", ", ".join(skipped))
     res = pd.concat([p[0] for p in parts], ignore_index=True)
-    args.out.mkdir(parents=True, exist_ok=True)
     res.to_csv(args.out / "ventanas_por_prueba.csv", index=False)
     pd.concat([p[1] for p in parts]).to_csv(args.out / "puntajes_por_ventana.csv", index=False)
 
