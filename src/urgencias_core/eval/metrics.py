@@ -11,7 +11,8 @@ QUANTILES = (0.5, 0.8, 0.9, 0.95)
 # Score columns that can choose a model (lower is better), with their Spanish label.
 # The quantile to plan with follows from what each error costs: if falling short costs
 # k times more than over-planning, the right quantile is k / (k + 1). P50: same cost;
-# P80: 4 times; P90: 9 times; P95: 19 times. ``qloss_mean`` scores the whole forecast.
+# P80: 4 times; P90: 9 times; P95: 19 times. ``qloss_mean`` scores the median and the
+# upper tail together (not the lower tail: there are no quantiles below the median).
 CRITERIA = {
     "qloss_80": "pérdida P80",
     "qloss_50": "pérdida P50",
@@ -40,8 +41,9 @@ def score(
     """Errors of one forecast against the actual weeks.
 
     ``mae`` and ``mape`` use the median (``q50``); ``qloss_XX`` is the pinball loss at each
-    quantile and ``qloss_mean`` their average (a coarse CRPS: it scores the whole forecast,
-    not one quantile); ``covered`` counts weeks at or below ``q80`` out of ``n``.
+    quantile and ``qloss_mean`` their average: the median and the upper tail together. It is
+    not the CRPS or the WIS, which also score quantiles below the median; ``covered`` counts
+    weeks at or below ``q80`` out of ``n``.
 
     The P80 loss is split in its two parts, ``qloss_80 = qloss_80_short + qloss_80_excess``:
     weeks above ``q80`` cost 0.8 per attendance (``short``), weeks below cost 0.2

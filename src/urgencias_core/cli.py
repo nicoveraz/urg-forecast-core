@@ -137,8 +137,9 @@ CRITERIO = {
 CRITERIO_HELP = (
     "criterio para elegir el modelo en el backtest (por defecto p80). p50, p80, p90 o p95: "
     "pérdida en ese cuantil; elígelo según cuánto peor es quedarse corto que pasarse "
-    "(p50: igual; p80: 4 veces; p90: 9; p95: 19). media: promedio de P50 a P95, evalúa todo "
-    "el pronóstico. mae: error del valor central. Fíjalo antes de mirar los resultados"
+    "(p50: igual; p80: 4 veces; p90: 9; p95: 19). media: promedio de P50 a P95, evalúa el "
+    "valor central y la parte alta juntos. mae: error del valor central. Fíjalo antes de "
+    "mirar los resultados"
 )
 
 MODELS_EPILOG = """\
